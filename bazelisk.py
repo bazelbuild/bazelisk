@@ -20,27 +20,55 @@ import os.path
 import subprocess
 import shutil
 import sys
+import time
 import urllib.request
+
+ONE_HOUR = 1 * 60 * 60
 
 def decide_which_bazel_version_to_use():
     # Check in this order:
-    # - env var "USE_NIGHTLY_BAZEL" or "USE_BAZEL_NIGHTLY" is set -> latest nightly.
-    # - env var "USE_CANARY_BAZEL" or "USE_BAZEL_CANARY" is set -> latest rc.
-    # - workspace_root/tools/bazel exists -> that version.
+    # - env var "USE_BAZEL_VERSION" is set to a specific version.
+    # - env var "USE_NIGHTLY_BAZEL" or "USE_BAZEL_NIGHTLY" is set -> latest nightly. (TODO)
+    # - env var "USE_CANARY_BAZEL" or "USE_BAZEL_CANARY" is set -> latest rc. (TODO)
+    # - the file workspace_root/tools/bazel exists -> that version. (TODO)
     # - workspace_root/.bazelversion exists -> read contents, that version.
     # - workspace_root/WORKSPACE contains a version -> that version. (TODO)
     # - fallback: latest release
+    if 'USE_BAZEL_VERSION' in os.environ:
+        return os.environ['USE_BAZEL_VERSION']
+    try:
+        with open(os.path.join(find_workspace_root(), '.bazelversion'), 'r') as f:
+            return f.read().strip()
+    except FileNotFoundError:
+        pass
     return "latest"
 
-def find_workspace_root():
-    pass
+def find_workspace_root(root=None):
+    if root == None:
+        root = os.getcwd()
+    if os.path.exists(os.path.join(root, 'WORKSPACE')):
+        return root
+    new_root = os.path.dirname(root)
+    return find_workspace_root(new_root) if new_root != root else None
 
-def resolve_version_label_to_number(version):
+def resolve_latest_version():
+    req = urllib.request.Request('https://github.com/bazelbuild/bazel/releases/latest', method='HEAD')
+    res = urllib.request.urlopen(req)
+    return res.geturl().split('/')[-1]
+
+def resolve_version_label_to_number(bazelisk_directory, version):
     if version == "latest":
-        # HTTP HEAD to https://github.com/bazelbuild/bazel/releases/latest
-        # Check where it resolves to: https://github.com/bazelbuild/bazel/releases/tag/0.17.1
-        # Parse the version number from there.
-        return "0.17.1"
+        latest_cache = os.path.join(bazelisk_directory, 'latest_bazel')
+        try:
+            if abs(time.time() - os.path.getmtime(latest_cache)) < ONE_HOUR:
+                with open(latest_cache, 'r') as f:
+                    return f.read().strip()
+        except FileNotFoundError:
+            pass
+        latest_version = resolve_latest_version()
+        with open(latest_cache, 'w') as f:
+            f.write(latest_version)
+        return latest_version
     else:
         return version
 
@@ -56,8 +84,6 @@ def determine_bazel_filename(version):
     return "bazel-{}-{}-{}".format(version, operating_system, machine)
 
 def download_bazel_into_directory(version, directory):
-    # Download from here:
-    # https://releases.bazel.build/0.17.1/release/index.html
     bazel_filename = determine_bazel_filename(version)
     url = "https://releases.bazel.build/{}/release/{}".format(version, bazel_filename)
     destination_path = os.path.join(directory, bazel_filename)
@@ -71,11 +97,18 @@ def download_bazel_into_directory(version, directory):
 def main(argv=None):
     if argv is None:
         argv = sys.argv
+
+    bazelisk_directory = os.path.join(os.path.expanduser("~"), ".bazelisk")
+    os.makedirs(bazelisk_directory, exist_ok=True)
+
     bazel_version = decide_which_bazel_version_to_use()
-    bazel_version = resolve_version_label_to_number(bazel_version)
-    bazel_directory = os.path.join(os.path.expanduser("~"), ".bazelisk", "bin")
+    bazel_version = resolve_version_label_to_number(bazelisk_directory, bazel_version)
+    print('Using Bazel {}...'.format(bazel_version))
+
+    bazel_directory = os.path.join(bazelisk_directory, "bin")
     os.makedirs(bazel_directory, exist_ok=True)
     bazel_path = download_bazel_into_directory(bazel_version, bazel_directory)
+
     return subprocess.Popen([bazel_path] + argv[1:], close_fds=True).wait()
 
 if __name__ == "__main__":
