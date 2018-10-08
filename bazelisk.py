@@ -37,14 +37,16 @@ def decide_which_bazel_version_to_use():
     if 'USE_BAZEL_VERSION' in os.environ:
         return os.environ['USE_BAZEL_VERSION']
     try:
-        with open(os.path.join(find_workspace_root(), '.bazelversion'), 'r') as f:
-            return f.read().strip()
+        workspace_root = find_workspace_root()
+        if workspace_root:
+            with open(os.path.join(workspace_root, '.bazelversion'), 'r') as f:
+                return f.read().strip()
     except FileNotFoundError:
         pass
     return "latest"
 
 def find_workspace_root(root=None):
-    if root == None:
+    if root is None:
         root = os.getcwd()
     if os.path.exists(os.path.join(root, 'WORKSPACE')):
         return root
@@ -69,8 +71,7 @@ def resolve_version_label_to_number(bazelisk_directory, version):
         with open(latest_cache, 'w') as f:
             f.write(latest_version)
         return latest_version
-    else:
-        return version
+    return version
 
 def determine_bazel_filename(version):
     machine = platform.machine()
