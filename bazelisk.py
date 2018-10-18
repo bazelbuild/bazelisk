@@ -89,7 +89,7 @@ def download_bazel_into_directory(version, directory):
     url = "https://releases.bazel.build/{}/release/{}".format(version, bazel_filename)
     destination_path = os.path.join(directory, bazel_filename)
     if not os.path.exists(destination_path):
-        print("Downloading {}...".format(url))
+        sys.stderr.write("Downloading {}...".format(url))
         with urllib.request.urlopen(url) as response, open(destination_path, 'wb') as out_file:
             shutil.copyfileobj(response, out_file)
     os.chmod(destination_path, 0o755)
@@ -104,7 +104,7 @@ def main(argv=None):
 
     bazel_version = decide_which_bazel_version_to_use()
     bazel_version = resolve_version_label_to_number(bazelisk_directory, bazel_version)
-    print('Using Bazel {}...'.format(bazel_version))
+    sys.stderr.write('Using Bazel {}...\n'.format(bazel_version))
 
     bazel_directory = os.path.join(bazelisk_directory, "bin")
     os.makedirs(bazel_directory, exist_ok=True)
