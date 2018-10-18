@@ -89,7 +89,7 @@ def download_bazel_into_directory(version, directory):
     url = "https://releases.bazel.build/{}/release/{}".format(version, bazel_filename)
     destination_path = os.path.join(directory, bazel_filename)
     if not os.path.exists(destination_path):
-        sys.stderr.write("Downloading {}...".format(url))
+        sys.stderr.write("Downloading {}...\n".format(url))
         with urllib.request.urlopen(url) as response, open(destination_path, 'wb') as out_file:
             shutil.copyfileobj(response, out_file)
     os.chmod(destination_path, 0o755)
