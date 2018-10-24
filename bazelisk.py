@@ -84,14 +84,41 @@ def determine_bazel_filename(version):
 
     return "bazel-{}-{}-{}".format(version, operating_system, machine)
 
+
+def to_mb(bytes):
+    r = float(bytes)
+
+    r = r / 1024
+    r = r / 1024
+
+    return r
+
 def download_bazel_into_directory(version, directory):
     bazel_filename = determine_bazel_filename(version)
     url = "https://releases.bazel.build/{}/release/{}".format(version, bazel_filename)
     destination_path = os.path.join(directory, bazel_filename)
     if not os.path.exists(destination_path):
-        print("Downloading {}...".format(url))
-        with urllib.request.urlopen(url) as response, open(destination_path, 'wb') as out_file:
-            shutil.copyfileobj(response, out_file)
+        print("Downloading {}".format(url))
+        u = urllib.request.urlopen(url)
+        meta = u.info()
+        fileTotalbytes=int(meta.get("Content-Length"))
+        fileTotalMb = round(to_mb(fileTotalbytes), 1)
+
+        data_blocks = []
+        total = 0
+        while True:
+            block = u.read(1024)
+            data_blocks.append(block)
+            total += len(block)
+            hash = ((60*total)//fileTotalbytes)
+            print("[{}{}] {}/{}MB".format('#' * hash, ' ' * (60-hash), round(to_mb(total), 1), fileTotalMb), end="\r")
+            if not len(block):
+                print()
+                break
+
+        data = b"".join(data_blocks)
+        u.close()
+        open(destination_path, 'wb').write(data)
     os.chmod(destination_path, 0o755)
     return destination_path
 
