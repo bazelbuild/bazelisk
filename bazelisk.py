@@ -104,7 +104,6 @@ def main(argv=None):
 
     bazel_version = decide_which_bazel_version_to_use()
     bazel_version = resolve_version_label_to_number(bazelisk_directory, bazel_version)
-    print('Using Bazel {}...'.format(bazel_version))
 
     bazel_directory = os.path.join(bazelisk_directory, "bin")
     os.makedirs(bazel_directory, exist_ok=True)
