@@ -102,7 +102,7 @@ def download_bazel_into_directory(version, directory):
         u = urllib.request.urlopen(url)
         meta = u.info()
         fileTotalbytes=int(meta.get("Content-Length"))
-        fileTotalMb = round(to_mb(fileTotalbytes))
+        fileTotalMb = round(to_mb(fileTotalbytes), 1)
 
         data_blocks = []
         total = 0
