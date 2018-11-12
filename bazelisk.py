@@ -117,7 +117,11 @@ def main(argv=None):
     os.makedirs(bazel_directory, exist_ok=True)
     bazel_path = download_bazel_into_directory(bazel_version, bazel_directory)
 
-    return subprocess.Popen([bazel_path] + argv[1:], close_fds=True).wait()
+    p = subprocess.Popen([bazel_path] + argv[1:], close_fds=True)
+    try:
+        return p.wait()
+    except KeyboardInterrupt:
+        return p.wait()
 
 if __name__ == "__main__":
     sys.exit(main())
