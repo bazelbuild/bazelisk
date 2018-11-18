@@ -16,6 +16,7 @@ limitations under the License.
 '''
 
 from distutils.version import LooseVersion
+from contextlib import closing
 import json
 import platform
 import os.path
@@ -24,7 +25,12 @@ import subprocess
 import shutil
 import sys
 import time
-import urllib.request
+
+try:
+  from urllib.request import urlopen
+except ImportError:
+  # Python 2.x compatibility hack.
+  from urllib2 import urlopen
 
 ONE_HOUR = 1 * 60 * 60
 
@@ -43,13 +49,12 @@ def decide_which_bazel_version_to_use():
   if 'USE_BAZEL_VERSION' in os.environ:
     return os.environ['USE_BAZEL_VERSION']
 
-  try:
-    workspace_root = find_workspace_root()
-    if workspace_root:
-      with open(os.path.join(workspace_root, '.bazelversion'), 'r') as f:
+  workspace_root = find_workspace_root()
+  if workspace_root:
+    bazelversion_path = os.path.join(workspace_root, '.bazelversion')
+    if os.path.exists(bazelversion_path):
+      with open(bazelversion_path, 'r') as f:
         return f.read().strip()
-  except FileNotFoundError:
-    pass
 
   return 'latest'
 
@@ -64,25 +69,21 @@ def find_workspace_root(root=None):
 
 
 def resolve_latest_version():
-  req = urllib.request.Request(
-      'https://api.github.com/repos/bazelbuild/bazel/releases', method='GET')
-  res = urllib.request.urlopen(req).read().decode('utf-8')
+  res = urlopen('https://api.github.com/repos/bazelbuild/bazel/releases').read()
   return str(
       max(
           LooseVersion(release['tag_name'])
-          for release in json.loads(res)
+          for release in json.loads(res.decode('utf-8'))
           if not release['prerelease']))
 
 
 def resolve_version_label_to_number(bazelisk_directory, version):
   if version == 'latest':
     latest_cache = os.path.join(bazelisk_directory, 'latest_bazel')
-    try:
+    if os.path.exists(latest_cache):
       if abs(time.time() - os.path.getmtime(latest_cache)) < ONE_HOUR:
         with open(latest_cache, 'r') as f:
           return f.read().strip()
-    except FileNotFoundError:
-      pass
     latest_version = resolve_latest_version()
     with open(latest_cache, 'w') as f:
       f.write(latest_version)
@@ -118,11 +119,22 @@ def download_bazel_into_directory(version, directory):
   destination_path = os.path.join(directory, bazel_filename)
   if not os.path.exists(destination_path):
     sys.stderr.write("Downloading {}...\n".format(url))
-    with urllib.request.urlopen(url) as response, open(destination_path,
-                                                       'wb') as out_file:
-      shutil.copyfileobj(response, out_file)
+    with closing(urlopen(url)) as response:
+      with open(destination_path, 'wb') as out_file:
+        shutil.copyfileobj(response, out_file)
   os.chmod(destination_path, 0o755)
   return destination_path
+
+
+def maybe_makedirs(path):
+  '''
+  Creates a directory and its parents if necessary.
+  '''
+  try:
+    os.makedirs(path)
+  except OSError as e:
+    if not os.path.isdir(path):
+      raise e
 
 
 def main(argv=None):
@@ -130,14 +142,14 @@ def main(argv=None):
     argv = sys.argv
 
   bazelisk_directory = os.path.join(os.path.expanduser('~'), '.bazelisk')
-  os.makedirs(bazelisk_directory, exist_ok=True)
+  maybe_makedirs(bazelisk_directory)
 
   bazel_version = decide_which_bazel_version_to_use()
   bazel_version = resolve_version_label_to_number(bazelisk_directory,
                                                   bazel_version)
 
   bazel_directory = os.path.join(bazelisk_directory, 'bin')
-  os.makedirs(bazel_directory, exist_ok=True)
+  maybe_makedirs(bazel_directory)
   bazel_path = download_bazel_into_directory(bazel_version, bazel_directory)
 
   return subprocess.Popen([bazel_path] + argv[1:], close_fds=True).wait()
