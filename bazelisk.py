@@ -15,6 +15,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from distutils.version import LooseVersion
+import json
 import platform
 import os.path
 import subprocess
@@ -54,9 +56,14 @@ def find_workspace_root(root=None):
     return find_workspace_root(new_root) if new_root != root else None
 
 def resolve_latest_version():
-    req = urllib.request.Request('https://github.com/bazelbuild/bazel/releases/latest', method='HEAD')
-    res = urllib.request.urlopen(req)
-    return res.geturl().split('/')[-1]
+    req = urllib.request.Request('https://api.github.com/repos/bazelbuild/bazel/releases', method='GET')
+    res = urllib.request.urlopen(req).read()
+    releases = json.loads(res.decode('utf-8'))
+
+    latest_version = LooseVersion(releases[0]["tag_name"])
+    for release in releases:
+        latest_version = max(latest_version, LooseVersion(release["tag_name"]))
+    return latest_version.__str__()
 
 def resolve_version_label_to_number(bazelisk_directory, version):
     if version == "latest":
@@ -89,7 +96,7 @@ def download_bazel_into_directory(version, directory):
     url = "https://releases.bazel.build/{}/release/{}".format(version, bazel_filename)
     destination_path = os.path.join(directory, bazel_filename)
     if not os.path.exists(destination_path):
-        print("Downloading {}...".format(url))
+        sys.stderr.write("Downloading {}...\n".format(url))
         with urllib.request.urlopen(url) as response, open(destination_path, 'wb') as out_file:
             shutil.copyfileobj(response, out_file)
     os.chmod(destination_path, 0o755)
