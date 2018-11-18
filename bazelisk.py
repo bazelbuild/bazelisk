@@ -107,7 +107,8 @@ def determine_bazel_filename(version):
 
 
 def determine_url(version, bazel_filename):
-  # Split version into
+  # Split version into base version and optional additional identifier.
+  # Example: '0.19.1' -> ('0.19.1', None), '0.20.0rc1' -> ('0.20.0', 'rc1')
   (version, rc) = re.match(r'(\d*\.\d*(?:\.\d*)?)(rc\d)?', version).groups()
   return "https://releases.bazel.build/{}/{}/{}".format(
       version, rc if rc else "release", bazel_filename)
