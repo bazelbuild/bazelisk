@@ -65,13 +65,12 @@ def find_workspace_root(root=None):
 def resolve_latest_version():
   req = urllib.request.Request(
       'https://api.github.com/repos/bazelbuild/bazel/releases', method='GET')
-  res = urllib.request.urlopen(req).read()
-  releases = json.loads(res.decode('utf-8'))
-
-  latest_version = LooseVersion(releases[0]['tag_name'])
-  for release in releases:
-    latest_version = max(latest_version, LooseVersion(release['tag_name']))
-  return latest_version.__str__()
+  res = urllib.request.urlopen(req).read().decode('utf-8')
+  return str(
+      max(
+          LooseVersion(release['tag_name'])
+          for release in json.loads(res)
+          if not release['prerelease']))
 
 
 def resolve_version_label_to_number(bazelisk_directory, version):
