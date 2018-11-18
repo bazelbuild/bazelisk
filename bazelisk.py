@@ -19,6 +19,7 @@ from distutils.version import LooseVersion
 import json
 import platform
 import os.path
+import re
 import subprocess
 import shutil
 import sys
@@ -104,25 +105,16 @@ def determine_bazel_filename(version):
   return 'bazel-{}-{}-{}'.format(version, operating_system, machine)
 
 
-def determine_release_or_rc(version):
-  parts = version.lower().split("rc")
-  if len(parts) == 1:
-    # e.g. ("0.20.0", "release") for 0.20.0
-    return (version, "release")
-  elif len(parts) == 2:
-    # e.g. ("0.20.0", "rc2") for 0.20.0rc2
-    return (parts[0], "rc" + parts[1])
-  else:
-    raise Exception("Invalid version: {}. "
-                    "Versions must be in the form <x>.<y>.<z>[rc<rc-number>]"
-                    .format(version))
+def determine_url(version, bazel_filename):
+  # Split version into
+  (version, rc) = re.match(r'(\d*\.\d*(?:\.\d*)?)(rc\d)?', version).groups()
+  return "https://releases.bazel.build/{}/{}/{}".format(
+      version, rc if rc else "release", bazel_filename)
 
 
 def download_bazel_into_directory(version, directory):
   bazel_filename = determine_bazel_filename(version)
-  (parsed_version, release_or_rc) = determine_release_or_rc(version)
-  url = "https://releases.bazel.build/{}/{}/{}".format(
-      parsed_version, release_or_rc, bazel_filename)
+  url = determine_url(version, bazel_filename)
   destination_path = os.path.join(directory, bazel_filename)
   if not os.path.exists(destination_path):
     sys.stderr.write("Downloading {}...\n".format(url))
