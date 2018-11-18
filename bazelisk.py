@@ -153,7 +153,14 @@ def main(argv=None):
   maybe_makedirs(bazel_directory)
   bazel_path = download_bazel_into_directory(bazel_version, bazel_directory)
 
-  return subprocess.Popen([bazel_path] + argv[1:], close_fds=True).wait()
+  p = subprocess.Popen([bazel_path] + argv[1:], close_fds=True)
+  while True:
+    try:
+      return p.wait()
+    except KeyboardInterrupt:
+      # Bazel will also get the signal and terminate.
+      # We should continue waiting until it does so.
+      pass
 
 
 if __name__ == '__main__':
