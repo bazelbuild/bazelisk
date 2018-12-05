@@ -34,6 +34,8 @@ except ImportError:
 
 ONE_HOUR = 1 * 60 * 60
 
+LATEST_PATTERN = re.compile(r'latest(-(?P<offset>\d+))?$')
+
 
 def decide_which_bazel_version_to_use():
   # Check in this order:
@@ -68,23 +70,33 @@ def find_workspace_root(root=None):
   return find_workspace_root(new_root) if new_root != root else None
 
 
-def resolve_latest_version():
+def resolve_latest_version(offset):
   res = urlopen('https://api.github.com/repos/bazelbuild/bazel/releases').read()
-  return str(
-      max(
-          LooseVersion(release['tag_name'])
-          for release in json.loads(res.decode('utf-8'))
-          if not release['prerelease']))
+  all_versions = sorted((LooseVersion(release['tag_name']) for release in json.loads(res.decode('utf-8')) if not release['prerelease']), reverse=True)
+  if offset >= len(all_versions):
+    version = 'latest-{}'.format(offset) if offset else 'latest'
+    raise Exception('Cannot resolve version "{}": There are only {} Bazel '
+                    'releases.'.format(version, len(all_versions))) 
+  
+  return str(all_versions[offset])
 
 
-def resolve_version_label_to_number(bazelisk_directory, version):
-  if version == 'latest':
-    latest_cache = os.path.join(bazelisk_directory, 'latest_bazel')
+def resolve_version_label_to_number(version_cache_directory, version):
+  if 'latest' in version:
+    match = LATEST_PATTERN.match(version)
+    if not match:
+      raise Exception('Invalid version "{}". In addition to using a version '
+                      'number such as "0.20.0", you can use values such as '
+                      '"latest" and "latest-N", with N being a non-negative '
+                      'integer.'.format(version)) 
+    
+    offset = match.group('offset') or '0'
+    latest_cache = os.path.join(version_cache_directory, offset)
     if os.path.exists(latest_cache):
       if abs(time.time() - os.path.getmtime(latest_cache)) < ONE_HOUR:
         with open(latest_cache, 'r') as f:
           return f.read().strip()
-    latest_version = resolve_latest_version()
+    latest_version = resolve_latest_version(int(offset))
     with open(latest_cache, 'w') as f:
       f.write(latest_version)
     return latest_version
@@ -145,10 +157,13 @@ def main(argv=None):
   bazelisk_directory = os.path.join(os.path.expanduser('~'), '.bazelisk')
   maybe_makedirs(bazelisk_directory)
 
-  bazel_version = decide_which_bazel_version_to_use()
-  bazel_version = resolve_version_label_to_number(bazelisk_directory,
-                                                  bazel_version)
+  version_cache_directory = os.path.join(bazelisk_directory, 'latest_bazel')
+  maybe_makedirs(version_cache_directory)
 
+  bazel_version = decide_which_bazel_version_to_use()
+  bazel_version = resolve_version_label_to_number(version_cache_directory,
+                                                  bazel_version)
+												  
   bazel_directory = os.path.join(bazelisk_directory, 'bin')
   maybe_makedirs(bazel_directory)
   bazel_path = download_bazel_into_directory(bazel_version, bazel_directory)
