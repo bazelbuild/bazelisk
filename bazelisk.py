@@ -34,6 +34,8 @@ except ImportError:
 
 ONE_HOUR = 1 * 60 * 60
 
+OPERATING_SYSTEM = platform.system().lower()
+
 
 def decide_which_bazel_version_to_use():
   # Check in this order:
@@ -92,26 +94,36 @@ def resolve_version_label_to_number(bazelisk_directory, version):
 
 
 def determine_bazel_filename(version):
-  machine = platform.machine()
+  machine = normalized_machine_arch_name()
   if machine != 'x86_64':
     raise Exception('Unsupported machine architecture "{}". '
                     'Bazel currently only supports x86_64.'.format(machine))
 
-  operating_system = platform.system().lower()
-  if operating_system not in ('linux', 'darwin', 'windows'):
+  if OPERATING_SYSTEM not in ('linux', 'darwin', 'windows'):
     raise Exception('Unsupported operating system "{}". '
                     'Bazel currently only supports Linux, macOS and Windows.'
-                    .format(operating_system))
+                    .format(OPERATING_SYSTEM))
 
-  return 'bazel-{}-{}-{}'.format(version, operating_system, machine)
+  if machine == 'amd64':
+    machine = 'x86_64'
+  return 'bazel-{}-{}-{}'.format(version, OPERATING_SYSTEM, machine)
+
+
+def normalized_machine_arch_name():
+  machine = platform.machine().lower()
+  if machine == 'amd64':
+    machine = 'x86_64'
+  return machine
 
 
 def determine_url(version, bazel_filename):
   # Split version into base version and optional additional identifier.
   # Example: '0.19.1' -> ('0.19.1', None), '0.20.0rc1' -> ('0.20.0', 'rc1')
   (version, rc) = re.match(r'(\d*\.\d*(?:\.\d*)?)(rc\d)?', version).groups()
+
+  url_ending = '.exe' if OPERATING_SYSTEM == 'windows' else ''
   return "https://releases.bazel.build/{}/{}/{}".format(
-      version, rc if rc else "release", bazel_filename)
+      version, rc if rc else "release", bazel_filename) + url_ending
 
 
 def download_bazel_into_directory(version, directory):
