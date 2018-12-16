@@ -92,7 +92,7 @@ def resolve_version_label_to_number(bazelisk_directory, version):
 
 
 def determine_bazel_filename(version):
-  machine = platform.machine()
+  machine = normalized_machine_arch_name()
   if machine != 'x86_64':
     raise Exception('Unsupported machine architecture "{}". '
                     'Bazel currently only supports x86_64.'.format(machine))
@@ -103,7 +103,16 @@ def determine_bazel_filename(version):
                     'Bazel currently only supports Linux, macOS and Windows.'
                     .format(operating_system))
 
-  return 'bazel-{}-{}-{}'.format(version, operating_system, machine)
+  filename_ending = '.exe' if operating_system == 'windows' else ''
+  return 'bazel-{}-{}-{}{}'.format(version, operating_system, machine,
+                                   filename_ending)
+
+
+def normalized_machine_arch_name():
+  machine = platform.machine().lower()
+  if machine == 'amd64':
+    machine = 'x86_64'
+  return machine
 
 
 def determine_url(version, bazel_filename):
