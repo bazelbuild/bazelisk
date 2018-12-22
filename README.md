@@ -2,7 +2,7 @@
 
 **A user-friendly launcher for Bazel.**
 
-Bazelisk is a wrapper for Bazel. It automatically picks a good version of Bazel given your current working directory, downloads it from the official server (if required) and then transparently passes through all command-line arguments to the real Bazel binary. You can call it just like you would call Bazel.
+Bazelisk is a wrapper for Bazel. It automatically picks a good version of Bazel given your current working directory, downloads it from the official server (if required) and then transparently passes through all command-line arguments to the real Bazel binary. You can call it just like you would call Bazel. If you have [`gpg`][GnuPG] installed, Bazelisk will authenticate all Bazel downloads.
 
 Bazelisk is currently not an official part of Bazel and is not tested or code reviewed as thoroughly as Bazel itself. It's a personal project that @philwo (a core contributor to Bazel) wrote in his free time. If users like it, we might merge it into the bazelbuild organization and make it an official tool.
 
@@ -28,6 +28,10 @@ In the future I will add support for release candidates and for building Bazel f
 ## Requirements
 
 For ease of use, Bazelisk is written to work with Python 2.7 and 3.x and only uses modules provided by the standard library.
+
+If [GnuPG] is installed and `gpg` is available on the system path, Bazelisk will verify the integrity of the binaries that it downloads.
+
+[GnuPG]: https://www.gnupg.org/
 
 ## Ideas for the future
 
