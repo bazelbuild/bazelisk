@@ -147,11 +147,22 @@ def maybe_makedirs(path):
       raise e
 
 
+def execute_bazel(bazel_path, argv):
+  p = subprocess.Popen([bazel_path] + argv, close_fds=True)
+  while True:
+    try:
+      return p.wait()
+    except KeyboardInterrupt:
+      # Bazel will also get the signal and terminate.
+      # We should continue waiting until it does so.
+      pass
+
+
 def main(argv=None):
   if argv is None:
     argv = sys.argv
 
-  bazelisk_directory = os.path.join(os.path.expanduser('~'), '.bazelisk')
+  bazelisk_directory = os.environ.get("BAZELISK_HOME", os.path.join(os.path.expanduser('~'), '.bazelisk'))
   maybe_makedirs(bazelisk_directory)
 
   bazel_version = decide_which_bazel_version_to_use()
@@ -162,14 +173,7 @@ def main(argv=None):
   maybe_makedirs(bazel_directory)
   bazel_path = download_bazel_into_directory(bazel_version, bazel_directory)
 
-  p = subprocess.Popen([bazel_path] + argv[1:], close_fds=True)
-  while True:
-    try:
-      return p.wait()
-    except KeyboardInterrupt:
-      # Bazel will also get the signal and terminate.
-      # We should continue waiting until it does so.
-      pass
+  return execute_bazel(bazel_path, argv[1:])
 
 
 if __name__ == '__main__':
