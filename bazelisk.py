@@ -94,8 +94,7 @@ def resolve_version_label_to_number(bazelisk_directory, version):
 def determine_bazel_filename(version):
   machine = normalized_machine_arch_name()
   if machine != 'x86_64':
-    raise Exception('Unsupported machine architecture "{}". '
-                    'Bazel currently only supports x86_64.'.format(machine))
+    raise Exception('Unsupported machine architecture "{}". Bazel currently only supports x86_64.'.format(machine))
 
   operating_system = platform.system().lower()
   if operating_system not in ('linux', 'darwin', 'windows'):
