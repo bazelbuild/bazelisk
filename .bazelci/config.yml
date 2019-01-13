@@ -1,0 +1,5 @@
+---
+platforms:
+  ubuntu1804:
+    shell_commands:
+    - python bazelisk.py version
