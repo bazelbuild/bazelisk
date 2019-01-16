@@ -88,6 +88,7 @@ def resolve_version_label_to_number(bazelisk_directory, version):
 
 
 def get_version_history(bazelisk_directory):
+  """Returns the most recent versions of Bazel, in descending order."""
   latest_cache = os.path.join(bazelisk_directory, 'latest_bazel')
   if os.path.exists(latest_cache):
     if abs(time.time() - os.path.getmtime(latest_cache)) < ONE_HOUR:
@@ -115,6 +116,7 @@ def resolve_latest_version(version_history, offset):
     raise Exception('Cannot resolve version "{}": There are only {} Bazel '
                     'releases.'.format(version, len(version_history)))
 
+  # This only works since we store the history in descending order.
   return version_history[offset]
 
 
