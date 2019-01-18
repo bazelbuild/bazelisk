@@ -184,15 +184,8 @@ def verify_authenticity(binary_path, signature_path):
       "Warning: skipping authenticity check because GPG is not installed.",
   ).exit_code != 0:
     return True
+
   tempdir = tempfile.mkdtemp(prefix="tmp_bazelisk_gpg_")
-
-  # DO NOT SUBMIT: Debugging on Windows and macOS...
-  sys.stderr.write("tempdir: {}\n".format(tempdir))
-  sys.stderr.write("gpg version:\n")
-  subprocess.call(["gpg", "--batch", "--version"])
-  sys.stderr.write("gpg location:\n")
-  subprocess.call(["which", "gpg"])
-
   try:
     gpg_invocation = [
         "gpg",
@@ -201,6 +194,14 @@ def verify_authenticity(binary_path, signature_path):
         "--homedir",
         tempdir,
     ]
+
+    # DO NOT SUBMIT: Debugging on Windows and macOS...
+    print("tempdir: {}\n".format(tempdir))
+    print("gpg version:\n")
+    subprocess.call(gpg_invocation + ["--version"])
+    print("gpg location:\n")
+    subprocess.call(["which", "gpg"])
+
     if subprocess_run(
         gpg_invocation + ["--import-ownertrust"],
         input=BAZEL_ULTIMATE_OWNERTRUST,
