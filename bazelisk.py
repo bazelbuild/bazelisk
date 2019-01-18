@@ -150,7 +150,7 @@ def maybe_makedirs(path):
 
 def execute_bazel(bazel_path, argv):
   # We cannot use close_fds on Windows, so disable it there.
-  p = subprocess.Popen([bazel_path] + argv, close_fds=not os.name == 'nt')
+  p = subprocess.Popen([bazel_path] + argv, close_fds=os.name != 'nt')
   while True:
     try:
       return p.wait()
