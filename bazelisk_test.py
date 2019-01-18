@@ -9,7 +9,8 @@ import bazelisk
 
 def execute_bazel(bazel_path, argv):
   return subprocess.check_output(
-      [bazel_path] + argv, close_fds=os.name != 'nt', stderr=subprocess.STDOUT)
+      [bazel_path] + argv, close_fds=os.name != 'nt',
+      stderr=subprocess.STDOUT).decode("utf-8")
 
 
 class TestBazelisk(unittest.TestCase):
