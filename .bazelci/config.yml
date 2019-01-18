@@ -1,0 +1,19 @@
+---
+platforms:
+  ubuntu1404:
+    test_targets:
+      - //:bazelisk_test
+  ubuntu1604:
+    test_targets:
+      - //:bazelisk_test
+  ubuntu1804:
+    test_targets:
+      - //:bazelisk_test
+  macos:
+    test_targets:
+      - //:bazelisk_test
+  windows:
+    test_targets:
+      - //:bazelisk_test
+    test_flags:
+      - --test_env=PROCESSOR_ARCHITECTURE

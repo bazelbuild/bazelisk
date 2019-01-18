@@ -94,8 +94,9 @@ def resolve_version_label_to_number(bazelisk_directory, version):
 def determine_bazel_filename(version):
   machine = normalized_machine_arch_name()
   if machine != 'x86_64':
-    raise Exception('Unsupported machine architecture "{}". '
-                    'Bazel currently only supports x86_64.'.format(machine))
+    raise Exception(
+        'Unsupported machine architecture "{}". Bazel currently only supports x86_64.'
+        .format(machine))
 
   operating_system = platform.system().lower()
   if operating_system not in ('linux', 'darwin', 'windows'):
@@ -147,11 +148,24 @@ def maybe_makedirs(path):
       raise e
 
 
+def execute_bazel(bazel_path, argv):
+  # We cannot use close_fds on Windows, so disable it there.
+  p = subprocess.Popen([bazel_path] + argv, close_fds=os.name != 'nt')
+  while True:
+    try:
+      return p.wait()
+    except KeyboardInterrupt:
+      # Bazel will also get the signal and terminate.
+      # We should continue waiting until it does so.
+      pass
+
+
 def main(argv=None):
   if argv is None:
     argv = sys.argv
 
-  bazelisk_directory = os.path.join(os.path.expanduser('~'), '.bazelisk')
+  bazelisk_directory = os.environ.get(
+      "BAZELISK_HOME", os.path.join(os.path.expanduser('~'), '.bazelisk'))
   maybe_makedirs(bazelisk_directory)
 
   bazel_version = decide_which_bazel_version_to_use()
@@ -162,14 +176,7 @@ def main(argv=None):
   maybe_makedirs(bazel_directory)
   bazel_path = download_bazel_into_directory(bazel_version, bazel_directory)
 
-  p = subprocess.Popen([bazel_path] + argv[1:], close_fds=True)
-  while True:
-    try:
-      return p.wait()
-    except KeyboardInterrupt:
-      # Bazel will also get the signal and terminate.
-      # We should continue waiting until it does so.
-      pass
+  return execute_bazel(bazel_path, argv[1:])
 
 
 if __name__ == '__main__':
