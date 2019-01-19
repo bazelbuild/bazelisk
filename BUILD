@@ -1,10 +1,11 @@
-py_library(
-    name = "bazelisk_lib",
+py_binary(
+    name = "bazelisk",
     srcs = ["bazelisk.py"],
 )
 
-py_test(
+sh_test(
     name = "bazelisk_test",
-    srcs = ["bazelisk_test.py"],
-    deps = [":bazelisk_lib"],
+    srcs = ["bazelisk_test.sh"],
+    data = [":bazelisk"],
+    deps = ["@bazel_tools//tools/bash/runfiles"],
 )
