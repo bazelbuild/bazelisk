@@ -16,4 +16,5 @@ platforms:
     test_targets:
       - //:bazelisk_test
     test_flags:
+      - --test_env=PATH
       - --test_env=PROCESSOR_ARCHITECTURE
