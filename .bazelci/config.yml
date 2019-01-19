@@ -12,9 +12,12 @@ platforms:
   macos:
     test_targets:
       - //:bazelisk_test
+    test_flags:
+      - --test_output=streamed
   windows:
     test_targets:
       - //:bazelisk_test
     test_flags:
+      - --flaky_test_attempts=1
       - --test_env=PATH
       - --test_env=PROCESSOR_ARCHITECTURE
