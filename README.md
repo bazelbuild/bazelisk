@@ -2,6 +2,12 @@
 
 **A user-friendly launcher for Bazel.**
 
+## News
+
+- 2018-01-20: I rewrote Bazelisk in Go. It has the same features as the Python version and both versions are tested against the same integration test suite. This version might be easier to use on Windows, because it can be compiled to a native executable that has no other dependencies.
+
+## About Bazelisk
+
 Bazelisk is a wrapper for Bazel. It automatically picks a good version of Bazel given your current working directory, downloads it from the official server (if required) and then transparently passes through all command-line arguments to the real Bazel binary. You can call it just like you would call Bazel.
 
 Bazelisk is currently not an official part of Bazel and is not tested or code reviewed as thoroughly as Bazel itself. It's a personal project that @philwo (a core contributor to Bazel) wrote in his free time. If users like it, we might merge it into the bazelbuild organization and make it an official tool.
@@ -28,15 +34,15 @@ In the future I will add support for release candidates and for building Bazel f
 
 ## Requirements
 
-For ease of use, Bazelisk is written to work with Python 2.7 and 3.x and only uses modules provided by the standard library.
+For ease of use, the Python version of Bazelisk is written to work with Python 2.7 and 3.x and only uses modules provided by the standard library.
+
+The Go version can be compiled to run natively on Linux, macOS and Windows.
 
 ## Ideas for the future
 
 - Add a Homebrew recipe for Bazelisk to make it easy to install on macOS.
 - Add support for checked-in Bazel binaries.
 - When the version label is set to a commit hash, first download a matching binary version of Bazel, then build Bazel automatically at that commit and use the resulting binary.
-- Test on Windows. I think it should work, but I haven't tried it myself yet.
-- Maybe rewrite (or add an alternative version) written in Go, because then we can compile it to native code and users won't need to have Python installed.
 - Add support to automatically bisect a build failure to a culprit commit in Bazel. If you notice that you could successfully build your project using version X, but not using version X+1, then Bazelisk should be able to figure out the commit that caused the breakage and the Bazel team can easily fix the problem.
 
 ## FAQ
