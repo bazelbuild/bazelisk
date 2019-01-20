@@ -1,11 +1,33 @@
-py_binary(
-    name = "bazelisk",
-    srcs = ["bazelisk.py"],
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+load("@bazel_gazelle//:def.bzl", "gazelle")
+
+# gazelle:prefix github.com/philwo/bazelisk
+gazelle(name = "gazelle")
+
+sh_test(
+    name = "py_bazelisk_test",
+    srcs = ["bazelisk_test.sh"],
+    data = ["bazelisk.py"],
+    deps = ["@bazel_tools//tools/bash/runfiles"],
 )
 
 sh_test(
-    name = "bazelisk_test",
+    name = "go_bazelisk_test",
     srcs = ["bazelisk_test.sh"],
     data = [":bazelisk"],
     deps = ["@bazel_tools//tools/bash/runfiles"],
+)
+
+go_library(
+    name = "go_default_library",
+    srcs = ["bazelisk.go"],
+    importpath = "github.com/philwo/bazelisk",
+    visibility = ["//visibility:private"],
+    deps = ["@com_github_hashicorp_go_version//:go_default_library"],
+)
+
+go_binary(
+    name = "bazelisk",
+    embed = [":go_default_library"],
+    visibility = ["//visibility:public"],
 )
