@@ -35,7 +35,6 @@ except ImportError:
 ONE_HOUR = 1 * 60 * 60
 
 LATEST_PATTERN = re.compile(r'latest(-(?P<offset>\d+))?$')
-BAZEL_RELEASES_URL = 'https://api.github.com/repos/bazelbuild/bazel/releases'
 
 
 def decide_which_bazel_version_to_use():
@@ -87,24 +86,30 @@ def resolve_version_label_to_number(bazelisk_directory, version):
   return version
 
 
-def get_version_history(bazelisk_directory):
+def get_releases_json(bazelisk_directory):
   """Returns the most recent versions of Bazel, in descending order."""
-  latest_cache = os.path.join(bazelisk_directory, 'latest_bazel')
-  if os.path.exists(latest_cache):
-    if abs(time.time() - os.path.getmtime(latest_cache)) < ONE_HOUR:
-      with open(latest_cache, 'r') as f:
-        return json.loads(f.read().strip())
+  releases = os.path.join(bazelisk_directory, 'releases.json')
 
-  history = get_version_history_from_github()
-  with open(latest_cache, 'w') as f:
-    f.write(json.dumps(history))
-  return history
+  # Use a cached version if it's fresh enough.
+  if os.path.exists(releases):
+    if abs(time.time() - os.path.getmtime(releases)) < ONE_HOUR:
+      with open(releases, 'rb') as f:
+        try:
+          return json.loads(f.read().decode('utf-8'))
+        except json.decoder.JSONDecodeError:
+          print("WARN: Could not parse cached releases.json.")
+          pass
+
+  with open(releases, 'wb') as f:
+    res = urlopen('https://api.github.com/repos/bazelbuild/bazel/releases')
+    body = res.read().decode(res.info().get_content_charset("iso-8859-1"))
+    f.write(body.encode('utf-8'))
+    return json.loads(body)
 
 
-def get_version_history_from_github():
-  res = urlopen(BAZEL_RELEASES_URL).read()
+def get_version_history(bazelisk_directory):
   ordered = sorted((LooseVersion(release['tag_name'])
-                    for release in json.loads(res.decode('utf-8'))
+                    for release in get_releases_json(bazelisk_directory)
                     if not release['prerelease']),
                    reverse=True)
   return [str(v) for v in ordered]
