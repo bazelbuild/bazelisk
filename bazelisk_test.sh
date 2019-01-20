@@ -42,16 +42,18 @@ function setup() {
 }
 
 function bazelisk() {
-  case "$(uname -s)" in
-    MINGW*|MSYS*)
-      # We can change this to just call bazelisk.exe when this is fixed:
-      # https://github.com/bazelbuild/bazel/issues/7190
-      python "$(rlocation __main__/bazelisk.py)" "$@"
-      ;;
-    *)
-      "$(rlocation __main__/bazelisk)" "$@"
-      ;;
-  esac
+  if [[ -n $(rlocation __main__/bazelisk.py) ]]; then
+    python "$(rlocation __main__/bazelisk.py)" "$@"
+  elif [[ -n $(rlocation __main__/windows_amd64_stripped/bazelisk.exe) ]]; then
+    "$(rlocation __main__/windows_amd64_stripped/bazelisk.exe)" "$@"
+  elif [[ -n $(rlocation __main__/darwin_amd64_stripped/bazelisk) ]]; then
+    "$(rlocation __main__/darwin_amd64_stripped/bazelisk)" "$@"
+  elif [[ -n $(rlocation __main__/linux_amd64_stripped/bazelisk) ]]; then
+    "$(rlocation __main__/linux_amd64_stripped/bazelisk)" "$@"
+  else
+    echo "Could not find the bazelisk executable, listing files:"
+    find .
+  fi
 }
 
 function test_bazel_version() {

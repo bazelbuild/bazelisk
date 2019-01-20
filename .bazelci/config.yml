@@ -2,21 +2,26 @@
 platforms:
   ubuntu1404:
     test_targets:
-      - //:bazelisk_test
+      - //:go_bazelisk_test
+      - //:py_bazelisk_test
   ubuntu1604:
     test_targets:
-      - //:bazelisk_test
+      - //:go_bazelisk_test
+      - //:py_bazelisk_test
   ubuntu1804:
     test_targets:
-      - //:bazelisk_test
+      - //:go_bazelisk_test
+      - //:py_bazelisk_test
   macos:
     test_targets:
-      - //:bazelisk_test
+      - //:go_bazelisk_test
+      - //:py_bazelisk_test
     test_flags:
       - --test_output=streamed
   windows:
     test_targets:
-      - //:bazelisk_test
+      - //:go_bazelisk_test
+      - //:py_bazelisk_test
     test_flags:
       - --flaky_test_attempts=1
       - --test_env=PATH
