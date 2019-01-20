@@ -19,7 +19,8 @@ It uses a simple algorithm:
 - Otherwise it will check GitHub for the latest version of Bazel, cache the result for an hour and use that version.
 
 Bazelisk currently understands the following formats for version labels:
-- `latest` means the latest stable version of Bazel as released on GitHub.
+- `latest` means the latest stable version of Bazel as released on GitHub. Previous
+  releases can be specified via `latest-1`, `latest-2` etc.
 - A version number like `0.17.2` means that exact version of Bazel. It can also
   be a release candidate version like `0.20.0rc3`.
 

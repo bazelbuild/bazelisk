@@ -34,6 +34,9 @@ except ImportError:
 
 ONE_HOUR = 1 * 60 * 60
 
+LATEST_PATTERN = re.compile(r'latest(-(?P<offset>\d+))?$')
+BAZEL_RELEASES_URL = 'https://api.github.com/repos/bazelbuild/bazel/releases'
+
 
 def decide_which_bazel_version_to_use():
   # Check in this order:
@@ -68,27 +71,53 @@ def find_workspace_root(root=None):
   return find_workspace_root(new_root) if new_root != root else None
 
 
-def resolve_latest_version():
-  res = urlopen('https://api.github.com/repos/bazelbuild/bazel/releases').read()
-  return str(
-      max(
-          LooseVersion(release['tag_name'])
-          for release in json.loads(res.decode('utf-8'))
-          if not release['prerelease']))
-
-
 def resolve_version_label_to_number(bazelisk_directory, version):
-  if version == 'latest':
-    latest_cache = os.path.join(bazelisk_directory, 'latest_bazel')
-    if os.path.exists(latest_cache):
-      if abs(time.time() - os.path.getmtime(latest_cache)) < ONE_HOUR:
-        with open(latest_cache, 'r') as f:
-          return f.read().strip()
-    latest_version = resolve_latest_version()
-    with open(latest_cache, 'w') as f:
-      f.write(latest_version)
-    return latest_version
+  if 'latest' in version:
+    match = LATEST_PATTERN.match(version)
+    if not match:
+      raise Exception('Invalid version "{}". In addition to using a version '
+                      'number such as "0.20.0", you can use values such as '
+                      '"latest" and "latest-N", with N being a non-negative '
+                      'integer.'.format(version))
+
+    history = get_version_history(bazelisk_directory)
+    offset = int(match.group('offset') or '0')
+    return resolve_latest_version(history, offset)
+
   return version
+
+
+def get_version_history(bazelisk_directory):
+  """Returns the most recent versions of Bazel, in descending order."""
+  latest_cache = os.path.join(bazelisk_directory, 'latest_bazel')
+  if os.path.exists(latest_cache):
+    if abs(time.time() - os.path.getmtime(latest_cache)) < ONE_HOUR:
+      with open(latest_cache, 'r') as f:
+        return json.loads(f.read().strip())
+
+  history = get_version_history_from_github()
+  with open(latest_cache, 'w') as f:
+    f.write(json.dumps(history))
+  return history
+
+
+def get_version_history_from_github():
+  res = urlopen(BAZEL_RELEASES_URL).read()
+  ordered = sorted((LooseVersion(release['tag_name'])
+                    for release in json.loads(res.decode('utf-8'))
+                    if not release['prerelease']),
+                   reverse=True)
+  return [str(v) for v in ordered]
+
+
+def resolve_latest_version(version_history, offset):
+  if offset >= len(version_history):
+    version = 'latest-{}'.format(offset) if offset else 'latest'
+    raise Exception('Cannot resolve version "{}": There are only {} Bazel '
+                    'releases.'.format(version, len(version_history)))
+
+  # This only works since we store the history in descending order.
+  return version_history[offset]
 
 
 def determine_bazel_filename(version):
