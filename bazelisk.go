@@ -12,8 +12,10 @@ import (
 	"os/exec"
 	"os/signal"
 	"path"
+	"regexp"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -84,7 +86,19 @@ type release struct {
 	Prerelease bool   `json:"prerelease"`
 }
 
-func resolveLatestVersion() string {
+func getReleasesJSON(bazeliskHome string) []byte {
+	cachePath := path.Join(bazeliskHome, "releases.json")
+
+	if cacheStat, err := os.Stat(cachePath); err == nil {
+		if time.Since(cacheStat.ModTime()).Hours() < 1 {
+			res, err := ioutil.ReadFile(cachePath)
+			if err != nil {
+				log.Fatalf("Could not read %s: %v", cachePath, err)
+			}
+			return res
+		}
+	}
+
 	// We could also use go-github here, but I can't get it to build with Bazel's rules_go and it pulls in a lot of dependencies.
 	res, err := http.Get("https://api.github.com/repos/bazelbuild/bazel/releases")
 	if err != nil {
@@ -101,9 +115,19 @@ func resolveLatestVersion() string {
 		log.Fatalf("Unexpected status code while reading list of Bazel releases from GitHub: %v", res.StatusCode)
 	}
 
-	var releases []release
-	err = json.Unmarshal(body, &releases)
+	err = ioutil.WriteFile(cachePath, body, 0666)
 	if err != nil {
+		log.Fatalf("Could not create %s: %v", cachePath, err)
+	}
+
+	return body
+}
+
+func resolveLatestVersion(bazeliskHome string, offset int) string {
+	releasesJSON := getReleasesJSON(bazeliskHome)
+
+	var releases []release
+	if err := json.Unmarshal(releasesJSON, &releases); err != nil {
 		log.Fatalf("Could not parse JSON into list of releases: %v", err)
 	}
 
@@ -119,45 +143,29 @@ func resolveLatestVersion() string {
 		versions = append(versions, v)
 	}
 	sort.Sort(version.Collection(versions))
-	return versions[len(versions)-1].Original()
+	if offset >= len(versions) {
+		log.Fatalf("Cannot resolve version \"latest-%d\": There are only %d Bazel releases!", offset, len(versions))
+	}
+	return versions[len(versions)-1-offset].Original()
 }
 
 func resolveVersionLabel(bazeliskHome, bazelVersion string) string {
-	if bazelVersion != "latest" {
-		return bazelVersion
-	}
+	r := regexp.MustCompile(`^latest(?:-(?P<offset>\d+))?$`)
 
-	latestCache := path.Join(bazeliskHome, "latest_bazel")
-	if cacheStat, err := os.Stat(latestCache); err == nil {
-		if time.Since(cacheStat.ModTime()).Hours() < 1 {
-			f, err := os.Open(latestCache)
+	match := r.FindStringSubmatch(bazelVersion)
+	if match != nil {
+		offset := 0
+		if match[1] != "" {
+			var err error
+			offset, err = strconv.Atoi(match[1])
 			if err != nil {
-				log.Fatalf("Could not read %s: %v", latestCache, err)
+				log.Fatalf("Invalid version \"%s\", could not parse offset: %v", bazelVersion, err)
 			}
-			defer f.Close()
-
-			scanner := bufio.NewScanner(f)
-			scanner.Scan()
-			latestVersion := scanner.Text()
-			if err := scanner.Err(); err != nil {
-				log.Fatalf("Could not read latest version from file %s: %v", latestCache, err)
-			}
-
-			return latestVersion
 		}
+		return resolveLatestVersion(bazeliskHome, offset)
 	}
 
-	latestVersion := resolveLatestVersion()
-	f, err := os.Create(latestCache)
-	if err != nil {
-		log.Fatalf("Could not create %s: %v", latestCache, err)
-	}
-	defer f.Close()
-	if _, err := f.WriteString(latestVersion); err != nil {
-		log.Fatalf("Could not write latest version to %s: %v", latestCache, err)
-	}
-
-	return latestVersion
+	return bazelVersion
 }
 
 func determineBazelFilename(version string) string {
