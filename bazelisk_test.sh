@@ -37,6 +37,11 @@ fi
 # --- end runfiles.bash initialization ---
 
 function setup() {
+  BAZELISK_HOME="$(mktemp -d $TEST_TMPDIR/home.XXXXXX)"
+
+  cp "$(rlocation __main__/releases_for_tests.json)" "${BAZELISK_HOME}/releases.json"
+  touch "${BAZELISK_HOME}/releases.json"
+
   cd "$(mktemp -d $TEST_TMPDIR/workspace.XXXXXX)"
   touch WORKSPACE BUILD
 }
@@ -59,10 +64,10 @@ function bazelisk() {
 function test_bazel_version() {
   setup
 
-  BAZELISK_HOME="$(mktemp -d $TEST_TMPDIR/home.XXXXXX)" \
+  BAZELISK_HOME="$BAZELISK_HOME" \
       bazelisk version 2>&1 | tee log
 
-  grep "Build label" log || \
+  grep "Build label: 0.21.0" log || \
       (echo "FAIL: Expected to find 'Build label' in the output of 'bazelisk version'"; exit 1)
 }
 
@@ -70,7 +75,7 @@ function test_bazel_version_from_environment() {
   setup
 
   USE_BAZEL_VERSION="0.20.0" \
-      BAZELISK_HOME="$(mktemp -d $TEST_TMPDIR/home.XXXXXX)" \
+      BAZELISK_HOME="$BAZELISK_HOME" \
       bazelisk version 2>&1 | tee log
 
   grep "Build label: 0.20.0" log || \
@@ -82,11 +87,22 @@ function test_bazel_version_from_file() {
 
   echo "0.19.0" > .bazelversion
 
-  BAZELISK_HOME="$(mktemp -d $TEST_TMPDIR/home.XXXXXX)" \
+  BAZELISK_HOME="$BAZELISK_HOME" \
       bazelisk version 2>&1 | tee log
 
   grep "Build label: 0.19.0" log || \
       (echo "FAIL: Expected to find 'Build label: 0.19.0' in the output of 'bazelisk version'"; exit 1)
+}
+
+function test_bazel_latest_minus_3() {
+  setup
+
+  USE_BAZEL_VERSION="latest-3" \
+      BAZELISK_HOME="$BAZELISK_HOME" \
+      bazelisk version 2>&1 | tee log
+
+  grep "Build label: 0.19.1" log || \
+      (echo "FAIL: Expected to find 'Build label' in the output of 'bazelisk version'"; exit 1)
 }
 
 echo "# test_bazel_version"
@@ -99,4 +115,8 @@ echo
 
 echo "# test_bazel_version_from_file"
 test_bazel_version_from_file
+echo
+
+echo "# test_bazel_latest_minus_3"
+test_bazel_latest_minus_3
 echo

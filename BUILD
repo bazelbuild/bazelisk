@@ -7,14 +7,14 @@ gazelle(name = "gazelle")
 sh_test(
     name = "py_bazelisk_test",
     srcs = ["bazelisk_test.sh"],
-    data = ["bazelisk.py"],
+    data = ["bazelisk.py", "releases_for_tests.json"],
     deps = ["@bazel_tools//tools/bash/runfiles"],
 )
 
 sh_test(
     name = "go_bazelisk_test",
     srcs = ["bazelisk_test.sh"],
-    data = [":bazelisk"],
+    data = [":bazelisk", "releases_for_tests.json"],
     deps = ["@bazel_tools//tools/bash/runfiles"],
 )
 
