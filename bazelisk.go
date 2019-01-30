@@ -208,26 +208,46 @@ func downloadBazel(version, directory string) string {
 	destinationPath := path.Join(directory, filename)
 
 	if _, err := os.Stat(destinationPath); err != nil {
-		log.Printf("Downloading %s...", url)
-		f, err := os.Create(destinationPath)
+		tmpfile, err := ioutil.TempFile(directory, "download")
 		if err != nil {
-			log.Fatalf("Could not create %s: %v", destinationPath, err)
+			log.Fatalf("Could not create temporary file: %v", err)
 		}
-		defer f.Close()
 
+		log.Printf("Downloading %s...", url)
 		resp, err := http.Get(url)
 		if err != nil {
+			tmpfile.Close()
+			os.Remove(tmpfile.Name())
 			log.Fatalf("Could not download %s: %v", url, err)
 		}
 		defer resp.Body.Close()
 
-		_, err = io.Copy(f, resp.Body)
+		if resp.StatusCode != 200 {
+			tmpfile.Close()
+			os.Remove(tmpfile.Name())
+			log.Fatalf("Could not download %s: HTTP error %v", url, resp.StatusCode)
+		}
+
+		_, err = io.Copy(tmpfile, resp.Body)
 		if err != nil {
+			tmpfile.Close()
+			os.Remove(tmpfile.Name())
 			log.Fatalf("Could not download %s: %v", url, err)
+		}
+
+		tmpfile.Close()
+		err = os.Chmod(tmpfile.Name(), 0755)
+		if err != nil {
+			os.Remove(tmpfile.Name())
+			log.Fatalf("Could not chmod downloaded file: %v", err)
+		}
+
+		err = os.Rename(tmpfile.Name(), destinationPath)
+		if err != nil {
+			log.Fatalf("Could not move downloaded Bazel to final destination: %v", err)
 		}
 	}
 
-	os.Chmod(destinationPath, 0755)
 	return destinationPath
 }
 
