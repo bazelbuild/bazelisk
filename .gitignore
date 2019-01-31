@@ -2,3 +2,5 @@
 # based on the name of the directory bazel is cloned into.
 /bazel-*
 
+# Release artifacts created by build.sh.
+/bin
