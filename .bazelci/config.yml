@@ -5,6 +5,7 @@ platforms:
       - //:go_bazelisk_test
       - //:py_bazelisk_test
     test_flags:
+      - --flaky_test_attempts=1
       - --test_output=streamed
   ubuntu1604:
     test_targets:
