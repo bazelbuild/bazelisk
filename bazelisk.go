@@ -103,7 +103,7 @@ func getReleasesJSON(bazeliskHome string) ([]byte, error) {
 	return readRemoteFile("https://api.github.com/repos/bazelbuild/bazel/releases")
 }
 
-func readRemoteFile(url string) (string, error) {
+func readRemoteFile(url string) ([]byte, error) {
 	res, err := http.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve url %s: %v", url, err)
@@ -154,7 +154,7 @@ func resolveVersionLabel(bazeliskHome, bazelVersion string) (string, bool, error
 	if bazelVersion == "last_green" {
 		commit, err := getLastGreenCommit()
 		if err != nil {
-			return "", false, fmt.Errof("Cannot resolve last green commit: %v", err)
+			return "", false, fmt.Errorf("Cannot resolve last green commit: %v", err)
 		}
 
 		return commit, true, nil
@@ -169,7 +169,7 @@ func resolveVersionLabel(bazeliskHome, bazelVersion string) (string, bool, error
 			var err error
 			offset, err = strconv.Atoi(match[1])
 			if err != nil {
-				return "", "", fmt.Errorf("invalid version \"%s\", could not parse offset: %v", bazelVersion, err)
+				return "", false, fmt.Errorf("invalid version \"%s\", could not parse offset: %v", bazelVersion, err)
 			}
 		}
 		version, err := resolveLatestVersion(bazeliskHome, offset)
@@ -179,12 +179,12 @@ func resolveVersionLabel(bazeliskHome, bazelVersion string) (string, bool, error
 	return bazelVersion, false, nil
 }
 
-func getLastGreenCommit() (string, err) {
-	content, err := readRemoteFile("https://api.github.com/repos/bazelbuild/bazel/releases")
+func getLastGreenCommit() (string, error) {
+	content, err := readRemoteFile("https://storage.googleapis.com/bazel-untrusted-builds/last_green_commit/github.com/bazelbuild/bazel.git/bazel-bazel")
 	if err != nil {
 		return "", fmt.Errorf("Could not get last green commit: %v", err)
 	}
-	return strings.TrimSpace(content), nil
+	return strings.TrimSpace(string(content)), nil
 }
 
 func determineBazelFilename(version string) (string, error) {
@@ -217,7 +217,7 @@ func determineURL(version string, isCommit bool, filename string) string {
 		var platforms = map[string]string{"darwin": "macos", "linux": "ubuntu1404", "windows": "windows"}
 		// No need to check the OS thanks to determineBazelFilename().
 		log.Printf("Using unreleased version at commit %s", version)
-		return fmt.Sprintf("https://storage.googleapis.com/bazel-builds/artifacts/%s/%s/bazel", version, platforms[runtime.GOOS])
+		return fmt.Sprintf("https://storage.googleapis.com/bazel-builds/artifacts/%s/%s/bazel", platforms[runtime.GOOS], version)
 	}
 
 	kind := "release"
