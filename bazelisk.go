@@ -100,26 +100,24 @@ func getReleasesJSON(bazeliskHome string) ([]byte, error) {
 	}
 
 	// We could also use go-github here, but I can't get it to build with Bazel's rules_go and it pulls in a lot of dependencies.
-	res, err := http.Get("https://api.github.com/repos/bazelbuild/bazel/releases")
+	return readRemoteFile("https://api.github.com/repos/bazelbuild/bazel/releases")
+}
+
+func readRemoteFile(url string) (string, error) {
+	res, err := http.Get(url)
 	if err != nil {
-		return nil, fmt.Errorf("could not fetch list of Bazel releases from GitHub: %v", err)
+		return nil, fmt.Errorf("failed to retrieve url %s: %v", url, err)
 	}
 	defer res.Body.Close()
 
+	if res.StatusCode != 200 {
+		return nil, fmt.Errorf("unexpected status code while reading %s: %v", url, res.StatusCode)
+	}
+
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return nil, fmt.Errorf("could not read list of Bazel releases from GitHub: %v", err)
+		return nil, fmt.Errorf("failed to read content at %s: %v", url, err)
 	}
-
-	if res.StatusCode != 200 {
-		return nil, fmt.Errorf("unexpected status code while reading list of Bazel releases from GitHub: %v", res.StatusCode)
-	}
-
-	err = ioutil.WriteFile(cachePath, body, 0666)
-	if err != nil {
-		return nil, fmt.Errorf("could not create %s: %v", cachePath, err)
-	}
-
 	return body, nil
 }
 
@@ -152,7 +150,16 @@ func resolveLatestVersion(bazeliskHome string, offset int) (string, error) {
 	return versions[len(versions)-1-offset].Original(), nil
 }
 
-func resolveVersionLabel(bazeliskHome, bazelVersion string) (string, error) {
+func resolveVersionLabel(bazeliskHome, bazelVersion string) (string, bool, error) {
+	if bazelVersion == "last_green" {
+		commit, err := getLastGreenCommit()
+		if err != nil {
+			return "", false, fmt.Errof("Cannot resolve last green commit: %v", err)
+		}
+
+		return commit, true, nil
+	}
+
 	r := regexp.MustCompile(`^latest(?:-(?P<offset>\d+))?$`)
 
 	match := r.FindStringSubmatch(bazelVersion)
@@ -162,13 +169,22 @@ func resolveVersionLabel(bazeliskHome, bazelVersion string) (string, error) {
 			var err error
 			offset, err = strconv.Atoi(match[1])
 			if err != nil {
-				return "", fmt.Errorf("invalid version \"%s\", could not parse offset: %v", bazelVersion, err)
+				return "", "", fmt.Errorf("invalid version \"%s\", could not parse offset: %v", bazelVersion, err)
 			}
 		}
-		return resolveLatestVersion(bazeliskHome, offset)
+		version, err := resolveLatestVersion(bazeliskHome, offset)
+		return version, false, err
 	}
 
-	return bazelVersion, nil
+	return bazelVersion, false, nil
+}
+
+func getLastGreenCommit() (string, err) {
+	content, err := readRemoteFile("https://api.github.com/repos/bazelbuild/bazel/releases")
+	if err != nil {
+		return "", fmt.Errorf("Could not get last green commit: %v", err)
+	}
+	return strings.TrimSpace(content), nil
 }
 
 func determineBazelFilename(version string) (string, error) {
@@ -196,7 +212,14 @@ func determineBazelFilename(version string) (string, error) {
 	return fmt.Sprintf("bazel-%s-%s-%s%s", version, osName, machineName, filenameSuffix), nil
 }
 
-func determineURL(version, filename string) string {
+func determineURL(version string, isCommit bool, filename string) string {
+	if isCommit {
+		var platforms = map[string]string{"darwin": "macos", "linux": "ubuntu1404", "windows": "windows"}
+		// No need to check the OS thanks to determineBazelFilename().
+		log.Printf("Using unreleased version at commit %s", version)
+		return fmt.Sprintf("https://storage.googleapis.com/bazel-builds/artifacts/%s/%s/bazel", version, platforms[runtime.GOOS])
+	}
+
 	kind := "release"
 	if strings.Contains(version, "rc") {
 		kind = strings.SplitAfter(version, "rc")[1]
@@ -205,13 +228,13 @@ func determineURL(version, filename string) string {
 	return fmt.Sprintf("https://releases.bazel.build/%s/%s/%s", version, kind, filename)
 }
 
-func downloadBazel(version, directory string) (string, error) {
+func downloadBazel(version string, isCommit bool, directory string) (string, error) {
 	filename, err := determineBazelFilename(version)
 	if err != nil {
 		return "", fmt.Errorf("could not determine filename to use for Bazel binary: %v", err)
 	}
 
-	url := determineURL(version, filename)
+	url := determineURL(version, isCommit, filename)
 	destinationPath := path.Join(directory, filename)
 
 	if _, err := os.Stat(destinationPath); err != nil {
@@ -310,7 +333,7 @@ func main() {
 		log.Fatalf("could not get Bazel version: %v", err)
 	}
 
-	resolvedBazelVersion, err := resolveVersionLabel(bazeliskHome, bazelVersion)
+	resolvedBazelVersion, isCommit, err := resolveVersionLabel(bazeliskHome, bazelVersion)
 	if err != nil {
 		log.Fatalf("could not resolve the version '%s' to an actual version number: %v", bazelVersion, err)
 	}
@@ -321,7 +344,7 @@ func main() {
 		log.Fatalf("could not create directory %s: %v", bazelDirectory, err)
 	}
 
-	bazelPath, err := downloadBazel(resolvedBazelVersion, bazelDirectory)
+	bazelPath, err := downloadBazel(resolvedBazelVersion, isCommit, bazelDirectory)
 	if err != nil {
 		log.Fatalf("could not download Bazel: %v", err)
 	}
