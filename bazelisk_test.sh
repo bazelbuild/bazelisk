@@ -105,6 +105,17 @@ function test_bazel_latest_minus_3() {
       (echo "FAIL: Expected to find 'Build label' in the output of 'bazelisk version'"; exit 1)
 }
 
+function test_bazel_last_green() {
+  setup
+
+  USE_BAZEL_VERSION="last_green" \
+      BAZELISK_HOME="$BAZELISK_HOME" \
+      bazelisk version 2>&1 | tee log
+
+  ! grep "Build label:" log || \
+      (echo "FAIL: 'bazelisk version' of an unreleased binary must not print a build label."; exit 1)
+}
+
 echo "# test_bazel_version"
 test_bazel_version
 echo
@@ -119,4 +130,8 @@ echo
 
 echo "# test_bazel_latest_minus_3"
 test_bazel_latest_minus_3
+echo
+
+echo "# test_bazel_last_green"
+test_bazel_last_green
 echo
