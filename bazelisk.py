@@ -79,6 +79,18 @@ def find_workspace_root(root=None):
 
 
 def resolve_version_label_to_number_or_commit(bazelisk_directory, version):
+    """Resolves the given label to a released version of Bazel or a commit.
+
+    Args:
+        bazelisk_directory: string; path to a directory that can store
+            temporary data for Bazelisk.
+        version: string; the version label that should be resolved.
+    Returns:
+        A (string, bool) tuple that consists of two parts:
+        1. the resolved number of a Bazel release (candidate), or the commit
+            of an unreleased Bazel binary,
+        2. An indicator for whether the returned version refers to a commit.
+    """
     if version == "last_green":
         return get_last_green_commit(), True
 

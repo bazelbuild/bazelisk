@@ -161,6 +161,10 @@ func resolveLatestVersion(bazeliskHome string, offset int) (string, error) {
 }
 
 func resolveVersionLabel(bazeliskHome, bazelVersion string) (string, bool, error) {
+	// Returns three values:
+	// 1. The label of a Blaze release (if the label resolves to a release) or a commit (for unreleased binaries),
+	// 2. Whether the first value refers to a commit,
+	// 3. An error.
 	if bazelVersion == "last_green" {
 		commit, err := getLastGreenCommit()
 		if err != nil {
