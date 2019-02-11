@@ -38,6 +38,21 @@ For ease of use, the Python version of Bazelisk is written to work with Python 2
 
 The Go version can be compiled to run natively on Linux, macOS and Windows.
 
+To install the Go version, type:
+
+```shell
+go get github.com/philwo/bazelisk
+```
+
+To add it to your PATH:
+
+```python
+export PATH=$PATH:$(go env GOPATH)/bin
+```
+
+For more information, you may read about the [`GOPATH` environment
+variable](https://github.com/golang/go/wiki/SettingGOPATH).
+
 ## Ideas for the future
 
 - Add a Homebrew recipe for Bazelisk to make it easy to install on macOS.
