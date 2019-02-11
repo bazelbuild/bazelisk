@@ -86,8 +86,11 @@ type release struct {
 	Prerelease bool   `json:"prerelease"`
 }
 
-func getReleasesJSON(bazeliskHome string) ([]byte, error) {
-	cachePath := path.Join(bazeliskHome, "releases.json")
+// maybeDownload will download a file from the given url and cache the result under bazeliskHome.
+// It skips the download if the file already exists and is not outdated.
+// description is used only to provide better error messages.
+func maybeDownload(bazeliskHome, url, filename, description string) ([]byte, error) {
+	cachePath := path.Join(bazeliskHome, filename)
 
 	if cacheStat, err := os.Stat(cachePath); err == nil {
 		if time.Since(cacheStat.ModTime()).Hours() < 1 {
@@ -100,19 +103,19 @@ func getReleasesJSON(bazeliskHome string) ([]byte, error) {
 	}
 
 	// We could also use go-github here, but I can't get it to build with Bazel's rules_go and it pulls in a lot of dependencies.
-	res, err := http.Get("https://api.github.com/repos/bazelbuild/bazel/releases")
+	res, err := http.Get(url)
 	if err != nil {
-		return nil, fmt.Errorf("could not fetch list of Bazel releases from GitHub: %v", err)
+		return nil, fmt.Errorf("could not fetch %s: %v", description, err)
 	}
 	defer res.Body.Close()
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return nil, fmt.Errorf("could not read list of Bazel releases from GitHub: %v", err)
+		return nil, fmt.Errorf("could not read %s: %v", description, err)
 	}
 
 	if res.StatusCode != 200 {
-		return nil, fmt.Errorf("unexpected status code while reading list of Bazel releases from GitHub: %v", res.StatusCode)
+		return nil, fmt.Errorf("unexpected status code while reading %s: %v", description, res.StatusCode)
 	}
 
 	err = ioutil.WriteFile(cachePath, body, 0666)
@@ -124,7 +127,8 @@ func getReleasesJSON(bazeliskHome string) ([]byte, error) {
 }
 
 func resolveLatestVersion(bazeliskHome string, offset int) (string, error) {
-	releasesJSON, err := getReleasesJSON(bazeliskHome)
+	url := "https://api.github.com/repos/bazelbuild/bazel/releases"
+	releasesJSON, err := maybeDownload(bazeliskHome, url, "releases.json", "list of Bazel releases from GitHub")
 	if err != nil {
 		return "", fmt.Errorf("could not get releases from GitHub: %v", err)
 	}
@@ -289,6 +293,44 @@ func runBazel(bazel string, args []string) (int, error) {
 	return 0, nil
 }
 
+type issue struct {
+	Title string `json:"title"`
+}
+
+type issueList struct {
+	Items []issue `json:"items"`
+}
+
+func getIncompatibleFlags(bazeliskHome, resolvedBazelVersion string) ([]string, error) {
+	var result []string
+	// GitHub labels use only major and minor version, we ignore the patch number (and any other suffix).
+	re := regexp.MustCompile(`^\d+\.\d+`)
+	version := re.FindString(resolvedBazelVersion)
+	if len(version) == 0 {
+		return nil, fmt.Errorf("invalid version %v", resolvedBazelVersion)
+	}
+	url := "https://api.github.com/search/issues?q=repo:bazelbuild/bazel+label:migration-" + version
+	issuesJSON, err := maybeDownload(bazeliskHome, url, "flags-"+version, "list of flags from GitHub")
+	if err != nil {
+		return nil, fmt.Errorf("could not get issues from GitHub: %v", err)
+	}
+
+	var issueList issueList
+	if err := json.Unmarshal(issuesJSON, &issueList); err != nil {
+		return nil, fmt.Errorf("could not parse JSON into list of issues: %v", err)
+	}
+
+	re = regexp.MustCompile(`^incompatible_\w+`)
+	for _, issue := range issueList.Items {
+		flag := re.FindString(issue.Title)
+		if len(flag) > 0 {
+			result = append(result, "--"+flag)
+		}
+	}
+
+	return result, nil
+}
+
 func main() {
 	bazeliskHome := os.Getenv("BAZELISK_HOME")
 	if len(bazeliskHome) == 0 {
@@ -326,7 +368,19 @@ func main() {
 		log.Fatalf("could not download Bazel: %v", err)
 	}
 
-	exitCode, err := runBazel(bazelPath, os.Args[1:])
+	args := os.Args[1:]
+
+	// --strict must be the first argument. When it is present, it expands to the list of
+	// --incompatible_ flags that should be enabled for the given Bazel version.
+	if len(args) > 0 && args[0] == "--strict" {
+		newFlags, err := getIncompatibleFlags(bazeliskHome, resolvedBazelVersion)
+		if err != nil {
+			log.Fatalf("could not get the list of incompatible flags: %v", err)
+		}
+		args = append(args[1:], newFlags...)
+	}
+
+	exitCode, err := runBazel(bazelPath, args)
 	if err != nil {
 		log.Fatalf("could not run Bazel: %v", err)
 	}
