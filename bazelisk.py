@@ -36,6 +36,14 @@ ONE_HOUR = 1 * 60 * 60
 
 LATEST_PATTERN = re.compile(r"latest(-(?P<offset>\d+))?$")
 
+LAST_GREEN_COMMIT_FILE = "https://storage.googleapis.com/bazel-untrusted-builds/last_green_commit/github.com/bazelbuild/bazel.git/bazel-bazel"
+
+BAZEL_GCS_PATH_PATTERN = (
+    "https://storage.googleapis.com/bazel-builds/artifacts/{platform}/{commit}/bazel"
+)
+
+SUPPORTED_PLATFORMS = {"linux": "ubuntu1404", "windows": "windows", "darwin": "macos"}
+
 
 def decide_which_bazel_version_to_use():
     # Check in this order:
@@ -70,7 +78,10 @@ def find_workspace_root(root=None):
     return find_workspace_root(new_root) if new_root != root else None
 
 
-def resolve_version_label_to_number(bazelisk_directory, version):
+def resolve_version_label_to_number_or_commit(bazelisk_directory, version):
+    if version == "last_green":
+        return get_last_green_commit(), True
+
     if "latest" in version:
         match = LATEST_PATTERN.match(version)
         if not match:
@@ -83,9 +94,13 @@ def resolve_version_label_to_number(bazelisk_directory, version):
 
         history = get_version_history(bazelisk_directory)
         offset = int(match.group("offset") or "0")
-        return resolve_latest_version(history, offset)
+        return resolve_latest_version(history, offset), False
 
-    return version
+    return version, False
+
+
+def get_last_green_commit():
+    return read_remote_file(LAST_GREEN_COMMIT_FILE).strip()
 
 
 def get_releases_json(bazelisk_directory):
@@ -103,10 +118,14 @@ def get_releases_json(bazelisk_directory):
                     pass
 
     with open(releases, "wb") as f:
-        res = urlopen("https://api.github.com/repos/bazelbuild/bazel/releases")
-        body = res.read().decode(res.info().get_content_charset("iso-8859-1"))
+        body = read_remote_file("https://api.github.com/repos/bazelbuild/bazel/releases")
         f.write(body.encode("utf-8"))
         return json.loads(body)
+
+
+def read_remote_file(url):
+    with urlopen(url) as res:
+        return res.read().decode(res.info().get_content_charset("iso-8859-1"))
 
 
 def get_version_history(bazelisk_directory):
@@ -160,7 +179,14 @@ def normalized_machine_arch_name():
     return machine
 
 
-def determine_url(version, bazel_filename):
+def determine_url(version, is_commit, bazel_filename):
+    if is_commit:
+        sys.stderr.write("Using unreleased version at commit {}\n".format(version))
+        # No need to validate the platform thanks to determine_bazel_filename().
+        return BAZEL_GCS_PATH_PATTERN.format(
+            platform=SUPPORTED_PLATFORMS[platform.system().lower()], commit=version
+        )
+
     # Split version into base version and optional additional identifier.
     # Example: '0.19.1' -> ('0.19.1', None), '0.20.0rc1' -> ('0.20.0', 'rc1')
     (version, rc) = re.match(r"(\d*\.\d*(?:\.\d*)?)(rc\d)?", version).groups()
@@ -169,9 +195,9 @@ def determine_url(version, bazel_filename):
     )
 
 
-def download_bazel_into_directory(version, directory):
+def download_bazel_into_directory(version, is_commit, directory):
     bazel_filename = determine_bazel_filename(version)
-    url = determine_url(version, bazel_filename)
+    url = determine_url(version, is_commit, bazel_filename)
     destination_path = os.path.join(directory, bazel_filename)
     if not os.path.exists(destination_path):
         sys.stderr.write("Downloading {}...\n".format(url))
@@ -215,11 +241,13 @@ def main(argv=None):
     maybe_makedirs(bazelisk_directory)
 
     bazel_version = decide_which_bazel_version_to_use()
-    bazel_version = resolve_version_label_to_number(bazelisk_directory, bazel_version)
+    bazel_version, is_commit = resolve_version_label_to_number_or_commit(
+        bazelisk_directory, bazel_version
+    )
 
     bazel_directory = os.path.join(bazelisk_directory, "bin")
     maybe_makedirs(bazel_directory)
-    bazel_path = download_bazel_into_directory(bazel_version, bazel_directory)
+    bazel_path = download_bazel_into_directory(bazel_version, is_commit, bazel_directory)
 
     return execute_bazel(bazel_path, argv[1:])
 
