@@ -102,7 +102,7 @@ func getReleasesJSON(bazeliskHome string) ([]byte, error) {
 	// We could also use go-github here, but I can't get it to build with Bazel's rules_go and it pulls in a lot of dependencies.
 	body, err := readRemoteFile("https://api.github.com/repos/bazelbuild/bazel/releases")
 	if err != nil {
-		return nil, fmt.Errorf("Could not retrieve list of releases from GitHub: %v", err)
+		return nil, fmt.Errorf("could not retrieve list of releases from GitHub: %v", err)
 	}
 
 	return body, nil
@@ -159,7 +159,7 @@ func resolveVersionLabel(bazeliskHome, bazelVersion string) (string, bool, error
 	if bazelVersion == "last_green" {
 		commit, err := getLastGreenCommit()
 		if err != nil {
-			return "", false, fmt.Errorf("Cannot resolve last green commit: %v", err)
+			return "", false, fmt.Errorf("cannot resolve last green commit: %v", err)
 		}
 
 		return commit, true, nil
@@ -187,7 +187,7 @@ func resolveVersionLabel(bazeliskHome, bazelVersion string) (string, bool, error
 func getLastGreenCommit() (string, error) {
 	content, err := readRemoteFile("https://storage.googleapis.com/bazel-untrusted-builds/last_green_commit/github.com/bazelbuild/bazel.git/bazel-bazel")
 	if err != nil {
-		return "", fmt.Errorf("Could not get last green commit: %v", err)
+		return "", fmt.Errorf("could not determine last green commit: %v", err)
 	}
 	return strings.TrimSpace(string(content)), nil
 }
