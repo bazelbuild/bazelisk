@@ -100,7 +100,12 @@ func getReleasesJSON(bazeliskHome string) ([]byte, error) {
 	}
 
 	// We could also use go-github here, but I can't get it to build with Bazel's rules_go and it pulls in a lot of dependencies.
-	return readRemoteFile("https://api.github.com/repos/bazelbuild/bazel/releases")
+	body, err := readRemoteFile("https://api.github.com/repos/bazelbuild/bazel/releases")
+	if err != nil {
+		return nil, fmt.Errorf("Could not retrieve list of releases from GitHub: %v", err)
+	}
+
+	return body, nil
 }
 
 func readRemoteFile(url string) ([]byte, error) {
