@@ -4,14 +4,20 @@ platforms:
     test_targets:
       - //:go_bazelisk_test
       - //:py_bazelisk_test
+    test_flags:
+      - --test_output=streamed
   ubuntu1604:
     test_targets:
       - //:go_bazelisk_test
       - //:py_bazelisk_test
+    test_flags:
+      - --test_output=streamed
   ubuntu1804:
     test_targets:
       - //:go_bazelisk_test
       - //:py_bazelisk_test
+    test_flags:
+      - --test_output=streamed
   macos:
     test_targets:
       - //:go_bazelisk_test
@@ -26,3 +32,4 @@ platforms:
       - --flaky_test_attempts=1
       - --test_env=PATH
       - --test_env=PROCESSOR_ARCHITECTURE
+      - --test_output=streamed
