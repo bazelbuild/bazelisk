@@ -46,7 +46,7 @@ go get github.com/philwo/bazelisk
 
 To add it to your PATH:
 
-```python
+```shell
 export PATH=$PATH:$(go env GOPATH)/bin
 ```
 
