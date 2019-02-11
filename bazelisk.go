@@ -105,6 +105,11 @@ func getReleasesJSON(bazeliskHome string) ([]byte, error) {
 		return nil, fmt.Errorf("could not retrieve list of releases from GitHub: %v", err)
 	}
 
+	err = ioutil.WriteFile(cachePath, body, 0666)
+	if err != nil {
+		return nil, fmt.Errorf("could not create %s: %v", cachePath, err)
+	}
+
 	return body, nil
 }
 
