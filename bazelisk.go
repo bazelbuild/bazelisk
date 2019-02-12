@@ -331,6 +331,65 @@ func getIncompatibleFlags(bazeliskHome, resolvedBazelVersion string) ([]string, 
 	return result, nil
 }
 
+func migrate(bazelPath string, baseArgs []string, newArgs []string) {
+	// 1. Try with all the flags.
+	args := append(baseArgs, newArgs...)
+	fmt.Printf("Running Bazel with %q\n", args)
+	exitCode, err := runBazel(bazelPath, args)
+	if err != nil {
+		log.Fatalf("could not run Bazel: %v", err)
+	}
+	if exitCode == 0 {
+		fmt.Printf("Success: No migration needed.\n")
+		os.Exit(0)
+	}
+
+	// 2. Try with no flags, as a sanity check.
+	args = baseArgs
+	fmt.Printf("\n---\n\n")
+	fmt.Printf("Running Bazel with %q\n", args)
+	exitCode, err = runBazel(bazelPath, args)
+	if err != nil {
+		log.Fatalf("could not run Bazel: %v", err)
+	}
+	if exitCode != 0 {
+		fmt.Printf("Failure: Command failed, even without incomaptible flags.\n")
+		os.Exit(0)
+	}
+
+	// 3. Try with each flag separately.
+	var passList []string
+	var failList []string
+	for _, arg := range newArgs {
+		args = append(baseArgs, arg)
+		fmt.Printf("\n---\n\n")
+		fmt.Printf("Running Bazel with %q\n", args)
+		exitCode, err = runBazel(bazelPath, args)
+		if err != nil {
+			log.Fatalf("could not run Bazel: %v", err)
+		}
+		if exitCode == 0 {
+			passList = append(passList, arg)
+		} else {
+			failList = append(failList, arg)
+		}
+	}
+
+	// 4. Print report
+	fmt.Printf("\n---\n\n")
+	fmt.Printf("Command was successful with the following flags:\n")
+	for _, arg := range passList {
+		fmt.Printf("  %s\n", arg)
+	}
+	fmt.Printf("\n")
+	fmt.Printf("Migration is needed for the following flags:\n")
+	for _, arg := range failList {
+		fmt.Printf("  %s\n", arg)
+	}
+
+	os.Exit(0)
+}
+
 func main() {
 	bazeliskHome := os.Getenv("BAZELISK_HOME")
 	if len(bazeliskHome) == 0 {
@@ -372,12 +431,18 @@ func main() {
 
 	// --strict must be the first argument. When it is present, it expands to the list of
 	// --incompatible_ flags that should be enabled for the given Bazel version.
-	if len(args) > 0 && args[0] == "--strict" {
+	if len(args) > 0 && args[0] == "--strict" || args[0] == "--migrate" {
+		cmd := args[0]
 		newFlags, err := getIncompatibleFlags(bazeliskHome, resolvedBazelVersion)
 		if err != nil {
 			log.Fatalf("could not get the list of incompatible flags: %v", err)
 		}
-		args = append(args[1:], newFlags...)
+
+		if cmd == "--migrate" {
+			migrate(bazelPath, args[1:], newFlags)
+		} else {
+			args = append(args[1:], newFlags...)
+		}
 	}
 
 	exitCode, err := runBazel(bazelPath, args)
