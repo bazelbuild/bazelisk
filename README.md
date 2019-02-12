@@ -36,7 +36,7 @@ In the future I will add support for release candidates and for building Bazel f
 
 ## Other features
 
-The Go version of Bazlisk offers two new flags.
+The Go version of Bazelisk offers two new flags.
 
 `--strict` expands to the set of incompatible flags which may be enabled for the
 given version of Bazel.
