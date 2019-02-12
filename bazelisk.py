@@ -137,7 +137,12 @@ def get_releases_json(bazelisk_directory):
 
 def read_remote_text_file(url):
     with closing(urlopen(url)) as res:
-        return res.read().decode(res.info().get_content_charset("iso-8859-1"))
+        body = res.read()
+        try:
+            return body.decode(res.info().get_content_charset("iso-8859-1"))
+        except AttributeError:
+            # Python 2.x compatibility hack
+            return body.decode(res.info().getparam("charset") or "iso-8859-1")
 
 
 def get_version_history(bazelisk_directory):
