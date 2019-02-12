@@ -32,6 +32,22 @@ Bazelisk currently understands the following formats for version labels:
 
 In the future I will add support for release candidates and for building Bazel from source at a given commit.
 
+## Other features
+
+The Go version of Bazlisk offers two new flags.
+
+`--strict` expands to the set of incompatible flags which may be enabled for the
+given version of Bazel.
+
+```shell
+bazelisk --strict build //...
+```
+
+`--migrate` will run Bazel multiple times to help you identify compatibility
+issues. If the code fails with `--strict`, the flag `--migrate` will run Bazel
+with each one of the flag separately, and print a report at the end. This will
+show you which flags can safely enabled, and which flags require a migration.
+
 ## Requirements
 
 For ease of use, the Python version of Bazelisk is written to work with Python 2.7 and 3.x and only uses modules provided by the standard library.

@@ -331,6 +331,7 @@ func getIncompatibleFlags(bazeliskHome, resolvedBazelVersion string) ([]string, 
 	return result, nil
 }
 
+// migrate will run Bazel with each newArgs separately and report which ones are failing.
 func migrate(bazelPath string, baseArgs []string, newArgs []string) {
 	// 1. Try with all the flags.
 	args := append(baseArgs, newArgs...)
@@ -353,7 +354,7 @@ func migrate(bazelPath string, baseArgs []string, newArgs []string) {
 		log.Fatalf("could not run Bazel: %v", err)
 	}
 	if exitCode != 0 {
-		fmt.Printf("Failure: Command failed, even without incomaptible flags.\n")
+		fmt.Printf("Failure: Command failed, even without incompatible flags.\n")
 		os.Exit(0)
 	}
 
@@ -429,8 +430,7 @@ func main() {
 
 	args := os.Args[1:]
 
-	// --strict must be the first argument. When it is present, it expands to the list of
-	// --incompatible_ flags that should be enabled for the given Bazel version.
+	// --strict and --migrate must be the first argument.
 	if len(args) > 0 && args[0] == "--strict" || args[0] == "--migrate" {
 		cmd := args[0]
 		newFlags, err := getIncompatibleFlags(bazeliskHome, resolvedBazelVersion)
@@ -441,6 +441,8 @@ func main() {
 		if cmd == "--migrate" {
 			migrate(bazelPath, args[1:], newFlags)
 		} else {
+			// When --strict is present, it expands to the list of --incompatible_ flags
+			// that should be enabled for the given Bazel version.
 			args = append(args[1:], newFlags...)
 		}
 	}
