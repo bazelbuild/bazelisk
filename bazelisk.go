@@ -374,7 +374,8 @@ func getIncompatibleFlags(bazeliskHome, resolvedBazelVersion string) ([]string, 
 func migrate(bazelPath string, baseArgs []string, newArgs []string) {
 	// 1. Try with all the flags.
 	args := append(baseArgs, newArgs...)
-	fmt.Printf("\n\n--- Running Bazel with %q\n\n", args)
+	fmt.Printf("\n\n--- Running Bazel with all incompatible flags\n\n")
+	fmt.Printf("bazel %s\n", strings.Join(args, " "))
 	exitCode, err := runBazel(bazelPath, args)
 	if err != nil {
 		log.Fatalf("could not run Bazel: %v", err)
@@ -386,7 +387,8 @@ func migrate(bazelPath string, baseArgs []string, newArgs []string) {
 
 	// 2. Try with no flags, as a sanity check.
 	args = baseArgs
-	fmt.Printf("\n\n--- Running Bazel with %q\n\n", args)
+	fmt.Printf("\n\n--- Running Bazel with no incompatible flags\n\n", args)
+	fmt.Printf("bazel %s\n", strings.Join(args, " "))
 	exitCode, err = runBazel(bazelPath, args)
 	if err != nil {
 		log.Fatalf("could not run Bazel: %v", err)
@@ -401,7 +403,8 @@ func migrate(bazelPath string, baseArgs []string, newArgs []string) {
 	var failList []string
 	for _, arg := range newArgs {
 		args = append(baseArgs, arg)
-		fmt.Printf("\n\n--- Running Bazel with %q\n\n", args)
+		fmt.Printf("\n\n--- Running Bazel with %s\n\n", arg)
+		fmt.Printf("bazel %s\n", strings.Join(args, " "))
 		exitCode, err = runBazel(bazelPath, args)
 		if err != nil {
 			log.Fatalf("could not run Bazel: %v", err)
