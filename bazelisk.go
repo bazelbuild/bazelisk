@@ -471,7 +471,7 @@ func main() {
 	args := os.Args[1:]
 
 	// --strict and --migrate must be the first argument.
-	if len(args) > 0 && args[0] == "--strict" || args[0] == "--migrate" {
+	if len(args) > 0 && (args[0] == "--strict" || args[0] == "--migrate") {
 		cmd := args[0]
 		newFlags, err := getIncompatibleFlags(bazeliskHome, resolvedBazelVersion)
 		if err != nil {
