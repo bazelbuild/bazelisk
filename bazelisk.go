@@ -415,7 +415,7 @@ func migrate(bazelPath string, baseArgs []string, newArgs []string) {
 	}
 	if exitCode != 0 {
 		fmt.Printf("Failure: Command failed, even without incompatible flags.\n")
-		os.Exit(1)
+		os.Exit(exitCode)
 	}
 
 	// 3. Try with each flag separately.
