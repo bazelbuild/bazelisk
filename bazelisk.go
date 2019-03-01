@@ -370,10 +370,30 @@ func getIncompatibleFlags(bazeliskHome, resolvedBazelVersion string) ([]string, 
 	return result, nil
 }
 
+// insertArgs will insert newArgs in baseArgs. If baseArgs contains the
+// "--" argument, newArgs will be inserted before that. Otherwise, newArgs
+// is appended.
+func insertArgs(baseArgs []string, newArgs []string) []string {
+	var result []string
+	inserted := false
+	for _, arg := range baseArgs {
+		if !inserted && arg == "--" {
+			result = append(result, newArgs...)
+			inserted = true
+		}
+		result = append(result, arg)
+	}
+
+	if !inserted {
+		result = append(result, newArgs...)
+	}
+	return result
+}
+
 // migrate will run Bazel with each newArgs separately and report which ones are failing.
 func migrate(bazelPath string, baseArgs []string, newArgs []string) {
 	// 1. Try with all the flags.
-	args := append(baseArgs, newArgs...)
+	args := insertArgs(baseArgs, newArgs)
 	fmt.Printf("\n\n--- Running Bazel with all incompatible flags\n\n")
 	fmt.Printf("bazel %s\n", strings.Join(args, " "))
 	exitCode, err := runBazel(bazelPath, args)
@@ -387,7 +407,7 @@ func migrate(bazelPath string, baseArgs []string, newArgs []string) {
 
 	// 2. Try with no flags, as a sanity check.
 	args = baseArgs
-	fmt.Printf("\n\n--- Running Bazel with no incompatible flags\n\n", args)
+	fmt.Printf("\n\n--- Running Bazel with no incompatible flags\n\n")
 	fmt.Printf("bazel %s\n", strings.Join(args, " "))
 	exitCode, err = runBazel(bazelPath, args)
 	if err != nil {
@@ -395,14 +415,14 @@ func migrate(bazelPath string, baseArgs []string, newArgs []string) {
 	}
 	if exitCode != 0 {
 		fmt.Printf("Failure: Command failed, even without incompatible flags.\n")
-		os.Exit(0)
+		os.Exit(exitCode)
 	}
 
 	// 3. Try with each flag separately.
 	var passList []string
 	var failList []string
 	for _, arg := range newArgs {
-		args = append(baseArgs, arg)
+		args = insertArgs(baseArgs, []string{arg})
 		fmt.Printf("\n\n--- Running Bazel with %s\n\n", arg)
 		fmt.Printf("bazel %s\n", strings.Join(args, " "))
 		exitCode, err = runBazel(bazelPath, args)
@@ -428,7 +448,7 @@ func migrate(bazelPath string, baseArgs []string, newArgs []string) {
 		fmt.Printf("  %s\n", arg)
 	}
 
-	os.Exit(0)
+	os.Exit(1)
 }
 
 func main() {
@@ -483,7 +503,7 @@ func main() {
 		} else {
 			// When --strict is present, it expands to the list of --incompatible_ flags
 			// that should be enabled for the given Bazel version.
-			args = append(args[1:], newFlags...)
+			args = insertArgs(args[1:], newFlags)
 		}
 	}
 
