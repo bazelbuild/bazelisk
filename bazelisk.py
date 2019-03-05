@@ -169,6 +169,16 @@ def resolve_latest_version(version_history, offset):
     return version_history[offset]
 
 
+def get_operating_system():
+    operating_system = platform.system().lower()
+    if operating_system not in ("linux", "darwin", "windows"):
+        raise Exception(
+            'Unsupported operating system "{}". '
+            "Bazel currently only supports Linux, macOS and Windows.".format(operating_system)
+        )
+    return operating_system
+
+
 def determine_bazel_filename(version):
     machine = normalized_machine_arch_name()
     if machine != "x86_64":
@@ -178,12 +188,7 @@ def determine_bazel_filename(version):
             )
         )
 
-    operating_system = platform.system().lower()
-    if operating_system not in ("linux", "darwin", "windows"):
-        raise Exception(
-            'Unsupported operating system "{}". '
-            "Bazel currently only supports Linux, macOS and Windows.".format(operating_system)
-        )
+    operating_system = get_operating_system()
 
     filename_ending = ".exe" if operating_system == "windows" else ""
     return "bazel-{}-{}-{}{}".format(version, operating_system, machine, filename_ending)
@@ -225,6 +230,37 @@ def download_bazel_into_directory(version, is_commit, directory):
     return destination_path
 
 
+def get_bazelisk_directory():
+    bazelisk_home = os.environ.get("BAZELISK_HOME")
+    if bazelisk_home is not None:
+        return bazelisk_home
+
+    operating_system = get_operating_system()
+
+    base_dir = None
+
+    if operating_system == "windows":
+        base_dir = os.environ.get("LocalAppData")
+        if base_dir is None:
+            raise Exception("%LocalAppData% is not defined")
+    elif operating_system == "darwin":
+        base_dir = os.environ.get("HOME")
+        if base_dir is None:
+            raise Exception("$HOME is not defined")
+        base_dir = os.path.join(base_dir, "Library/Caches")
+    elif operating_system == "linux":
+        base_dir = os.environ.get("XDG_CACHE_HOME")
+        if base_dir is None:
+            base_dir = os.environ.get("HOME")
+            if base_dir is None:
+                raise Exception("neither $XDG_CACHE_HOME nor $HOME are defined")
+            base_dir = os.path.join(base_dir, ".cache")
+    else:
+        raise Exception("Unsupported operating system '{}'".format(operating_system))
+
+    return os.path.join(base_dir, "bazelisk")
+
+
 def maybe_makedirs(path):
     """
   Creates a directory and its parents if necessary.
@@ -252,9 +288,7 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv
 
-    bazelisk_directory = os.environ.get(
-        "BAZELISK_HOME", os.path.join(os.path.expanduser("~"), ".bazelisk")
-    )
+    bazelisk_directory = get_bazelisk_directory()
     maybe_makedirs(bazelisk_directory)
 
     bazel_version = decide_which_bazel_version_to_use()
