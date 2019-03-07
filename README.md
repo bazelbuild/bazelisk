@@ -81,4 +81,4 @@ variable](https://github.com/golang/go/wiki/SettingGOPATH).
 ## FAQ
 
 ### Where does Bazelisk store the downloaded versions of Bazel?
-It creates a directory called ".bazelisk" inside your home directory and will store them there. Feel free to delete this directory at any time, as it can be regenerated automatically when required.
+It creates a directory called "bazelisk" inside your [user cache directory](https://golang.org/pkg/os/#UserCacheDir) and will store them there. Feel free to delete this directory at any time, as it can be regenerated automatically when required.
