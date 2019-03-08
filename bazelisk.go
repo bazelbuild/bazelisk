@@ -240,7 +240,10 @@ func determineURL(version string, isCommit bool, filename string) string {
 
 	kind := "release"
 	if strings.Contains(version, "rc") {
-		kind = strings.SplitAfter(version, "rc")[1]
+		versionComponents := strings.Split(version, "rc")
+		// Replace version with the part before rc
+		version = versionComponents[0]
+		kind = "rc" + versionComponents[1]
 	}
 
 	return fmt.Sprintf("https://releases.bazel.build/%s/%s/%s", version, kind, filename)
