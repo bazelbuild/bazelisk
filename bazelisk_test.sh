@@ -116,6 +116,17 @@ function test_bazel_last_green() {
       (echo "FAIL: 'bazelisk version' of an unreleased binary must not print a build label."; exit 1)
 }
 
+function test_bazel_last_downstream_green() {
+  setup
+
+  USE_BAZEL_VERSION="last_downstream_green" \
+      BAZELISK_HOME="$BAZELISK_HOME" \
+      bazelisk version 2>&1 | tee log
+
+  ! grep "Build label:" log || \
+      (echo "FAIL: 'bazelisk version' of an unreleased binary must not print a build label."; exit 1)
+}
+
 echo "# test_bazel_version"
 test_bazel_version
 echo
@@ -134,4 +145,8 @@ echo
 
 echo "# test_bazel_last_green"
 test_bazel_last_green
+echo
+
+echo "# test_bazel_last_downstream_green"
+test_bazel_last_downstream_green
 echo
