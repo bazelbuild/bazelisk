@@ -30,6 +30,7 @@ Bazelisk currently understands the following formats for version labels:
 - A version number like `0.17.2` means that exact version of Bazel. It can also
   be a release candidate version like `0.20.0rc3`.
 - `last_green` refers to the Bazel binary that was built at the most recent commit that passed [Bazel CI](https://buildkite.com/bazel/bazel-bazel). Ideally this binary should be very close to Bazel-at-head.
+- `last_downstream_green` points to the most recent Bazel binary that builds and tests all [downstream projects](https://buildkite.com/bazel/bazel-at-head-plus-downstream) successfully.
 
 
 In the future I will add support for release candidates and for building Bazel from source at a given commit.

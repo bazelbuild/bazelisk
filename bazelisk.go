@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"sort"
@@ -169,8 +170,9 @@ func resolveVersionLabel(bazeliskHome, bazelVersion string) (string, bool, error
 	// 1. The label of a Blaze release (if the label resolves to a release) or a commit (for unreleased binaries),
 	// 2. Whether the first value refers to a commit,
 	// 3. An error.
-	if bazelVersion == "last_green" {
-		commit, err := getLastGreenCommit()
+	lastGreenCommitPathSuffixes := map[string]string{"last_green": "github.com/bazelbuild/bazel.git/bazel-bazel", "last_downstream_green": "downstream_pipeline"}
+	if pathSuffix, ok := lastGreenCommitPathSuffixes[bazelVersion]; ok {
+		commit, err := getLastGreenCommit(pathSuffix)
 		if err != nil {
 			return "", false, fmt.Errorf("cannot resolve last green commit: %v", err)
 		}
@@ -197,8 +199,10 @@ func resolveVersionLabel(bazeliskHome, bazelVersion string) (string, bool, error
 	return bazelVersion, false, nil
 }
 
-func getLastGreenCommit() (string, error) {
-	content, err := readRemoteFile("https://storage.googleapis.com/bazel-untrusted-builds/last_green_commit/github.com/bazelbuild/bazel.git/bazel-bazel")
+const lastGreenBasePath = "https://storage.googleapis.com/bazel-untrusted-builds/last_green_commit"
+
+func getLastGreenCommit(pathSuffix string) (string, error) {
+	content, err := readRemoteFile(filepath.Join(lastGreenBasePath, pathSuffix))
 	if err != nil {
 		return "", fmt.Errorf("could not determine last green commit: %v", err)
 	}
