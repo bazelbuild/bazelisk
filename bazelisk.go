@@ -12,7 +12,6 @@ import (
 	"os/exec"
 	"os/signal"
 	"path"
-	"path/filepath"
 	"regexp"
 	"runtime"
 	"sort"
@@ -199,10 +198,10 @@ func resolveVersionLabel(bazeliskHome, bazelVersion string) (string, bool, error
 	return bazelVersion, false, nil
 }
 
-const lastGreenBasePath = "https://storage.googleapis.com/bazel-untrusted-builds/last_green_commit"
+const lastGreenBasePath = "https://storage.googleapis.com/bazel-untrusted-builds/last_green_commit/"
 
 func getLastGreenCommit(pathSuffix string) (string, error) {
-	content, err := readRemoteFile(filepath.Join(lastGreenBasePath, pathSuffix))
+	content, err := readRemoteFile(lastGreenBasePath + pathSuffix)
 	if err != nil {
 		return "", fmt.Errorf("could not determine last green commit: %v", err)
 	}
