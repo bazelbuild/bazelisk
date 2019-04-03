@@ -44,6 +44,8 @@ BAZEL_GCS_PATH_PATTERN = (
 
 SUPPORTED_PLATFORMS = {"linux": "ubuntu1404", "windows": "windows", "darwin": "macos"}
 
+TOOLS_BAZEL_PATH = "./tools/bazel"
+
 
 def decide_which_bazel_version_to_use():
     # Check in this order:
@@ -273,6 +275,10 @@ def maybe_makedirs(path):
 
 
 def execute_bazel(bazel_path, argv):
+    # try to execute bazel wrapper in ./tools first.
+    if os.path.exists(TOOLS_BAZEL_PATH):
+        os.putenv("BAZEL_REAL", bazel_path)
+        bazel_path = "./tools/bazel"
     # We cannot use close_fds on Windows, so disable it there.
     p = subprocess.Popen([bazel_path] + argv, close_fds=os.name != "nt")
     while True:
