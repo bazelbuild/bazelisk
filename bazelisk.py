@@ -36,7 +36,9 @@ ONE_HOUR = 1 * 60 * 60
 
 LATEST_PATTERN = re.compile(r"latest(-(?P<offset>\d+))?$")
 
-LAST_GREEN_COMMIT_FILE = "https://storage.googleapis.com/bazel-untrusted-builds/last_green_commit/github.com/bazelbuild/bazel.git/bazel-bazel"
+LAST_GREEN_COMMIT_BASE_PATH = "https://storage.googleapis.com/bazel-untrusted-builds/last_green_commit/"
+
+LAST_GREEN_COMMIT_PATH_SUFFIXES = {"last_green" : "github.com/bazelbuild/bazel.git/bazel-bazel", "last_downstream_green" : "downstream_pipeline"}
 
 BAZEL_GCS_PATH_PATTERN = (
     "https://storage.googleapis.com/bazel-builds/artifacts/{platform}/{commit}/bazel"
@@ -91,8 +93,9 @@ def resolve_version_label_to_number_or_commit(bazelisk_directory, version):
             of an unreleased Bazel binary,
         2. An indicator for whether the returned version refers to a commit.
     """
-    if version == "last_green":
-        return get_last_green_commit(), True
+    suffix = LAST_GREEN_COMMIT_PATH_SUFFIXES.get(version)
+    if suffix:
+        return get_last_green_commit(suffix), True
 
     if "latest" in version:
         match = LATEST_PATTERN.match(version)
@@ -111,8 +114,8 @@ def resolve_version_label_to_number_or_commit(bazelisk_directory, version):
     return version, False
 
 
-def get_last_green_commit():
-    return read_remote_text_file(LAST_GREEN_COMMIT_FILE).strip()
+def get_last_green_commit(path_suffix):
+    return read_remote_text_file(LAST_GREEN_COMMIT_BASE_PATH + path_suffix).strip()
 
 
 def get_releases_json(bazelisk_directory):
