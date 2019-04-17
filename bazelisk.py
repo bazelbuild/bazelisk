@@ -24,6 +24,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 
 try:
@@ -226,9 +227,12 @@ def download_bazel_into_directory(version, is_commit, directory):
     destination_path = os.path.join(directory, bazel_filename)
     if not os.path.exists(destination_path):
         sys.stderr.write("Downloading {}...\n".format(url))
-        with closing(urlopen(url)) as response:
-            with open(destination_path, "wb") as out_file:
-                shutil.copyfileobj(response, out_file)
+        with tempfile.NamedTemporaryFile(prefix="bazelisk", dir=directory, delete=False) as t:
+            with closing(urlopen(url)) as response:
+                shutil.copyfileobj(response, t)
+            t.flush()
+            os.fsync(t.fileno())
+        os.rename(t.name, destination_path)
     os.chmod(destination_path, 0o755)
     return destination_path
 
