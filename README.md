@@ -74,7 +74,6 @@ variable](https://github.com/golang/go/wiki/SettingGOPATH).
 
 ## Ideas for the future
 
-- Add a Homebrew recipe for Bazelisk to make it easy to install on macOS.
 - Add support for checked-in Bazel binaries.
 - When the version label is set to a commit hash, first download a matching binary version of Bazel, then build Bazel automatically at that commit and use the resulting binary.
 - Add support to automatically bisect a build failure to a culprit commit in Bazel. If you notice that you could successfully build your project using version X, but not using version X+1, then Bazelisk should be able to figure out the commit that caused the breakage and the Bazel team can easily fix the problem.
