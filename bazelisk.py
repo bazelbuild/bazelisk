@@ -18,6 +18,7 @@ limitations under the License.
 from contextlib import closing
 from distutils.version import LooseVersion
 import json
+import os
 import os.path
 import platform
 import re
@@ -45,6 +46,10 @@ BAZEL_GCS_PATH_PATTERN = (
 )
 
 SUPPORTED_PLATFORMS = {"linux": "ubuntu1404", "windows": "windows", "darwin": "macos"}
+
+TOOLS_BAZEL_PATH = "./tools/bazel"
+
+BAZEL_REAL = "BAZEL_REAL"
 
 
 def decide_which_bazel_version_to_use():
@@ -274,8 +279,26 @@ def maybe_makedirs(path):
         if not os.path.isdir(path):
             raise e
 
+def delegate_tools_bazel(bazel_path):
+    """Match Bazel's own delegation behavior in the builds distributed by most
+    package managers: use tools/bazel if it's present, executable, and not this
+    script.
+    """
+    root = find_workspace_root()
+    if root:
+        wrapper = os.path.join(root, TOOLS_BAZEL_PATH)
+        if (os.path.exists(wrapper) and os.access(wrapper, os.X_OK)):
+            if wrapper != os.path.abspath(__file__):
+                return wrapper
+    return None
+
 
 def execute_bazel(bazel_path, argv):
+    wrapper = delegate_tools_bazel(bazel_path)
+    if wrapper:
+        os.putenv(BAZEL_REAL, bazel_path)
+        bazel_path = wrapper
+
     # We cannot use close_fds on Windows, so disable it there.
     p = subprocess.Popen([bazel_path] + argv, close_fds=os.name != "nt")
     while True:
