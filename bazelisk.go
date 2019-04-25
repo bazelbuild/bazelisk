@@ -23,6 +23,11 @@ import (
 	version "github.com/hashicorp/go-version"
 )
 
+const (
+	bazelReal   = "BAZEL_REAL"
+	wrapperPath = "./tools/bazel"
+)
+
 func findWorkspaceRoot(root string) string {
 	if _, err := os.Stat(path.Join(root, "WORKSPACE")); err == nil {
 		return root
@@ -304,8 +309,26 @@ func downloadBazel(version string, isCommit bool, directory string) (string, err
 	return destinationPath, nil
 }
 
+func delegateToWrapper(bazel string) string {
+	wd, err := os.Getwd()
+	if err != nil {
+		return bazel
+	}
+	root := findWorkspaceRoot(wd)
+	wrapper := path.Join(root, wrapperPath)
+	if stat, err := os.Stat(wrapper); err != nil || stat.Mode().Perm()&0001 == 0 {
+		return bazel
+	}
+	return wrapper
+}
+
 func runBazel(bazel string, args []string) (int, error) {
-	cmd := exec.Command(bazel, args...)
+	execPath := delegateToWrapper(bazel)
+	if execPath != bazel {
+		os.Setenv(bazelReal, bazel)
+	}
+
+	cmd := exec.Command(execPath, args...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
