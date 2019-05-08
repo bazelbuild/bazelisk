@@ -128,7 +128,7 @@ def get_releases_json(bazelisk_directory):
             with open(releases, "rb") as f:
                 try:
                     return json.loads(f.read().decode("utf-8"))
-                except json.decoder.JSONDecodeError:
+                except ValueError:
                     print("WARN: Could not parse cached releases.json.")
                     pass
 
