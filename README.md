@@ -10,8 +10,6 @@
 
 Bazelisk is a wrapper for Bazel. It automatically picks a good version of Bazel given your current working directory, downloads it from the official server (if required) and then transparently passes through all command-line arguments to the real Bazel binary. You can call it just like you would call Bazel.
 
-Bazelisk is currently not an official part of Bazel and is not tested or code reviewed as thoroughly as Bazel itself. It's a personal project that @philwo (a core contributor to Bazel) wrote in his free time. If users like it, we might merge it into the bazelbuild organization and make it an official tool.
-
 Some ideas how to use it:
 - Install it as the `bazel` binary in your PATH (e.g. /usr/local/bin). Never worry about upgrading Bazel to the latest version again.
 - Check it into your repository and recommend users to build your software via `./bazelisk.py build //my:software`. That way, even someone who has never used Bazel or doesn't have it installed can build your software.
