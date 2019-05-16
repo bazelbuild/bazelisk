@@ -25,7 +25,6 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
-	"path"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -44,7 +43,7 @@ const (
 )
 
 func findWorkspaceRoot(root string) string {
-	if _, err := os.Stat(path.Join(root, "WORKSPACE")); err == nil {
+	if _, err := os.Stat(filepath.Join(root, "WORKSPACE")); err == nil {
 		return root
 	}
 
@@ -79,7 +78,7 @@ func getBazelVersion() (string, error) {
 
 	workspaceRoot := findWorkspaceRoot(workingDirectory)
 	if len(workspaceRoot) != 0 {
-		bazelVersionPath := path.Join(workspaceRoot, ".bazelversion")
+		bazelVersionPath := filepath.Join(workspaceRoot, ".bazelversion")
 		if _, err := os.Stat(bazelVersionPath); err == nil {
 			f, err := os.Open(bazelVersionPath)
 			if err != nil {
@@ -128,7 +127,7 @@ func readRemoteFile(url string) ([]byte, error) {
 // It skips the download if the file already exists and is not outdated.
 // description is used only to provide better error messages.
 func maybeDownload(bazeliskHome, url, filename, description string) ([]byte, error) {
-	cachePath := path.Join(bazeliskHome, filename)
+	cachePath := filepath.Join(bazeliskHome, filename)
 
 	if cacheStat, err := os.Stat(cachePath); err == nil {
 		if time.Since(cacheStat.ModTime()).Hours() < 1 {
@@ -279,7 +278,7 @@ func downloadBazel(version string, isCommit bool, directory string) (string, err
 	}
 
 	url := determineURL(version, isCommit, filename)
-	destinationPath := path.Join(directory, filename)
+	destinationPath := filepath.Join(directory, filename)
 
 	if _, err := os.Stat(destinationPath); err != nil {
 		tmpfile, err := ioutil.TempFile(directory, "download")
@@ -330,7 +329,7 @@ func delegateToWrapper(bazel string) string {
 		return bazel
 	}
 	root := findWorkspaceRoot(wd)
-	wrapper := path.Join(root, wrapperPath)
+	wrapper := filepath.Join(root, wrapperPath)
 	if stat, err := os.Stat(wrapper); err != nil || stat.Mode().Perm()&0001 == 0 {
 		return bazel
 	}
@@ -503,7 +502,7 @@ func main() {
 			log.Fatalf("could not get the user's cache directory: %v", err)
 		}
 
-		bazeliskHome = path.Join(userCacheDir, "bazelisk")
+		bazeliskHome = filepath.Join(userCacheDir, "bazelisk")
 	}
 
 	err := os.MkdirAll(bazeliskHome, 0755)
@@ -521,7 +520,7 @@ func main() {
 		log.Fatalf("could not resolve the version '%s' to an actual version number: %v", bazelVersion, err)
 	}
 
-	bazelDirectory := path.Join(bazeliskHome, "bin")
+	bazelDirectory := filepath.Join(bazeliskHome, "bin")
 	err = os.MkdirAll(bazelDirectory, 0755)
 	if err != nil {
 		log.Fatalf("could not create directory %s: %v", bazelDirectory, err)
