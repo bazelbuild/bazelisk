@@ -26,6 +26,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"sort"
@@ -47,7 +48,7 @@ func findWorkspaceRoot(root string) string {
 		return root
 	}
 
-	parentDirectory := path.Dir(root)
+	parentDirectory := filepath.Dir(root)
 	if parentDirectory == root {
 		return ""
 	}
