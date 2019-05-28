@@ -36,6 +36,9 @@ else
 fi
 # --- end runfiles.bash initialization ---
 
+BAZELISK_VERSION=$1
+shift 1
+
 function setup() {
   BAZELISK_HOME="$(mktemp -d $TEST_TMPDIR/home.XXXXXX)"
 
@@ -127,6 +130,17 @@ function test_bazel_last_downstream_green() {
       (echo "FAIL: 'bazelisk version' of an unreleased binary must not print a build label."; exit 1)
 }
 
+function test_bazel_last_rc() {
+  setup
+
+  USE_BAZEL_VERSION="last_rc" \
+      BAZELISK_HOME="$BAZELISK_HOME" \
+      bazelisk version 2>&1 | tee log
+
+  grep "Build label:" log || \
+      (echo "FAIL: Expected to find 'Build label' in the output of 'bazelisk version'"; exit 1)
+}
+
 echo "# test_bazel_version"
 test_bazel_version
 echo
@@ -150,3 +164,9 @@ echo
 echo "# test_bazel_last_downstream_green"
 test_bazel_last_downstream_green
 echo
+
+if [[$BAZELISK_VERSION == "GO"]]; then
+echo "# test_bazel_last_rc"
+test_bazel_last_rc
+echo
+fi
