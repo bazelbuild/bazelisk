@@ -36,6 +36,9 @@ else
 fi
 # --- end runfiles.bash initialization ---
 
+BAZELISK_VERSION=$1
+shift 1
+
 function setup() {
   BAZELISK_HOME="$(mktemp -d $TEST_TMPDIR/home.XXXXXX)"
 
@@ -162,6 +165,8 @@ echo "# test_bazel_last_downstream_green"
 test_bazel_last_downstream_green
 echo
 
+if [[$BAZELISK_VERSION == "GO"]]; then
 echo "# test_bazel_last_rc"
 test_bazel_last_rc
 echo
+fi

@@ -9,6 +9,7 @@ sh_test(
     srcs = ["bazelisk_test.sh"],
     data = ["bazelisk.py", "releases_for_tests.json"],
     deps = ["@bazel_tools//tools/bash/runfiles"],
+    args = ["PY"]
 )
 
 sh_test(
@@ -16,6 +17,7 @@ sh_test(
     srcs = ["bazelisk_test.sh"],
     data = [":bazelisk", "releases_for_tests.json"],
     deps = ["@bazel_tools//tools/bash/runfiles"],
+    args = ["GO"]
 )
 
 go_library(
