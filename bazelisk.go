@@ -105,8 +105,18 @@ type release struct {
 	Prerelease bool   `json:"prerelease"`
 }
 
-func readRemoteFile(url string) ([]byte, error) {
-	res, err := http.Get(url)
+func readRemoteFile(url string, token string) ([]byte, error) {
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("could not create request: %v", err)
+	}
+
+	if token != "" {
+		req.Header.Set("Authorization", "token "+token)
+	}
+
+	res, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("could not fetch %s: %v", url, err)
 	}
@@ -140,7 +150,7 @@ func maybeDownload(bazeliskHome, url, filename, description string) ([]byte, err
 	}
 
 	// We could also use go-github here, but I can't get it to build with Bazel's rules_go and it pulls in a lot of dependencies.
-	body, err := readRemoteFile(url)
+	body, err := readRemoteFile(url, os.Getenv("BAZELISK_GITHUB_TOKEN"))
 	if err != nil {
 		return nil, fmt.Errorf("could not download %s: %v", description, err)
 	}
@@ -220,7 +230,7 @@ func listDirectoriesInReleaseBucket(prefix string) ([]string, error) {
 	if prefix != "" {
 		url = fmt.Sprintf("%s&prefix=%s", url, prefix)
 	}
-	content, err := readRemoteFile(url)
+	content, err := readRemoteFile(url, "")
 	if err != nil {
 		return nil, fmt.Errorf("could not list GCS objects at %s: %v", url, err)
 	}
@@ -304,7 +314,7 @@ func resolveVersionLabel(bazeliskHome, bazelVersion string) (string, bool, error
 const lastGreenBasePath = "https://storage.googleapis.com/bazel-untrusted-builds/last_green_commit/"
 
 func getLastGreenCommit(pathSuffix string) (string, error) {
-	content, err := readRemoteFile(lastGreenBasePath + pathSuffix)
+	content, err := readRemoteFile(lastGreenBasePath+pathSuffix, "")
 	if err != nil {
 		return "", fmt.Errorf("could not determine last green commit: %v", err)
 	}
