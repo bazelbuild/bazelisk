@@ -4,7 +4,7 @@
 
 ## News
 
-- 2018-01-20: I rewrote Bazelisk in Go. It has the same features as the Python version and both versions are tested against the same integration test suite. This version might be easier to use on Windows, because it can be compiled to a native executable that has no other dependencies.
+- 2018-01-20: Bazelisk is rewritten in Go. It has the same features as the Python version and both versions are tested against the same integration test suite. This version might be easier to use on Windows, because it can be compiled to a native executable that has no other dependencies.
 
 ## About Bazelisk
 
@@ -32,7 +32,7 @@ Bazelisk currently understands the following formats for version labels:
 - `last_rc` points to the most recent release candidate. If there is no active release candidate, Bazelisk uses the latest Bazel release instead. Currently only the Go version of Bazelisk supports this value.
 
 
-In the future I will add support for building Bazel from source at a given commit.
+In the future we will add support for building Bazel from source at a given commit.
 
 ## Other features
 
@@ -50,6 +50,11 @@ issues. If the code fails with `--strict`, the flag `--migrate` will run Bazel
 with each one of the flag separately, and print a report at the end. This will
 show you which flags can safely enabled, and which flags require a migration.
 
+
+## Releases 
+
+Binary and source releases are provided on our [Releases](https://github.com/bazelbuild/bazelisk/releases) page.
+
 ## Requirements
 
 For ease of use, the Python version of Bazelisk is written to work with Python 2.7 and 3.x and only uses modules provided by the standard library.
@@ -59,7 +64,7 @@ The Go version can be compiled to run natively on Linux, macOS and Windows.
 To install the Go version, type:
 
 ```shell
-go get github.com/philwo/bazelisk
+go get github.com/bazelbuild/bazelisk
 ```
 
 To add it to your PATH:
