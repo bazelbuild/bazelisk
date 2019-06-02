@@ -42,6 +42,10 @@ const (
 	wrapperPath = "./tools/bazel"
 )
 
+var (
+	BazeliskVersion = "development"
+)
+
 func findWorkspaceRoot(root string) string {
 	if _, err := os.Stat(filepath.Join(root, "WORKSPACE")); err == nil {
 		return root
@@ -632,6 +636,12 @@ func main() {
 			// that should be enabled for the given Bazel version.
 			args = insertArgs(args[1:], newFlags)
 		}
+	}
+
+	// print bazelisk version information if "version" is the first argument
+	// bazel version is executed after this command
+	if len(args) > 0 && args[0] == "version" {
+		fmt.Printf("Bazelisk version: %s\n", BazeliskVersion)
 	}
 
 	exitCode, err := runBazel(bazelPath, args)

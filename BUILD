@@ -26,6 +26,7 @@ go_library(
     importpath = "github.com/philwo/bazelisk",
     visibility = ["//visibility:private"],
     deps = ["@com_github_hashicorp_go_version//:go_default_library"],
+    x_defs = {"BazeliskVersion": "{STABLE_VERSION}"},
 )
 
 go_binary(
