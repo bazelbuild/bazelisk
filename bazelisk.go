@@ -42,6 +42,10 @@ const (
 	wrapperPath = "./tools/bazel"
 )
 
+var (
+	BazeliskVersion = "development"
+)
+
 func findWorkspaceRoot(root string) string {
 	if _, err := os.Stat(filepath.Join(root, "WORKSPACE")); err == nil {
 		return root
@@ -631,6 +635,26 @@ func main() {
 			// When --strict is present, it expands to the list of --incompatible_ flags
 			// that should be enabled for the given Bazel version.
 			args = insertArgs(args[1:], newFlags)
+		}
+	}
+
+	// print bazelisk version information if "version" is the first argument
+	// bazel version is executed after this command
+	if len(args) > 0 && args[0] == "version" {
+		// Check if the --gnu_format flag is set, if that is the case,
+		// the version is printed differently
+		var gnuFormat bool
+		for _, arg := range args {
+			if arg == "--gnu_format" {
+				gnuFormat = true
+				break
+			}
+		}
+
+		if gnuFormat {
+			fmt.Printf("Bazelisk %s\n", BazeliskVersion)
+		} else {
+			fmt.Printf("Bazelisk version: %s\n", BazeliskVersion)
 		}
 	}
 
