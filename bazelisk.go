@@ -641,7 +641,21 @@ func main() {
 	// print bazelisk version information if "version" is the first argument
 	// bazel version is executed after this command
 	if len(args) > 0 && args[0] == "version" {
-		fmt.Printf("Bazelisk version: %s\n", BazeliskVersion)
+		// Check if the --gnu_format flag is set, if that is the case,
+		// the version is printed differently
+		var gnuFormat bool
+		for _, arg := range args {
+			if arg == "--gnu_format" {
+				gnuFormat = true
+				break
+			}
+		}
+
+		if gnuFormat {
+			fmt.Printf("Bazelisk %s\n", BazeliskVersion)
+		} else {
+			fmt.Printf("Bazelisk version: %s\n", BazeliskVersion)
+		}
 	}
 
 	exitCode, err := runBazel(bazelPath, args)
