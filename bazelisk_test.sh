@@ -61,6 +61,7 @@ function bazelisk() {
   else
     echo "Could not find the bazelisk executable, listing files:"
     find .
+    exit 1
   fi
 }
 
@@ -141,6 +142,49 @@ function test_bazel_last_rc() {
       (echo "FAIL: Expected to find 'Build label' in the output of 'bazelisk version'"; exit 1)
 }
 
+function test_delegate_to_wrapper() {
+  setup
+
+  mkdir tools
+  cat > tools/bazel <<'EOF'
+#!/bin/sh
+echo HELLO_WRAPPER
+env | grep BAZELISK_SKIP_WRAPPER
+EOF
+  chmod +x tools/bazel
+
+  BAZELISK_HOME="$BAZELISK_HOME" \
+      bazelisk version 2>&1 | tee log
+
+  grep "HELLO_WRAPPER" log || \
+      (echo "FAIL: Expected to find 'HELLO_WRAPPER' in the output of 'bazelisk version'"; exit 1)
+
+  grep "BAZELISK_SKIP_WRAPPER=true" log || \
+      (echo "FAIL: Expected to find 'BAZELISK_SKIP_WRAPPER=true' in the output of 'bazelisk version'"; exit 1)
+}
+
+function test_skip_wrapper() {
+  setup
+
+  mkdir tools
+  cat > tools/bazel <<'EOF'
+#!/bin/sh
+echo HELLO_WRAPPER
+env | grep BAZELISK_SKIP_WRAPPER
+EOF
+  chmod +x tools/bazel
+
+  BAZELISK_HOME="$BAZELISK_HOME" \
+      BAZELISK_SKIP_WRAPPER="true" \
+      bazelisk version 2>&1 | tee log
+
+  grep "HELLO_WRAPPER" log && \
+      (echo "FAIL: Expected to not find 'HELLO_WRAPPER' in the output of 'bazelisk version'"; exit 1)
+
+  grep "Build label:" log || \
+      (echo "FAIL: Expected to find 'Build label' in the output of 'bazelisk version'"; exit 1)
+}
+
 echo "# test_bazel_version"
 test_bazel_version
 echo
@@ -165,8 +209,23 @@ echo "# test_bazel_last_downstream_green"
 test_bazel_last_downstream_green
 echo
 
-if [[$BAZELISK_VERSION == "GO"]]; then
-echo "# test_bazel_last_rc"
-test_bazel_last_rc
-echo
+if [[ $BAZELISK_VERSION == "GO" ]]; then
+  echo "# test_bazel_last_rc"
+  test_bazel_last_rc
+  echo
+
+  case "$(uname -s)" in
+    MSYS*)
+      # The tests are currently not compatible with Windows.
+      ;;
+    *)
+      echo "# test_delegate_to_wrapper"
+      test_delegate_to_wrapper
+      echo
+
+      echo "# test_skip_wrapper"
+      test_skip_wrapper
+      echo
+      ;;
+  esac
 fi

@@ -38,8 +38,9 @@ import (
 )
 
 const (
-	bazelReal   = "BAZEL_REAL"
-	wrapperPath = "./tools/bazel"
+	bazelReal      = "BAZEL_REAL"
+	skipWrapperEnv = "BAZELISK_SKIP_WRAPPER"
+	wrapperPath    = "./tools/bazel"
 )
 
 var (
@@ -421,26 +422,33 @@ func downloadBazel(version string, isCommit bool, directory string) (string, err
 	return destinationPath, nil
 }
 
-func delegateToWrapper(bazel string) string {
+func maybeDelegateToWrapper(bazel string) string {
+	if os.Getenv(skipWrapperEnv) != "" {
+		return bazel
+	}
+
 	wd, err := os.Getwd()
 	if err != nil {
 		return bazel
 	}
+
 	root := findWorkspaceRoot(wd)
 	wrapper := filepath.Join(root, wrapperPath)
 	if stat, err := os.Stat(wrapper); err != nil || stat.Mode().Perm()&0001 == 0 {
 		return bazel
 	}
+
 	return wrapper
 }
 
 func runBazel(bazel string, args []string) (int, error) {
-	execPath := delegateToWrapper(bazel)
+	execPath := maybeDelegateToWrapper(bazel)
 	if execPath != bazel {
 		os.Setenv(bazelReal, bazel)
 	}
 
 	cmd := exec.Command(execPath, args...)
+	cmd.Env = append(os.Environ(), skipWrapperEnv+"=true")
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

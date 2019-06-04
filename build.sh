@@ -38,4 +38,5 @@ rm -f bazelisk
 # GOOS=windows GOARCH=amd64 go build -o bin/bazelisk-windows-amd64.exe
 
 ### Print some information about the generated binaries.
+ls -lh bin/*
 file bin/*
