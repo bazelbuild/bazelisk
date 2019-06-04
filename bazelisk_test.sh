@@ -214,11 +214,18 @@ if [[ $BAZELISK_VERSION == "GO" ]]; then
   test_bazel_last_rc
   echo
 
-  echo "# test_delegate_to_wrapper"
-  test_delegate_to_wrapper
-  echo
+  case "$(uname -s)" in
+    MSYS*)
+      # The tests are currently not compatible with Windows.
+      ;;
+    *)
+      echo "# test_delegate_to_wrapper"
+      test_delegate_to_wrapper
+      echo
 
-  echo "# test_skip_wrapper"
-  test_skip_wrapper
-  echo
+      echo "# test_skip_wrapper"
+      test_skip_wrapper
+      echo
+      ;;
+  esac
 fi
