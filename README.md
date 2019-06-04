@@ -53,6 +53,13 @@ show you which flags can safely enabled, and which flags require a migration.
 You can set `BAZELISK_GITHUB_TOKEN` to set a GitHub access token to use for API
 requests to avoid rate limiting when on shared networks.
 
+If `tools/bazel` exists in your workspace root and is executable, Bazelisk will run this file,
+instead of the Bazel version it downloaded. It will set the environment variable `BAZEL_REAL` to
+the path of the downloaded Bazel binary. This can be useful, if you have a wrapper script that e.g.
+ensures that environment variables are set to known good values. This behavior can be disabled by
+setting the environment variable `BAZELISK_SKIP_WRAPPER` to any value (except the empty string)
+before launching Bazelisk.
+
 ## Releases
 
 Binary and source releases are provided on our [Releases](https://github.com/bazelbuild/bazelisk/releases) page.
