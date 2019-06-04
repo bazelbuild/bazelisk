@@ -50,8 +50,10 @@ issues. If the code fails with `--strict`, the flag `--migrate` will run Bazel
 with each one of the flag separately, and print a report at the end. This will
 show you which flags can safely enabled, and which flags require a migration.
 
+You can set `BAZELISK_GITHUB_TOKEN` to set a GitHub access token to use for API
+requests to avoid rate limiting when on shared networks.
 
-## Releases 
+## Releases
 
 Binary and source releases are provided on our [Releases](https://github.com/bazelbuild/bazelisk/releases) page.
 
