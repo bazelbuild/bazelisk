@@ -16,6 +16,26 @@
 
 set -euxo pipefail
 
-GOOS=linux GOARCH=amd64 go build -o bin/bazelisk-linux-amd64
-GOOS=darwin GOARCH=amd64 go build -o bin/bazelisk-darwin-amd64
-GOOS=windows GOARCH=amd64 go build -o bin/bazelisk-windows-amd64.exe
+### Build release artifacts using Bazel.
+go build
+for platform in darwin linux windows; do
+    USE_BAZEL_VERSION=0.25.3 ./bazelisk build \
+        --stamp \
+        --workspace_status_command="$PWD/stamp.sh" \
+        --platforms=@io_bazel_rules_go//go/toolchain:${platform}_amd64 \
+        //:bazelisk
+    if [[ $platform == windows ]]; then
+        cp bazel-bin/${platform}_*/bazelisk.exe bin/bazelisk-${platform}-amd64.exe
+    else
+        cp bazel-bin/${platform}_*/bazelisk bin/bazelisk-${platform}-amd64
+    fi
+done
+rm -f bazelisk
+
+### Build release artifacts using `go build`.
+# GOOS=linux GOARCH=amd64 go build -o bin/bazelisk-linux-amd64
+# GOOS=darwin GOARCH=amd64 go build -o bin/bazelisk-darwin-amd64
+# GOOS=windows GOARCH=amd64 go build -o bin/bazelisk-windows-amd64.exe
+
+### Print some information about the generated binaries.
+file bin/*

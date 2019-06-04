@@ -7,17 +7,23 @@ gazelle(name = "gazelle")
 sh_test(
     name = "py_bazelisk_test",
     srcs = ["bazelisk_test.sh"],
-    data = ["bazelisk.py", "releases_for_tests.json"],
+    args = ["PY"],
+    data = [
+        "bazelisk.py",
+        "releases_for_tests.json",
+    ],
     deps = ["@bazel_tools//tools/bash/runfiles"],
-    args = ["PY"]
 )
 
 sh_test(
     name = "go_bazelisk_test",
     srcs = ["bazelisk_test.sh"],
-    data = [":bazelisk", "releases_for_tests.json"],
+    args = ["GO"],
+    data = [
+        "releases_for_tests.json",
+        ":bazelisk",
+    ],
     deps = ["@bazel_tools//tools/bash/runfiles"],
-    args = ["GO"]
 )
 
 go_library(
@@ -25,8 +31,8 @@ go_library(
     srcs = ["bazelisk.go"],
     importpath = "github.com/philwo/bazelisk",
     visibility = ["//visibility:private"],
-    deps = ["@com_github_hashicorp_go_version//:go_default_library"],
     x_defs = {"BazeliskVersion": "{STABLE_VERSION}"},
+    deps = ["@com_github_hashicorp_go_version//:go_default_library"],
 )
 
 go_binary(
