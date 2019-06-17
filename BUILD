@@ -1,7 +1,7 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
 load("@bazel_gazelle//:def.bzl", "gazelle")
 
-# gazelle:prefix github.com/philwo/bazelisk
+# gazelle:prefix github.com/bazelbuild/bazelisk
 gazelle(name = "gazelle")
 
 sh_test(
@@ -29,7 +29,7 @@ sh_test(
 go_library(
     name = "go_default_library",
     srcs = ["bazelisk.go"],
-    importpath = "github.com/philwo/bazelisk",
+    importpath = "github.com/bazelbuild/bazelisk",
     visibility = ["//visibility:private"],
     x_defs = {"BazeliskVersion": "{STABLE_VERSION}"},
     deps = ["@com_github_hashicorp_go_version//:go_default_library"],
