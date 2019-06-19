@@ -4,6 +4,7 @@ platforms:
     test_targets:
       - //:go_bazelisk_test
       - //:py_bazelisk_test
+      - //:py3_bazelisk_test
     test_flags:
       - --flaky_test_attempts=1
       - --test_output=streamed
@@ -11,6 +12,7 @@ platforms:
     test_targets:
       - //:go_bazelisk_test
       - //:py_bazelisk_test
+      - //:py3_bazelisk_test
     test_flags:
       - --flaky_test_attempts=1
       - --test_output=streamed
@@ -18,6 +20,7 @@ platforms:
     test_targets:
       - //:go_bazelisk_test
       - //:py_bazelisk_test
+      - //:py3_bazelisk_test
     test_flags:
       - --flaky_test_attempts=1
       - --test_output=streamed

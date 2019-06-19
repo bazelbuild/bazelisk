@@ -16,6 +16,17 @@ sh_test(
 )
 
 sh_test(
+    name = "py3_bazelisk_test",
+    srcs = ["bazelisk_test.sh"],
+    args = ["PY3"],
+    data = [
+        "bazelisk.py",
+        "releases_for_tests.json",
+    ],
+    deps = ["@bazel_tools//tools/bash/runfiles"],
+)
+
+sh_test(
     name = "go_bazelisk_test",
     srcs = ["bazelisk_test.sh"],
     args = ["GO"],

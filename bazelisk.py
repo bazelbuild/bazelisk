@@ -38,9 +38,14 @@ ONE_HOUR = 1 * 60 * 60
 
 LATEST_PATTERN = re.compile(r"latest(-(?P<offset>\d+))?$")
 
-LAST_GREEN_COMMIT_BASE_PATH = "https://storage.googleapis.com/bazel-untrusted-builds/last_green_commit/"
+LAST_GREEN_COMMIT_BASE_PATH = (
+    "https://storage.googleapis.com/bazel-untrusted-builds/last_green_commit/"
+)
 
-LAST_GREEN_COMMIT_PATH_SUFFIXES = {"last_green" : "github.com/bazelbuild/bazel.git/bazel-bazel", "last_downstream_green" : "downstream_pipeline"}
+LAST_GREEN_COMMIT_PATH_SUFFIXES = {
+    "last_green": "github.com/bazelbuild/bazel.git/bazel-bazel",
+    "last_downstream_green": "downstream_pipeline",
+}
 
 BAZEL_GCS_PATH_PATTERN = (
     "https://storage.googleapis.com/bazel-builds/artifacts/{platform}/{commit}/bazel"
@@ -283,6 +288,7 @@ def maybe_makedirs(path):
         if not os.path.isdir(path):
             raise e
 
+
 def delegate_tools_bazel(bazel_path):
     """Match Bazel's own delegation behavior in the builds distributed by most
     package managers: use tools/bazel if it's present, executable, and not this
@@ -291,7 +297,7 @@ def delegate_tools_bazel(bazel_path):
     root = find_workspace_root()
     if root:
         wrapper = os.path.join(root, TOOLS_BAZEL_PATH)
-        if (os.path.exists(wrapper) and os.access(wrapper, os.X_OK)):
+        if os.path.exists(wrapper) and os.access(wrapper, os.X_OK):
             if wrapper != os.path.abspath(__file__):
                 return wrapper
     return None
