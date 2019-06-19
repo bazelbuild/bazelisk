@@ -51,7 +51,13 @@ function setup() {
 
 function bazelisk() {
   if [[ -n $(rlocation __main__/bazelisk.py) ]]; then
-    python "$(rlocation __main__/bazelisk.py)" "$@"
+    if [[ $BAZELISK_VERSION == "PY3" ]]; then
+      echo "Running Bazelisk with $(python3 -V)..."
+      python3 "$(rlocation __main__/bazelisk.py)" "$@"
+    else
+      echo "Running Bazelisk with $(python -V)..."
+      python "$(rlocation __main__/bazelisk.py)" "$@"
+    fi
   elif [[ -n $(rlocation __main__/windows_amd64_stripped/bazelisk.exe) ]]; then
     "$(rlocation __main__/windows_amd64_stripped/bazelisk.exe)" "$@"
   elif [[ -n $(rlocation __main__/darwin_amd64_stripped/bazelisk) ]]; then
