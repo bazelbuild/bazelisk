@@ -539,9 +539,9 @@ func insertArgs(baseArgs []string, newArgs []string) []string {
 	return result
 }
 
-func clean(bazelPath string) {
-	bazeliskNoClean := os.Getenv("BAZELISK_NO_CLEAN")
-	if len(bazeliskNoClean) != 0 {
+func cleanIfNeeded(bazelPath string) {
+	bazeliskNoClean := os.Getenv("BAZELISK_CLEAN")
+	if len(bazeliskNoClean) == 0 {
 		return
 	}
 
@@ -561,7 +561,7 @@ func migrate(bazelPath string, baseArgs []string, newArgs []string) {
 	args := insertArgs(baseArgs, newArgs)
 	fmt.Printf("\n\n--- Running Bazel with all incompatible flags\n\n")
 	fmt.Printf("bazel %s\n", strings.Join(args, " "))
-	clean(bazelPath)
+	cleanIfNeeded(bazelPath)
 	exitCode, err := runBazel(bazelPath, args)
 	if err != nil {
 		log.Fatalf("could not run Bazel: %v", err)
@@ -575,7 +575,7 @@ func migrate(bazelPath string, baseArgs []string, newArgs []string) {
 	args = baseArgs
 	fmt.Printf("\n\n--- Running Bazel with no incompatible flags\n\n")
 	fmt.Printf("bazel %s\n", strings.Join(args, " "))
-	clean(bazelPath)
+	cleanIfNeeded(bazelPath)
 	exitCode, err = runBazel(bazelPath, args)
 	if err != nil {
 		log.Fatalf("could not run Bazel: %v", err)
@@ -592,7 +592,7 @@ func migrate(bazelPath string, baseArgs []string, newArgs []string) {
 		args = insertArgs(baseArgs, []string{arg})
 		fmt.Printf("\n\n--- Running Bazel with %s\n\n", arg)
 		fmt.Printf("bazel %s\n", strings.Join(args, " "))
-		clean(bazelPath)
+		cleanIfNeeded(bazelPath)
 		exitCode, err = runBazel(bazelPath, args)
 		if err != nil {
 			log.Fatalf("could not run Bazel: %v", err)
