@@ -4,3 +4,6 @@
 
 # Release artifacts created by build.sh.
 /bin
+
+# Binary created by 'go build'
+/bazelisk
