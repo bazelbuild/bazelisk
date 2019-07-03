@@ -540,8 +540,8 @@ func insertArgs(baseArgs []string, newArgs []string) []string {
 }
 
 func cleanIfNeeded(bazelPath string) {
-	bazeliskNoClean := os.Getenv("BAZELISK_CLEAN")
-	if len(bazeliskNoClean) == 0 {
+	bazeliskClean := os.Getenv("BAZELISK_CLEAN")
+	if len(bazeliskClean) == 0 {
 		return
 	}
 
