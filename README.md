@@ -53,6 +53,9 @@ show you which flags can safely enabled, and which flags require a migration.
 You can set `BAZELISK_GITHUB_TOKEN` to set a GitHub access token to use for API
 requests to avoid rate limiting when on shared networks.
 
+You can set `BAZELISK_CLEAN` to run `clean --expunge` between builds when
+migrating if you suspect this affects your results.
+
 If `tools/bazel` exists in your workspace root and is executable, Bazelisk will run this file,
 instead of the Bazel version it downloaded. It will set the environment variable `BAZEL_REAL` to
 the path of the downloaded Bazel binary. This can be useful, if you have a wrapper script that e.g.
