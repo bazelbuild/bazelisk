@@ -36,7 +36,7 @@ In the future we will add support for building Bazel from source at a given comm
 
 ## Other features
 
-The Go version of Bazelisk offers two new flags.
+The Go version of Bazelisk offers three new flags.
 
 `--strict` expands to the set of incompatible flags which may be enabled for the
 given version of Bazel.
@@ -49,6 +49,13 @@ bazelisk --strict build //...
 issues. If the code fails with `--strict`, the flag `--migrate` will run Bazel
 with each one of the flag separately, and print a report at the end. This will
 show you which flags can safely enabled, and which flags require a migration.
+
+`--remote=<YOUR_FORK_NAME>` allows you to use custom Bazel releases on GitHub.
+```shell
+bazelisk --remote=foobar build //...
+```
+Rather than downloading Bazel from official releases, it looks for URL `https://github.com/foobar/bazel/releases/download/<VERSION>/<FILENAME>`.
+Filename follows the release convention on `bazelbuild/bazel`.
 
 You can set `BAZELISK_GITHUB_TOKEN` to set a GitHub access token to use for API
 requests to avoid rate limiting when on shared networks.

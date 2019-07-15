@@ -17,6 +17,7 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -41,6 +42,7 @@ const (
 	bazelReal      = "BAZEL_REAL"
 	skipWrapperEnv = "BAZELISK_SKIP_WRAPPER"
 	wrapperPath    = "./tools/bazel"
+	defaultValue  = "__DEFAULT__"
 )
 
 var (
@@ -351,7 +353,7 @@ func determineBazelFilename(version string) (string, error) {
 	return fmt.Sprintf("bazel-%s-%s-%s%s", version, osName, machineName, filenameSuffix), nil
 }
 
-func determineURL(version string, isCommit bool, filename string) string {
+func determineURL(version string, isCommit bool, filename string, remote string) string {
 	if isCommit {
 		var platforms = map[string]string{"darwin": "macos", "linux": "ubuntu1404", "windows": "windows"}
 		// No need to check the OS thanks to determineBazelFilename().
@@ -367,16 +369,20 @@ func determineURL(version string, isCommit bool, filename string) string {
 		kind = "rc" + versionComponents[1]
 	}
 
-	return fmt.Sprintf("https://releases.bazel.build/%s/%s/%s", version, kind, filename)
+	if remote == defaultValue {
+		return fmt.Sprintf("https://releases.bazel.build/%s/%s/%s", version, kind, filename)
+	} else {
+		return fmt.Sprintf("https://github.com/%s/bazel/releases/download/%s/%s", remote, version, filename)
+	}
 }
 
-func downloadBazel(version string, isCommit bool, directory string) (string, error) {
+func downloadBazel(version string, isCommit bool, directory string, remote string) (string, error) {
 	filename, err := determineBazelFilename(version)
 	if err != nil {
 		return "", fmt.Errorf("could not determine filename to use for Bazel binary: %v", err)
 	}
 
-	url := determineURL(version, isCommit, filename)
+	url := determineURL(version, isCommit, filename, remote)
 	destinationPath := filepath.Join(directory, filename)
 
 	if _, err := os.Stat(destinationPath); err != nil {
@@ -556,7 +562,7 @@ func cleanIfNeeded(bazelPath string) {
 }
 
 // migrate will run Bazel with each newArgs separately and report which ones are failing.
-func migrate(bazelPath string, baseArgs []string, newArgs []string) {
+func migrateFlags(bazelPath string, baseArgs []string, newArgs []string) {
 	// 1. Try with all the flags.
 	args := insertArgs(baseArgs, newArgs)
 	fmt.Printf("\n\n--- Running Bazel with all incompatible flags\n\n")
@@ -619,6 +625,15 @@ func migrate(bazelPath string, baseArgs []string, newArgs []string) {
 	os.Exit(1)
 }
 
+func removeFlagFromArgs(args []string, flag string) []string {
+	for i, s := range args {
+		if strings.Contains(s, flag) {
+			return append(args[:i], args[i+1:]...)
+		}
+	}
+	return args
+}
+
 func main() {
 	bazeliskHome := os.Getenv("BAZELISK_HOME")
 	if len(bazeliskHome) == 0 {
@@ -651,23 +666,40 @@ func main() {
 		log.Fatalf("could not create directory %s: %v", bazelDirectory, err)
 	}
 
-	bazelPath, err := downloadBazel(resolvedBazelVersion, isCommit, bazelDirectory)
+	// --remote and --strict and --migrate must be immediate after bazelisk command.
+	var remote string
+	var strict bool
+	var migrate bool
+	flag.StringVar(&remote, "remote", defaultValue, "specify the source of Bazel binary")
+	flag.BoolVar(&strict, "strict", false, "specify the source of Bazel binary")
+	flag.BoolVar(&migrate, "migrate", false, "specify the source of Bazel binary")
+	flag.Parse()
+
+	args := os.Args[1:]
+
+	if remote != defaultValue {
+		args = removeFlagFromArgs(args, "--remote=")
+	}
+	if strict {
+		args = removeFlagFromArgs(args, "--strict")
+	}
+	if migrate {
+		args = removeFlagFromArgs(args, "--migrate")
+	}
+
+	bazelPath, err := downloadBazel(resolvedBazelVersion, isCommit, bazelDirectory, remote)
 	if err != nil {
 		log.Fatalf("could not download Bazel: %v", err)
 	}
 
-	args := os.Args[1:]
-
-	// --strict and --migrate must be the first argument.
-	if len(args) > 0 && (args[0] == "--strict" || args[0] == "--migrate") {
-		cmd := args[0]
+	if strict || migrate {
 		newFlags, err := getIncompatibleFlags(bazeliskHome, resolvedBazelVersion)
 		if err != nil {
 			log.Fatalf("could not get the list of incompatible flags: %v", err)
 		}
 
-		if cmd == "--migrate" {
-			migrate(bazelPath, args[1:], newFlags)
+		if migrate {
+			migrateFlags(bazelPath, args[1:], newFlags)
 		} else {
 			// When --strict is present, it expands to the list of --incompatible_ flags
 			// that should be enabled for the given Bazel version.
