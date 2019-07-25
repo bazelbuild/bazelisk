@@ -15,12 +15,20 @@ Some ideas how to use it:
 - Check it into your repository and recommend users to build your software via `./bazelisk.py build //my:software`. That way, even someone who has never used Bazel or doesn't have it installed can build your software.
 - As a company using Bazel or as a project owner, add a `.bazelversion` file to your repository. This will tell Bazelisk to use the exact version specified in the file when running in your workspace. The fact that it's versioned inside your repository will then allow for atomic upgrades of Bazel including all necessary changes. If you install Bazelisk as `bazel` on your CI machines, too, you can even test Bazel upgrades via a normal presubmit / pull request. It will also ensure that users will not try to build your project with an incompatible version of Bazel, which is often a cause for frustration and failing builds.
 
-## How does Bazelisk know which version to run?
+## How does Bazelisk know which fork and version to run?
 
 It uses a simple algorithm:
-- If the environment variable `USE_BAZEL_VERSION` is set, it will use the version specified in the value.
-- Otherwise, if a `.bazelversion` file exists in the current directory or recursively any parent directory, it will read the file and use the the version specified in it.
-- Otherwise it will check GitHub for the latest version of Bazel, cache the result for an hour and use that version.
+- If the environment variable `USE_BAZEL_VERSION` is set, it will use the fork and version specified in the value.
+- Otherwise, if a `.bazelversion` file exists in the current directory or recursively any parent directory, it will read the file and use the fork and version specified in it.
+- Otherwise it will use the official release from `bazelbuild/bazel` and check GitHub for the latest version of Bazel, cache the result for an hour and use that version.
+
+Bazelisk currently follows the release convention on `bazelbuild/bazel` to build the URL. The URL format looks like `https://github.com/<FORK>/bazel/releases/download/<VERSION>/<FILENAME>`.
+
+The fork and version should be separated by slash `<FORK>/<VERSION>`:
+- If the fork and version are `foobar/0.28.0` and the platform is `linux`, the URL will be `https://github.com/foobar/bazel/releases/download/0.28.0/bazel-0.28.0-linux-x86_64`.
+- If the version is not provided `foobar/`, it uses the latest version.
+- If the fork is not provided `/0.28.0`, it uses the official release from `bazelbuild/bazel`.
+- If no `/` is present `0.28.0`, the value is treated as version and it uses the official release from `bazelbuild/bazel`.
 
 Bazelisk currently understands the following formats for version labels:
 - `latest` means the latest stable version of Bazel as released on GitHub. Previous
@@ -31,6 +39,7 @@ Bazelisk currently understands the following formats for version labels:
 - `last_downstream_green` points to the most recent Bazel binary that builds and tests all [downstream projects](https://buildkite.com/bazel/bazel-at-head-plus-downstream) successfully.
 - `last_rc` points to the most recent release candidate. If there is no active release candidate, Bazelisk uses the latest Bazel release instead. Currently only the Go version of Bazelisk supports this value.
 
+These formats are not supported on a fork.
 
 In the future we will add support for building Bazel from source at a given commit.
 
