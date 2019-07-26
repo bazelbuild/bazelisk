@@ -98,7 +98,9 @@ func getBazelVersion() (string, error) {
 				return "", fmt.Errorf("could not read version from file %s: %v", bazelVersion, err)
 			}
 
-			return bazelVersion, nil
+			if len(bazelVersion) != 0 {
+				return bazelVersion, nil
+			}
 		}
 	}
 
