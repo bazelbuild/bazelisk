@@ -53,6 +53,9 @@ show you which flags can safely enabled, and which flags require a migration.
 You can set `BAZELISK_GITHUB_TOKEN` to set a GitHub access token to use for API
 requests to avoid rate limiting when on shared networks.
 
+You can set `BAZELISK_SHUTDOWN` to run `shutdown` between builds when
+migrating if you suspect this affects your results.
+
 You can set `BAZELISK_CLEAN` to run `clean --expunge` between builds when
 migrating if you suspect this affects your results.
 
