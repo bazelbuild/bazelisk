@@ -17,7 +17,8 @@
 set -euxo pipefail
 
 ### Build release artifacts using Bazel.
-rm -f bazelisk bin/*
+rm -rf bazelisk bin
+mkdir bin
 
 go build
 for platform in darwin linux windows; do
