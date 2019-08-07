@@ -547,7 +547,7 @@ func shutdownIfNeeded(bazelPath string) {
 		return
 	}
 
-  fmt.Printf("bazel shutdown\n")
+	fmt.Printf("bazel shutdown\n")
 	exitCode, err := runBazel(bazelPath, []string{"shutdown"})
 	if err != nil {
 		log.Fatalf("failed to run bazel shutdown: %v", err)
@@ -564,7 +564,7 @@ func cleanIfNeeded(bazelPath string) {
 		return
 	}
 
-  fmt.Printf("bazel clean --expunge\n")
+	fmt.Printf("bazel clean --expunge\n")
 	exitCode, err := runBazel(bazelPath, []string{"clean", "--expunge"})
 	if err != nil {
 		log.Fatalf("failed to run clean: %v", err)
