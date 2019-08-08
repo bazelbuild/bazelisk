@@ -42,8 +42,9 @@ shift 1
 function setup() {
   BAZELISK_HOME="$(mktemp -d $TEST_TMPDIR/home.XXXXXX)"
 
-  cp "$(rlocation __main__/releases_for_tests.json)" "${BAZELISK_HOME}/releases.json"
-  touch "${BAZELISK_HOME}/releases.json"
+  cp "$(rlocation __main__/releases_for_tests.json)" "${BAZELISK_HOME}/bazelbuild-releases.json"
+  touch "${BAZELISK_HOME}/bazelbuild-releases.json"
+  ln -s "${BAZELISK_HOME}/bazelbuild-releases.json" "${BAZELISK_HOME}/releases.json"
 
   cd "$(mktemp -d $TEST_TMPDIR/workspace.XXXXXX)"
   touch WORKSPACE BUILD
