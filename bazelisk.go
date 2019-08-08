@@ -41,7 +41,7 @@ const (
 	bazelReal      = "BAZEL_REAL"
 	skipWrapperEnv = "BAZELISK_SKIP_WRAPPER"
 	wrapperPath    = "./tools/bazel"
-	bazelUpstream  = "BAZEL_UPSTREAM"
+	bazelUpstream  = "bazelbuild"
 )
 
 var (
@@ -121,13 +121,6 @@ func parseBazelForkAndVersion(bazelForkAndVersion string) (string, string, error
 		return "", "", fmt.Errorf("invalid version \"%s\", could not parse version with more than one slash", bazelForkAndVersion)
 	}
 
-	if len(bazelFork) == 0 {
-		bazelFork = bazelUpstream
-	}
-	if len(bazelVersion) == 0 {
-		bazelVersion = "latest"
-	}
-
 	return bazelFork, bazelVersion, nil
 }
 
@@ -194,11 +187,11 @@ func maybeDownload(bazeliskHome, url, filename, description string) ([]byte, err
 	return body, nil
 }
 
-func resolveLatestVersion(bazeliskHome string, offset int) (string, error) {
-	url := "https://api.github.com/repos/bazelbuild/bazel/releases"
-	releasesJSON, err := maybeDownload(bazeliskHome, url, "releases.json", "list of Bazel releases from GitHub")
+func resolveLatestVersion(bazeliskHome, bazelFork string, offset int) (string, error) {
+	url := fmt.Sprintf("https://api.github.com/repos/%s/bazel/releases", bazelFork)
+	releasesJSON, err := maybeDownload(bazeliskHome, url, bazelFork+"-releases.json", "list of Bazel releases from github.com/"+bazelFork)
 	if err != nil {
-		return "", fmt.Errorf("could not get releases from GitHub: %v", err)
+		return "", fmt.Errorf("could not get releases from github.com/%s/bazel: %v", bazelFork, err)
 	}
 
 	var releases []release
@@ -303,24 +296,29 @@ func getHighestRcVersion(versions []string) (string, error) {
 	return fmt.Sprintf("%src%d", version, lastRc), nil
 }
 
-func resolveVersionLabel(bazeliskHome, bazelVersion string) (string, bool, error) {
-	// Returns three values:
-	// 1. The label of a Blaze release (if the label resolves to a release) or a commit (for unreleased binaries),
-	// 2. Whether the first value refers to a commit,
-	// 3. An error.
-	lastGreenCommitPathSuffixes := map[string]string{"last_green": "github.com/bazelbuild/bazel.git/bazel-bazel", "last_downstream_green": "downstream_pipeline"}
-	if pathSuffix, ok := lastGreenCommitPathSuffixes[bazelVersion]; ok {
-		commit, err := getLastGreenCommit(pathSuffix)
-		if err != nil {
-			return "", false, fmt.Errorf("cannot resolve last green commit: %v", err)
+func resolveVersionLabel(bazeliskHome, bazelFork, bazelVersion string) (string, bool, error) {
+	if bazelFork == bazelUpstream {
+		// Returns three values:
+		// 1. The label of a Blaze release (if the label resolves to a release) or a commit (for unreleased binaries),
+		// 2. Whether the first value refers to a commit,
+		// 3. An error.
+		lastGreenCommitPathSuffixes := map[string]string{
+			"last_green":            "github.com/bazelbuild/bazel.git/bazel-bazel",
+			"last_downstream_green": "downstream_pipeline",
+		}
+		if pathSuffix, ok := lastGreenCommitPathSuffixes[bazelVersion]; ok {
+			commit, err := getLastGreenCommit(pathSuffix)
+			if err != nil {
+				return "", false, fmt.Errorf("cannot resolve last green commit: %v", err)
+			}
+
+			return commit, true, nil
 		}
 
-		return commit, true, nil
-	}
-
-	if bazelVersion == "last_rc" {
-		version, err := resolveLatestRcVersion()
-		return version, false, err
+		if bazelVersion == "last_rc" {
+			version, err := resolveLatestRcVersion()
+			return version, false, err
+		}
 	}
 
 	r := regexp.MustCompile(`^latest(?:-(?P<offset>\d+))?$`)
@@ -335,7 +333,7 @@ func resolveVersionLabel(bazeliskHome, bazelVersion string) (string, bool, error
 				return "", false, fmt.Errorf("invalid version \"%s\", could not parse offset: %v", bazelVersion, err)
 			}
 		}
-		version, err := resolveLatestVersion(bazeliskHome, offset)
+		version, err := resolveLatestVersion(bazeliskHome, bazelFork, offset)
 		return version, false, err
 	}
 
@@ -395,9 +393,9 @@ func determineURL(fork string, version string, isCommit bool, filename string) s
 
 	if fork == bazelUpstream {
 		return fmt.Sprintf("https://releases.bazel.build/%s/%s/%s", version, kind, filename)
-	} else {
-		return fmt.Sprintf("https://github.com/%s/bazel/releases/download/%s/%s", fork, version, filename)
 	}
+
+	return fmt.Sprintf("https://github.com/%s/bazel/releases/download/%s/%s", fork, version, filename)
 }
 
 func downloadBazel(fork string, version string, isCommit bool, directory string) (string, error) {
@@ -698,12 +696,12 @@ func main() {
 		log.Fatalf("could not parse Bazel fork and version: %v", err)
 	}
 
-	resolvedBazelVersion, isCommit, err := resolveVersionLabel(bazeliskHome, bazelVersion)
+	resolvedBazelVersion, isCommit, err := resolveVersionLabel(bazeliskHome, bazelFork, bazelVersion)
 	if err != nil {
 		log.Fatalf("could not resolve the version '%s' to an actual version number: %v", bazelVersion, err)
 	}
 
-	bazelDirectory := filepath.Join(bazeliskHome, "bin")
+	bazelDirectory := filepath.Join(bazeliskHome, "bin", bazelFork)
 	err = os.MkdirAll(bazelDirectory, 0755)
 	if err != nil {
 		log.Fatalf("could not create directory %s: %v", bazelDirectory, err)
