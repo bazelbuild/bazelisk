@@ -523,7 +523,7 @@ func getIncompatibleFlags(bazeliskHome, resolvedBazelVersion string) ([]string, 
 	if len(version) == 0 {
 		return nil, fmt.Errorf("invalid version %v", resolvedBazelVersion)
 	}
-	url := "https://api.github.com/search/issues?per_page=100&q=repo:bazelbuild/bazel+label:migration-" + version
+	url := "https://api.github.com/search/issues?state=all&per_page=100&q=repo:bazelbuild/bazel+label:migration-" + version
 	issuesJSON, err := maybeDownload(bazeliskHome, url, "flags-"+version, "list of flags from GitHub")
 	if err != nil {
 		return nil, fmt.Errorf("could not get issues from GitHub: %v", err)
