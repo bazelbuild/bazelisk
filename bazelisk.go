@@ -81,6 +81,11 @@ func (bazeliskConfig configuration) validate() error {
 	if strings.HasPrefix(bazeliskConfig.githubApiUrl, "http") {
 		return fmt.Errorf("github_api_url must not begin with http")
 	}
+	githubUrlSet := len(bazeliskConfig.githubUrl) > 0
+	githubApiUrlSet := len(bazeliskConfig.githubApiUrl) > 0
+	if githubUrlSet || githubApiUrlSet && !(githubUrlSet && githubApiUrlSet) {
+		return fmt.Errorf("github_url must be set with github_api_url")
+	}
 	return nil
 }
 
