@@ -59,6 +59,7 @@ type configuration struct {
 type bazeliskrc struct {
 	GithubUrl    string `yaml:"github_url"`
 	GithubApiUrl string `yaml:"github_api_url"`
+	Owner        string `yaml:"owner"`
 }
 
 func findWorkspaceRoot(root string) string {
@@ -74,18 +75,21 @@ func findWorkspaceRoot(root string) string {
 	return findWorkspaceRoot(parentDirectory)
 }
 
-func (bazeliskConfig configuration) validate() error {
-	if strings.HasPrefix(bazeliskConfig.githubUrl, "http") {
+func (bazeliskrc bazeliskrc) validate() error {
+	if strings.HasPrefix(bazeliskrc.GithubUrl, "http") {
 		return fmt.Errorf("github_url must not begin with http")
 	}
-	if strings.HasPrefix(bazeliskConfig.githubApiUrl, "http") {
+	if strings.HasPrefix(bazeliskrc.GithubApiUrl, "http") {
 		return fmt.Errorf("github_api_url must not begin with http")
 	}
-	githubUrlSet := len(bazeliskConfig.githubUrl) > 0
-	githubApiUrlSet := len(bazeliskConfig.githubApiUrl) > 0
-	if githubUrlSet || githubApiUrlSet && !(githubUrlSet && githubApiUrlSet) {
+
+	githubUrlSet := len(bazeliskrc.GithubUrl) > 0
+	githubApiUrlSet := len(bazeliskrc.GithubApiUrl) > 0
+
+	if githubUrlSet != githubApiUrlSet {
 		return fmt.Errorf("github_url must be set with github_api_url")
 	}
+
 	return nil
 }
 
@@ -94,7 +98,6 @@ func maybeUpdateBazeliskConfigWithRc(bazeliskConfig *configuration) error {
 	if err != nil {
 		return fmt.Errorf("could not get working directory: %v", err)
 	}
-	rc_content := bazeliskrc{}
 	workspaceRoot := findWorkspaceRoot(workingDirectory)
 	if len(workspaceRoot) != 0 {
 		bazeliskrcPath := filepath.Join(workspaceRoot, ".bazeliskrc")
@@ -103,19 +106,34 @@ func maybeUpdateBazeliskConfigWithRc(bazeliskConfig *configuration) error {
 			if err != nil {
 				return fmt.Errorf("could not read %s: %v", bazeliskrcPath, err)
 			}
+
+			rc_content := bazeliskrc{}
+
 			err = yaml.Unmarshal(yamlFile, &rc_content)
 			if err != nil {
 				return fmt.Errorf("Yaml file is invalid")
 			}
+
+			err = rc_content.validate()
+			if err != nil {
+				return err
+			}
+
+			if len(rc_content.GithubUrl) > 0 {
+				bazeliskConfig.githubUrl = rc_content.GithubUrl
+				bazeliskConfig.useUpstream = false
+			}
+
+			if len(rc_content.GithubApiUrl) > 0 {
+				bazeliskConfig.githubApiUrl = rc_content.GithubApiUrl
+				bazeliskConfig.useUpstream = false
+			}
+
+			if len(rc_content.Owner) > 0 {
+				bazeliskConfig.owner = rc_content.Owner
+				bazeliskConfig.useUpstream = false
+			}
 		}
-	}
-
-	if len(rc_content.GithubUrl) > 0 {
-		bazeliskConfig.githubUrl = rc_content.GithubUrl
-	}
-
-	if len(rc_content.GithubApiUrl) > 0 {
-		bazeliskConfig.githubApiUrl = rc_content.GithubApiUrl
 	}
 
 	return nil
@@ -738,11 +756,6 @@ func main() {
 	err := maybeUpdateBazeliskConfigWithRc(&bazeliskConfig)
 	if err != nil {
 		log.Fatalf("Error when reading bazeliskrc: %s", err)
-	}
-
-	err = bazeliskConfig.validate()
-	if err != nil {
-		log.Fatalf("Config is invalid: %s", err)
 	}
 
 	bazeliskHome := os.Getenv("BAZELISK_HOME")

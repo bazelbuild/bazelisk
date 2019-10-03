@@ -212,6 +212,7 @@ function test_valid_default_bazeliskrc() {
   cat > .bazeliskrc <<'EOF'
 github_url: "github.com"
 github_api_url: "api.github.com"
+owner: "bazelbuild"
 EOF
 
   BAZELISK_HOME="$BAZELISK_HOME" \
