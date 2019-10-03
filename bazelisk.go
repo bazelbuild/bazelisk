@@ -74,6 +74,16 @@ func findWorkspaceRoot(root string) string {
 	return findWorkspaceRoot(parentDirectory)
 }
 
+func (bazeliskConfig configuration) validate() error {
+	if strings.HasPrefix(bazeliskConfig.githubUrl, "http") {
+		return fmt.Errorf("github_url must not begin with http")
+	}
+	if strings.HasPrefix(bazeliskConfig.githubApiUrl, "http") {
+		return fmt.Errorf("github_url must not begin with http")
+	}
+	return nil
+}
+
 func maybeUpdateBazeliskConfigWithRc(bazeliskConfig *configuration) error {
 	workingDirectory, err := os.Getwd()
 	if err != nil {
@@ -723,6 +733,11 @@ func main() {
 	err := maybeUpdateBazeliskConfigWithRc(&bazeliskConfig)
 	if err != nil {
 		log.Fatalf("Error when reading bazeliskrc: %s", err)
+	}
+
+	err = bazeliskConfig.validate()
+	if err != nil {
+		log.Fatalf("Config is invalid: %s", err)
 	}
 
 	bazeliskHome := os.Getenv("BAZELISK_HOME")
