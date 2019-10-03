@@ -79,7 +79,7 @@ func (bazeliskConfig configuration) validate() error {
 		return fmt.Errorf("github_url must not begin with http")
 	}
 	if strings.HasPrefix(bazeliskConfig.githubApiUrl, "http") {
-		return fmt.Errorf("github_url must not begin with http")
+		return fmt.Errorf("github_api_url must not begin with http")
 	}
 	return nil
 }
