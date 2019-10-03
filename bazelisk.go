@@ -18,6 +18,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"gopkg.in/yaml.v2"
 	"io"
 	"io/ioutil"
 	"log"
@@ -55,6 +56,11 @@ type configuration struct {
 	owner        string
 }
 
+type bazeliskrc struct {
+	GithubUrl    string `yaml:"github_url"`
+	GithubApiUrl string `yaml:"github_api_url"`
+}
+
 func findWorkspaceRoot(root string) string {
 	if _, err := os.Stat(filepath.Join(root, "WORKSPACE")); err == nil {
 		return root
@@ -66,6 +72,38 @@ func findWorkspaceRoot(root string) string {
 	}
 
 	return findWorkspaceRoot(parentDirectory)
+}
+
+func maybeUpdateBazeliskConfigWithRc(bazeliskConfig *configuration) error {
+	workingDirectory, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("could not get working directory: %v", err)
+	}
+	rc_content := bazeliskrc{}
+	workspaceRoot := findWorkspaceRoot(workingDirectory)
+	if len(workspaceRoot) != 0 {
+		bazeliskrcPath := filepath.Join(workspaceRoot, ".bazeliskrc")
+		if _, err := os.Stat(bazeliskrcPath); err == nil {
+			yamlFile, err := ioutil.ReadFile(bazeliskrcPath)
+			if err != nil {
+				return fmt.Errorf("could not read %s: %v", bazeliskrcPath, err)
+			}
+			err = yaml.Unmarshal(yamlFile, &rc_content)
+			if err != nil {
+				return fmt.Errorf("Yaml file is invalid")
+			}
+		}
+	}
+
+	if len(rc_content.GithubUrl) > 0 {
+		bazeliskConfig.githubUrl = rc_content.GithubUrl
+	}
+
+	if len(rc_content.GithubApiUrl) > 0 {
+		bazeliskConfig.githubApiUrl = rc_content.GithubApiUrl
+	}
+
+	return nil
 }
 
 func getBazelForkAndVersion() (string, error) {
@@ -681,6 +719,12 @@ func migrate(bazelPath string, baseArgs []string, newArgs []string) {
 
 func main() {
 	bazeliskConfig := configuration{"github.com", "api.github.com", true, bazelUpstream}
+
+	err := maybeUpdateBazeliskConfigWithRc(&bazeliskConfig)
+	if err != nil {
+		log.Fatalf("Error when reading bazeliskrc: %s", err)
+	}
+
 	bazeliskHome := os.Getenv("BAZELISK_HOME")
 	if len(bazeliskHome) == 0 {
 		userCacheDir, err := os.UserCacheDir()
@@ -691,7 +735,7 @@ func main() {
 		bazeliskHome = filepath.Join(userCacheDir, "bazelisk")
 	}
 
-	err := os.MkdirAll(bazeliskHome, 0755)
+	err = os.MkdirAll(bazeliskHome, 0755)
 	if err != nil {
 		log.Fatalf("could not create directory %s: %v", bazeliskHome, err)
 	}

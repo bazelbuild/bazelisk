@@ -192,6 +192,35 @@ EOF
       (echo "FAIL: Expected to find 'Build label' in the output of 'bazelisk version'"; exit 1)
 }
 
+function test_invalid_bazeliskrc() {
+  setup
+
+  cat > .bazeliskrc <<'EOF'
+not valid yaml format
+EOF
+
+  BAZELISK_HOME="$BAZELISK_HOME" \
+      bazelisk version 2>&1 | tee log || true
+
+  grep "Error when reading bazeliskrc: Yaml file is invalid" log || \
+      (echo "FAIL: Expected to find 'Error when reading bazeliskrc: Yaml file is invalid' in the output of 'bazelisk version'"; exit 1)
+}
+
+function test_valid_default_bazeliskrc() {
+  setup
+
+  cat > .bazeliskrc <<'EOF'
+github_url: "github.com"
+github_api_url: "api.github.com"
+EOF
+
+  BAZELISK_HOME="$BAZELISK_HOME" \
+      bazelisk version 2>&1 | tee log
+
+  grep "Build label:" log || \
+      (echo "FAIL: Expected to find 'Build label' in the output of 'bazelisk version'"; exit 1)
+}
+
 echo "# test_bazel_version"
 test_bazel_version
 echo
@@ -219,6 +248,14 @@ echo
 if [[ $BAZELISK_VERSION == "GO" ]]; then
   echo "# test_bazel_last_rc"
   test_bazel_last_rc
+  echo
+
+  echo "# test_invalid_bazeliskrc"
+  test_invalid_bazeliskrc
+  echo
+
+  echo "# test_valid_default_bazeliskrc"
+  test_valid_default_bazeliskrc
   echo
 
   case "$(uname -s)" in

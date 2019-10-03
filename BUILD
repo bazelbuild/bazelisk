@@ -43,7 +43,7 @@ go_library(
     importpath = "github.com/bazelbuild/bazelisk",
     visibility = ["//visibility:private"],
     x_defs = {"BazeliskVersion": "{STABLE_VERSION}"},
-    deps = ["@com_github_hashicorp_go_version//:go_default_library"],
+    deps = ["@com_github_hashicorp_go_version//:go_default_library", "@in_gopkg_yaml_v2//:go_default_library"],
 )
 
 go_binary(
