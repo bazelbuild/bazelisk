@@ -22,7 +22,8 @@ mkdir bin
 
 go build
 for platform in darwin linux windows; do
-    USE_BAZEL_VERSION=0.25.3 ./bazelisk build \
+    ./bazelisk build \
+        -c opt \
         --stamp \
         --workspace_status_command="$PWD/stamp.sh" \
         --platforms=@io_bazel_rules_go//go/toolchain:${platform}_amd64 \
