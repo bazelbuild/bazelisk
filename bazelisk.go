@@ -35,6 +35,7 @@ import (
 	"time"
 
 	version "github.com/hashicorp/go-version"
+	homedir "github.com/mitchellh/go-homedir"
 )
 
 const (
@@ -61,7 +62,7 @@ func findWorkspaceRoot(root string) string {
 	return findWorkspaceRoot(parentDirectory)
 }
 
-func getBazelForkAndVersion() (string, error) {
+func getBazelVersion() (string, error) {
 	// Check in this order:
 	// - env var "USE_BAZEL_VERSION" is set to a specific version.
 	// - env var "USE_NIGHTLY_BAZEL" or "USE_BAZEL_NIGHTLY" is set -> latest
@@ -686,30 +687,44 @@ func main() {
 		log.Fatalf("could not create directory %s: %v", bazeliskHome, err)
 	}
 
-	bazelForkAndVersion, err := getBazelForkAndVersion()
+	bazelVersionString, err := getBazelVersion()
 	if err != nil {
-		log.Fatalf("could not get Bazel fork and version: %v", err)
+		log.Fatalf("could not get Bazel version: %v", err)
 	}
 
-	bazelFork, bazelVersion, err := parseBazelForkAndVersion(bazelForkAndVersion)
+	bazelPath, err := homedir.Expand(bazelVersionString)
 	if err != nil {
-		log.Fatalf("could not parse Bazel fork and version: %v", err)
+		log.Fatalf("could not expand home directory in path: %v", err)
 	}
 
-	resolvedBazelVersion, isCommit, err := resolveVersionLabel(bazeliskHome, bazelFork, bazelVersion)
-	if err != nil {
-		log.Fatalf("could not resolve the version '%s' to an actual version number: %v", bazelVersion, err)
-	}
+	// If the Bazel version is an absolute path to a Bazel binary in the filesystem, we can
+	// use it directly. In that case, we don't know which exact version it is, though.
+	resolvedBazelVersion := "unknown"
+	isCommit := false
 
-	bazelDirectory := filepath.Join(bazeliskHome, "bin", bazelFork)
-	err = os.MkdirAll(bazelDirectory, 0755)
-	if err != nil {
-		log.Fatalf("could not create directory %s: %v", bazelDirectory, err)
-	}
+	// If we aren't using a local Bazel binary, we'll have to parse the version string and
+	// download the version that the user wants.
+	if !filepath.IsAbs(bazelPath) {
+		bazelFork, bazelVersion, err := parseBazelForkAndVersion(bazelVersionString)
+		if err != nil {
+			log.Fatalf("could not parse Bazel fork and version: %v", err)
+		}
 
-	bazelPath, err := downloadBazel(bazelFork, resolvedBazelVersion, isCommit, bazelDirectory)
-	if err != nil {
-		log.Fatalf("could not download Bazel: %v", err)
+		resolvedBazelVersion, isCommit, err = resolveVersionLabel(bazeliskHome, bazelFork, bazelVersion)
+		if err != nil {
+			log.Fatalf("could not resolve the version '%s' to an actual version number: %v", bazelVersion, err)
+		}
+
+		bazelDirectory := filepath.Join(bazeliskHome, "bin", bazelFork)
+		err = os.MkdirAll(bazelDirectory, 0755)
+		if err != nil {
+			log.Fatalf("could not create directory %s: %v", bazelDirectory, err)
+		}
+
+		bazelPath, err = downloadBazel(bazelFork, resolvedBazelVersion, isCommit, bazelDirectory)
+		if err != nil {
+			log.Fatalf("could not download Bazel: %v", err)
+		}
 	}
 
 	args := os.Args[1:]
