@@ -40,6 +40,7 @@ BAZELISK_VERSION=$1
 shift 1
 
 function setup() {
+  unset USE_BAZEL_VERSION
   BAZELISK_HOME="$(mktemp -d $TEST_TMPDIR/home.XXXXXX)"
 
   cp "$(rlocation __main__/releases_for_tests.json)" "${BAZELISK_HOME}/bazelbuild-releases.json"
