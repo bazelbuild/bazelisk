@@ -298,8 +298,13 @@ def delegate_tools_bazel(bazel_path):
     if root:
         wrapper = os.path.join(root, TOOLS_BAZEL_PATH)
         if os.path.exists(wrapper) and os.access(wrapper, os.X_OK):
-            if wrapper != os.path.abspath(__file__):
-                return wrapper
+            try:
+                if not os.path.samefile(wrapper, __file__):
+                    return wrapper
+            except AttributeError:
+                # Python 2 on Windows does not support os.path.samefile
+                if os.path.abspath(wrapper) != os.path.abspath(__file__):
+                    return wrapper
     return None
 
 
