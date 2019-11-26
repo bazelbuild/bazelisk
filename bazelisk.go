@@ -54,6 +54,10 @@ func findWorkspaceRoot(root string) string {
 		return root
 	}
 
+	if _, err := os.Stat(filepath.Join(root, "WORKSPACE.bazel")); err == nil {
+		return root
+	}
+
 	parentDirectory := filepath.Dir(root)
 	if parentDirectory == root {
 		return ""
