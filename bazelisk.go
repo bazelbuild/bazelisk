@@ -659,17 +659,19 @@ func migrate(bazelPath string, baseArgs []string, flags map[string]string) {
 		}
 	}
 
+	print := func(l []string) {
+		for _, arg := range l {
+			fmt.Printf("  %s (Bazel %s)\n", arg, flags[arg])
+		}
+	}
+
 	// 4. Print report
 	fmt.Printf("\n\n+++ Result\n\n")
 	fmt.Printf("Command was successful with the following flags:\n")
-	for _, arg := range passList {
-		fmt.Printf("  %s (%s)\n", arg, flags[arg])
-	}
+	print(passList)
 	fmt.Printf("\n")
 	fmt.Printf("Migration is needed for the following flags:\n")
-	for _, arg := range failList {
-		fmt.Printf("  %s (%s)\n", arg, flags[arg])
-	}
+	print(failList)
 
 	os.Exit(1)
 }
