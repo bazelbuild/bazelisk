@@ -514,14 +514,25 @@ func runBazel(bazel string, args []string) (int, error) {
 
 type issue struct {
 	Title string `json:"title"`
+	URL   string `json:"html_url"`
 }
 
 type issueList struct {
 	Items []issue `json:"items"`
 }
 
-func getIncompatibleFlags(bazeliskHome, resolvedBazelVersion string) (map[string]string, error) {
-	result := make(map[string]string)
+type flagDetails struct {
+	Name          string
+	ReleaseToFlip string
+	IssueURL      string
+}
+
+func (f *flagDetails) String() string {
+	return fmt.Sprintf("%s (Bazel %s: %s)", f.Name, f.ReleaseToFlip, f.IssueURL)
+}
+
+func getIncompatibleFlags(bazeliskHome, resolvedBazelVersion string) (map[string]*flagDetails, error) {
+	result := make(map[string]*flagDetails)
 	// GitHub labels use only major and minor version, we ignore the patch number (and any other suffix).
 	re := regexp.MustCompile(`^\d+\.\d+`)
 	version := re.FindString(resolvedBazelVersion)
@@ -543,7 +554,8 @@ func getIncompatibleFlags(bazeliskHome, resolvedBazelVersion string) (map[string
 	for _, issue := range issueList.Items {
 		flag := re.FindString(issue.Title)
 		if len(flag) > 0 {
-			result["--"+flag] = version
+			name := "--" + flag
+			result[name] = &flagDetails{Name: name, ReleaseToFlip: version, IssueURL: issue.URL}
 		}
 	}
 
@@ -607,7 +619,7 @@ func cleanIfNeeded(bazelPath string) {
 }
 
 // migrate will run Bazel with each newArgs separately and report which ones are failing.
-func migrate(bazelPath string, baseArgs []string, flags map[string]string) {
+func migrate(bazelPath string, baseArgs []string, flags map[string]*flagDetails) {
 	newArgs := getSortedKeys(flags)
 	// 1. Try with all the flags.
 	args := insertArgs(baseArgs, newArgs)
@@ -661,7 +673,7 @@ func migrate(bazelPath string, baseArgs []string, flags map[string]string) {
 
 	print := func(l []string) {
 		for _, arg := range l {
-			fmt.Printf("  %s (Bazel %s)\n", arg, flags[arg])
+			fmt.Printf("  %s\n", flags[arg])
 		}
 	}
 
@@ -778,7 +790,7 @@ func main() {
 	os.Exit(exitCode)
 }
 
-func getSortedKeys(data map[string]string) []string {
+func getSortedKeys(data map[string]*flagDetails) []string {
 	result := make([]string, 0)
 	for key, _ := range data {
 		result = append(result, key)
