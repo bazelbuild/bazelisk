@@ -512,9 +512,14 @@ func runBazel(bazel string, args []string) (int, error) {
 	return 0, nil
 }
 
+type label struct {
+	Name string `json:"name"`
+}
+
 type issue struct {
-	Title string `json:"title"`
-	URL   string `json:"html_url"`
+	Title  string  `json:"title"`
+	URL    string  `json:"html_url"`
+	Labels []label `json:"labels"`
 }
 
 type issueList struct {
@@ -555,11 +560,24 @@ func getIncompatibleFlags(bazeliskHome, resolvedBazelVersion string) (map[string
 		flag := re.FindString(issue.Title)
 		if len(flag) > 0 {
 			name := "--" + flag
-			result[name] = &flagDetails{Name: name, ReleaseToFlip: version, IssueURL: issue.URL}
+			result[name] = &flagDetails{
+				Name:          name,
+				ReleaseToFlip: getBreakingRelease(issue.Labels),
+				IssueURL:      issue.URL,
+			}
 		}
 	}
 
 	return result, nil
+}
+
+func getBreakingRelease(labels []label) string {
+	for _, l := range labels {
+		if release := strings.TrimPrefix(l.Name, "breaking-change-"); release != l.Name {
+			return release
+		}
+	}
+	return "TBD"
 }
 
 // insertArgs will insert newArgs in baseArgs. If baseArgs contains the
