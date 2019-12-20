@@ -514,14 +514,25 @@ func runBazel(bazel string, args []string) (int, error) {
 
 type issue struct {
 	Title string `json:"title"`
+	URL   string `json:"html_url"`
 }
 
 type issueList struct {
 	Items []issue `json:"items"`
 }
 
-func getIncompatibleFlags(bazeliskHome, resolvedBazelVersion string) ([]string, error) {
-	var result []string
+type flagDetails struct {
+	Name          string
+	ReleaseToFlip string
+	IssueURL      string
+}
+
+func (f *flagDetails) String() string {
+	return fmt.Sprintf("%s (Bazel %s: %s)", f.Name, f.ReleaseToFlip, f.IssueURL)
+}
+
+func getIncompatibleFlags(bazeliskHome, resolvedBazelVersion string) (map[string]*flagDetails, error) {
+	result := make(map[string]*flagDetails)
 	// GitHub labels use only major and minor version, we ignore the patch number (and any other suffix).
 	re := regexp.MustCompile(`^\d+\.\d+`)
 	version := re.FindString(resolvedBazelVersion)
@@ -543,11 +554,10 @@ func getIncompatibleFlags(bazeliskHome, resolvedBazelVersion string) ([]string, 
 	for _, issue := range issueList.Items {
 		flag := re.FindString(issue.Title)
 		if len(flag) > 0 {
-			result = append(result, "--"+flag)
+			name := "--" + flag
+			result[name] = &flagDetails{Name: name, ReleaseToFlip: version, IssueURL: issue.URL}
 		}
 	}
-
-	sort.Strings(result)
 
 	return result, nil
 }
@@ -609,7 +619,8 @@ func cleanIfNeeded(bazelPath string) {
 }
 
 // migrate will run Bazel with each newArgs separately and report which ones are failing.
-func migrate(bazelPath string, baseArgs []string, newArgs []string) {
+func migrate(bazelPath string, baseArgs []string, flags map[string]*flagDetails) {
+	newArgs := getSortedKeys(flags)
 	// 1. Try with all the flags.
 	args := insertArgs(baseArgs, newArgs)
 	fmt.Printf("\n\n--- Running Bazel with all incompatible flags\n\n")
@@ -660,17 +671,19 @@ func migrate(bazelPath string, baseArgs []string, newArgs []string) {
 		}
 	}
 
+	print := func(l []string) {
+		for _, arg := range l {
+			fmt.Printf("  %s\n", flags[arg])
+		}
+	}
+
 	// 4. Print report
 	fmt.Printf("\n\n+++ Result\n\n")
 	fmt.Printf("Command was successful with the following flags:\n")
-	for _, arg := range passList {
-		fmt.Printf("  %s\n", arg)
-	}
+	print(passList)
 	fmt.Printf("\n")
 	fmt.Printf("Migration is needed for the following flags:\n")
-	for _, arg := range failList {
-		fmt.Printf("  %s\n", arg)
-	}
+	print(failList)
 
 	os.Exit(1)
 }
@@ -746,7 +759,7 @@ func main() {
 		} else {
 			// When --strict is present, it expands to the list of --incompatible_ flags
 			// that should be enabled for the given Bazel version.
-			args = insertArgs(args[1:], newFlags)
+			args = insertArgs(args[1:], getSortedKeys(newFlags))
 		}
 	}
 
@@ -775,4 +788,13 @@ func main() {
 		log.Fatalf("could not run Bazel: %v", err)
 	}
 	os.Exit(exitCode)
+}
+
+func getSortedKeys(data map[string]*flagDetails) []string {
+	result := make([]string, 0)
+	for key, _ := range data {
+		result = append(result, key)
+	}
+	sort.Strings(result)
+	return result
 }
