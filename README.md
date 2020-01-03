@@ -34,6 +34,7 @@ A version can optionally be prefixed with a fork name.
 The fork and version should be separated by slash: `<FORK>/<VERSION>`.
 If you want to create a fork with your own releases, you have to follow the naming conventions that we use in `bazelbuild/bazel` for the binary file names.
 The URL format looks like `https://github.com/<FORK>/bazel/releases/download/<VERSION>/<FILENAME>`.
+You can also override the url by setting `BAZELISK_BASE_URL`.
 
 Bazelisk currently understands the following formats for version labels:
 - `latest` means the latest stable version of Bazel as released on GitHub.
