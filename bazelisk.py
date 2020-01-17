@@ -325,10 +325,7 @@ def execute_bazel(bazel_path, argv):
             pass
 
 
-def main(argv=None):
-    if argv is None:
-        argv = sys.argv
-
+def get_bazel_path():
     bazelisk_directory = get_bazelisk_directory()
     maybe_makedirs(bazelisk_directory)
 
@@ -339,9 +336,14 @@ def main(argv=None):
 
     bazel_directory = os.path.join(bazelisk_directory, "bin")
     maybe_makedirs(bazel_directory)
-    bazel_path = download_bazel_into_directory(bazel_version, is_commit, bazel_directory)
+    return download_bazel_into_directory(bazel_version, is_commit, bazel_directory)
 
-    return execute_bazel(bazel_path, argv[1:])
+
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv
+
+    return execute_bazel(get_bazel_path(), argv[1:])
 
 
 if __name__ == "__main__":
