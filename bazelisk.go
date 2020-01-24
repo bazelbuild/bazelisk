@@ -43,7 +43,6 @@ const (
 	skipWrapperEnv = "BAZELISK_SKIP_WRAPPER"
 	wrapperPath    = "./tools/bazel"
 	bazelUpstream  = "bazelbuild"
-	githubUpstream = "https://github.com/%s/bazel/releases/download"
 )
 
 var (
@@ -382,16 +381,16 @@ func determineBazelFilename(version string) (string, error) {
 }
 
 func determineURL(fork string, version string, isCommit bool, filename string) string {
+	baseURL := os.Getenv("BAZELISK_BASE_URL")
+
 	if isCommit {
+		if len(baseURL) == 0 {
+			baseURL = "https://storage.googleapis.com/bazel-builds/artifacts"
+		}
 		var platforms = map[string]string{"darwin": "macos", "linux": "ubuntu1404", "windows": "windows"}
 		// No need to check the OS thanks to determineBazelFilename().
 		log.Printf("Using unreleased version at commit %s", version)
-		return fmt.Sprintf("https://storage.googleapis.com/bazel-builds/artifacts/%s/%s/bazel", platforms[runtime.GOOS], version)
-	}
-
-	baseURL := os.Getenv("BAZELISK_BASE_URL")
-	if len(baseURL) == 0 {
-		baseURL = githubUpstream
+		return fmt.Sprintf("%s/%s/%s/bazel", baseURL, platforms[runtime.GOOS], version)
 	}
 
 	kind := "release"
@@ -402,7 +401,7 @@ func determineURL(fork string, version string, isCommit bool, filename string) s
 		kind = "rc" + versionComponents[1]
 	}
 
-	if baseURL != githubUpstream {
+	if len(baseURL) != 0 {
 		return fmt.Sprintf("%s/%s/%s", baseURL, version, filename)
 	}
 
@@ -410,8 +409,7 @@ func determineURL(fork string, version string, isCommit bool, filename string) s
 		return fmt.Sprintf("https://releases.bazel.build/%s/%s/%s", version, kind, filename)
 	}
 
-	baseURL = fmt.Sprintf(githubUpstream, fork)
-	return fmt.Sprintf("%s/%s/%s", baseURL, version, filename)
+	return fmt.Sprintf("https://github.com/%s/bazel/releases/download/%s/%s", fork, version, filename)
 }
 
 func downloadBazel(fork string, version string, isCommit bool, directory string) (string, error) {
