@@ -106,6 +106,19 @@ function test_bazel_version_from_file() {
       (echo "FAIL: Expected to find 'Build label: 0.19.0' in the output of 'bazelisk version'"; exit 1)
 }
 
+function test_bazel_version_from_url() {
+  setup
+
+  echo "0.19.0" > .bazelversion
+
+  BAZELISK_BASE_URL="https://github.com/bazelbuild/bazel/releases/download" \
+      BAZELISK_HOME="$BAZELISK_HOME" \
+          bazelisk version 2>&1 | tee log
+
+  grep "Build label: 0.19.0" log || \
+      (echo "FAIL: Expected to find 'Build label: 0.19.0' in the output of 'bazelisk version'"; exit 1)
+}
+
 function test_bazel_latest_minus_3() {
   setup
 
@@ -220,6 +233,10 @@ echo
 if [[ $BAZELISK_VERSION == "GO" ]]; then
   echo "# test_bazel_last_rc"
   test_bazel_last_rc
+  echo
+
+  echo "# test_bazel_version_from_url"
+  test_bazel_version_from_url
   echo
 
   case "$(uname -s)" in
