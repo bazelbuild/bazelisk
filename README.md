@@ -30,14 +30,32 @@ It uses a simple algorithm:
 - Otherwise, if a `.bazelversion` file exists in the current directory or recursively any parent directory, it will read the file and use the version specified in it.
 - Otherwise it will use the official latest Bazel release.
 
+Currently Bazelisk can manage prebuilt releases of Bazel or alternatively it can fetch and build Bazel from source.
+ 
+## Version syntax
+
+The version syntax has 3 potential forms that dictate where and how Bazelisk resolves the Bazel version. 
+
+|Form|Example|Description|
+|----|-------|----|
+|`<VERSION>`|`latest` or `2.0.0`| Downloads the specified version from the official Bazel Github channel|
+|`<FORK>/<VERSION>`| `foo/latest` or `foo/2.0.0` | Downloads the specified version from a Github fork |  
+|`<FORK>/commit/<GIT-REV>`| `foo/commit/eb62d...` or `foo/commit/my_cool_branch`| Fetches and builds a binary of Bazel from the given git revision, it can be any kind of fetchable git object 
+
+### Binary distributions
+
 A version can optionally be prefixed with a fork name.
 The fork and version should be separated by slash: `<FORK>/<VERSION>`.
-If you want to create a fork with your own releases, you have to follow the naming conventions that we use in `bazelbuild/bazel` for the binary file names.
-The URL format looks like `https://github.com/<FORK>/bazel/releases/download/<VERSION>/<FILENAME>`.
 
 You can also override the URL by setting the environment variable `$BAZELISK_BASE_URL`. Bazelisk will then append `/<VERSION>/<FILENAME>` to the base URL instead of using the official release server.
 
-Bazelisk currently understands the following formats for version labels:
+If you want to create a fork with your own releases, you have to follow the naming conventions that we use in `bazelbuild/bazel` for the binary file names. [See the Bazel release page for reference](https://github.com/bazelbuild/bazel/releases/latest)
+
+The final bash-like URL format taking everything in account would be:
+ 
+`${BAZELISK_BASE_URL:-https://github.com/<FORK>/bazel/releases/download}/<VERSION>/<FILENAME>`
+
+Bazelisk currently understands the following formats for `<VERSION>` labels:
 - `latest` means the latest stable version of Bazel as released on GitHub.
   Previous releases can be specified via `latest-1`, `latest-2` etc.
 - A version number like `0.17.2` means that exact version of Bazel.
@@ -49,6 +67,32 @@ Additionally, a few special version names are supported for our official release
 - `last_downstream_green` points to the most recent Bazel binary that builds and tests all [downstream projects](https://buildkite.com/bazel/bazel-at-head-plus-downstream) successfully.
 - `last_rc` points to the most recent release candidate.
   If there is no active release candidate, Bazelisk uses the latest Bazel release instead.
+  
+### Building from source
+
+When using the `<FORK>/commit/<GIT-REV>` form Bazelisk will fetch and build Bazel instead of downloading a binary distribution.
+`$BAZELISK_BASE_URL` can also be used to control the root hostname when fetching the source. The `<GIT-REV>` should be a git
+commit hash.
+
+The final bash-like URL when fetching source would be:
+
+`${BAZELISK_BASE_URL:-ssh://git@github.com}/<FORK>/bazel.git`
+
+Note that you should use the full SSH URL syntax if using SSH.
+
+When Bazelisk does a source build the following steps are taken:
+
+- Check if a build already exists in the Bazelisk cache for the given fork and commit, if yes use it.
+- Download the latest prebuilt Bazel to use as a bootstrapping compiler
+- Check if a checkout of the source for the given fork exists in the Bazelisk cache, if not fetch the initial sources
+- Check the current head matches the hash, if not, fetch and update the local head
+- Build bazel and copy the binary to the Bazelisk cache
+
+The design is intended to retain and update the source checkout and local build artifacts so that when the fork is updated
+the build would be incremental and ideally be much faster.
+
+Currently there is no eviction strategy for the cached bazel builds, so if the git commit is bumped very often your Bazelisk
+cache folder might quickly grow in size.  
 
 ## Other features
 
