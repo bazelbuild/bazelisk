@@ -41,6 +41,7 @@ import (
 const (
 	bazelReal      = "BAZEL_REAL"
 	skipWrapperEnv = "BAZELISK_SKIP_WRAPPER"
+	bazelURLEnv    = "BAZELISK_BASE_URL"
 	wrapperPath    = "./tools/bazel"
 	bazelUpstream  = "bazelbuild"
 )
@@ -113,20 +114,39 @@ func getBazelVersion() (string, error) {
 	return "latest", nil
 }
 
-func parseBazelForkAndVersion(bazelForkAndVersion string) (string, string, error) {
-	var bazelFork, bazelVersion string
+type versionDetails struct {
+	IsSourceReference bool
+	Fork              string
+	VersionOrCommit   string
+}
+
+func parseBazelForkAndVersion(bazelForkAndVersion string) (*versionDetails, error) {
+	var bazelFork, bazelVersionOrCommit string
 
 	versionInfo := strings.Split(bazelForkAndVersion, "/")
 
+	var isSourceBuild = false
+
 	if len(versionInfo) == 1 {
-		bazelFork, bazelVersion = bazelUpstream, versionInfo[0]
+		bazelFork, bazelVersionOrCommit = bazelUpstream, versionInfo[0]
 	} else if len(versionInfo) == 2 {
-		bazelFork, bazelVersion = versionInfo[0], versionInfo[1]
+		bazelFork, bazelVersionOrCommit = versionInfo[0], versionInfo[1]
+	} else if len(versionInfo) == 3 {
+		if versionInfo[1] != "commit" {
+			return nil, fmt.Errorf("invalid syntax \"%s\" for source version string, valid format is <FORK>/commit/<SHA>", bazelForkAndVersion)
+		}
+		bazelFork, bazelVersionOrCommit, isSourceBuild = versionInfo[0], versionInfo[2], true
 	} else {
-		return "", "", fmt.Errorf("invalid version \"%s\", could not parse version with more than one slash", bazelForkAndVersion)
+		return nil, fmt.Errorf("invalid version \"%s\", could not parse version with more than 3 components", bazelForkAndVersion)
 	}
 
-	return bazelFork, bazelVersion, nil
+	result := &versionDetails{
+		IsSourceReference: isSourceBuild,
+		Fork:              bazelFork,
+		VersionOrCommit:   bazelVersionOrCommit,
+	}
+
+	return result, nil
 }
 
 type release struct {
@@ -380,8 +400,8 @@ func determineBazelFilename(version string) (string, error) {
 	return fmt.Sprintf("bazel-%s-%s-%s%s", version, osName, machineName, filenameSuffix), nil
 }
 
-func determineURL(fork string, version string, isCommit bool, filename string) string {
-	baseURL := os.Getenv("BAZELISK_BASE_URL")
+func determineDistributionURL(fork string, version string, isCommit bool, filename string) string {
+	baseURL := os.Getenv(bazelURLEnv)
 
 	if isCommit {
 		if len(baseURL) == 0 {
@@ -412,13 +432,23 @@ func determineURL(fork string, version string, isCommit bool, filename string) s
 	return fmt.Sprintf("https://github.com/%s/bazel/releases/download/%s/%s", fork, version, filename)
 }
 
+func determineSourceURL(fork string) string {
+	baseUrl := os.Getenv(bazelURLEnv)
+
+	if len(baseUrl) == 0 {
+		baseUrl = "ssh://git@github.com"
+	}
+
+	return fmt.Sprintf("%s/%s/bazel.git", baseUrl, fork)
+}
+
 func downloadBazel(fork string, version string, isCommit bool, directory string) (string, error) {
 	filename, err := determineBazelFilename(version)
 	if err != nil {
 		return "", fmt.Errorf("could not determine filename to use for Bazel binary: %v", err)
 	}
 
-	url := determineURL(fork, version, isCommit, filename)
+	url := determineDistributionURL(fork, version, isCommit, filename)
 	destinationPath := filepath.Join(directory, filename)
 
 	if _, err := os.Stat(destinationPath); err != nil {
@@ -462,6 +492,127 @@ func downloadBazel(fork string, version string, isCommit bool, directory string)
 	}
 
 	return destinationPath, nil
+}
+
+func bazelFromSource(bazeliskHome string, fork string, commitHash string) (string, error) {
+	binaryDirectory := filepath.Join(bazeliskHome, "bin", fork)
+
+	if err := os.MkdirAll(binaryDirectory, 0755); err != nil {
+		return "", fmt.Errorf("failed to create binary directory %s: %v", binaryDirectory, err)
+	}
+
+	identifier := fmt.Sprintf("bazel-%s", commitHash)
+	bazelBinary := filepath.Join(binaryDirectory, identifier)
+
+	// we keep a single folder per source checkout. This optimizes for the use-case that someone might be getting
+	// their bazel version updated semi-regularly and we want to leverage the local build artifacts they already have
+	// to speed up the rebuild process.
+	checkoutDirectory := filepath.Join(bazeliskHome, "checkouts", fork)
+
+	if _, err := os.Stat(bazelBinary); err != nil {
+		if os.IsNotExist(err) {
+			err := checkoutSource(checkoutDirectory, fork, commitHash)
+
+			if err != nil {
+				return "", fmt.Errorf("failed to checkout sources for %s/commit/%s: %v", fork, commitHash, err)
+			}
+
+			bootstrapBazel, _ := bazelFromPrebuilt(bazeliskHome, "bazelbuild", "latest")
+			err = buildBazel(bootstrapBazel, checkoutDirectory, bazelBinary)
+
+			if err != nil {
+				return "", fmt.Errorf("failed to build bazel sources for %s/commit/%s: %v", fork, commitHash, err)
+			}
+		} else {
+			return "", fmt.Errorf("unknown IO error at cached bazel binary %s: %v", bazelBinary, err)
+		}
+	}
+
+	return bazelBinary, nil
+}
+
+func buildBazel(bootstrapBazel string, checkoutDirectory string, outputFile string) error {
+	log.Printf("Building bazel")
+	runOrFatal(checkoutDirectory, "failed to build bazel", bootstrapBazel, "build", "//src:bazel", "--compilation_mode=opt")
+
+	in, err := os.Open(filepath.Join(checkoutDirectory, "bazel-bin", "src", "bazel"))
+
+	if err != nil {
+		return fmt.Errorf("failed to copy build output to bazelisk bin folder: %v", err)
+	}
+	defer in.Close()
+
+	out, err := os.Create(outputFile)
+
+	if err != nil {
+		return fmt.Errorf("failed to copy build output to bazelisk bin folder: %v", err)
+	}
+	defer out.Close()
+
+	if _, err := io.Copy(out, in); err != nil {
+		return fmt.Errorf("failed to copy build output to bazelisk bin folder: %v", err)
+	}
+
+	if err := out.Chmod(0755); err != nil {
+		return fmt.Errorf("failed to copy build output to bazelisk bin folder: %v", err)
+	}
+
+	out.Sync()
+
+	return nil
+}
+
+func runOrFatal(cwd string, errorMessage string, command string, arg ...string) string {
+	cmd := exec.Command(command, arg...)
+	cmd.Dir = cwd
+
+	bytes, err := cmd.CombinedOutput()
+
+	if err != nil {
+		log.Fatalf(errorMessage)
+	}
+
+	return string(bytes)
+}
+
+func checkoutSource(checkoutDirectory string, fork string, commitHash string) error {
+	if _, err := os.Stat(filepath.Join(checkoutDirectory, ".git")); err != nil {
+		if os.IsNotExist(err) {
+			tmpCheckout, err := ioutil.TempDir("", filepath.Base(checkoutDirectory))
+
+			if err != nil {
+				return fmt.Errorf("failed to create temporary checkout directory for clone: %v", err)
+			}
+
+
+			cloneAddress := determineSourceURL(fork)
+
+			log.Printf("Bazelisk is downloading bazel's source from %s, this will take a few minutes", cloneAddress)
+
+			// do a minimal fetch here instead of a full clone
+			runOrFatal(tmpCheckout, "failed to initialize repository", "git", "init")
+			runOrFatal(tmpCheckout, "failed to set up remote", "git", "remote", "add", "origin", cloneAddress)
+			runOrFatal(tmpCheckout, "failed to fetch initial revision", "git", "fetch", "origin", commitHash)
+			runOrFatal(tmpCheckout, "failed to checkout initial revision", "git", "checkout", commitHash)
+
+			if err := os.Rename(tmpCheckout, checkoutDirectory); err != nil {
+				return fmt.Errorf("failed to move temporary source checkout %s to final location: %v", tmpCheckout, err)
+			}
+			log.Printf("Checkout of %s/bazel/commit/%s done", fork, commitHash)
+		} else {
+			return fmt.Errorf("unknown IO error while checking out git sources: %v", err)
+		}
+	}
+
+	currentHash := strings.TrimSpace(runOrFatal(checkoutDirectory, "failed to get current revision", "git", "rev-list", "HEAD", "-n", "1"))
+
+	if currentHash != commitHash {
+		log.Printf("Updating sources from %s to %s", currentHash, commitHash)
+		runOrFatal(checkoutDirectory, "failed to fetch new revision", "git", "fetch", "origin", commitHash)
+		runOrFatal(checkoutDirectory, "failed to checkout new revision", "git", "reset", "--hard", commitHash)
+	}
+
+	return nil
 }
 
 func maybeDelegateToWrapper(bazel string) string {
@@ -744,30 +895,24 @@ func main() {
 	// If the Bazel version is an absolute path to a Bazel binary in the filesystem, we can
 	// use it directly. In that case, we don't know which exact version it is, though.
 	resolvedBazelVersion := "unknown"
-	isCommit := false
 
 	// If we aren't using a local Bazel binary, we'll have to parse the version string and
 	// download the version that the user wants.
 	if !filepath.IsAbs(bazelPath) {
-		bazelFork, bazelVersion, err := parseBazelForkAndVersion(bazelVersionString)
+		versionInfo, err := parseBazelForkAndVersion(bazelVersionString)
+
 		if err != nil {
 			log.Fatalf("could not parse Bazel fork and version: %v", err)
 		}
 
-		resolvedBazelVersion, isCommit, err = resolveVersionLabel(bazeliskHome, bazelFork, bazelVersion)
-		if err != nil {
-			log.Fatalf("could not resolve the version '%s' to an actual version number: %v", bazelVersion, err)
-		}
+		if versionInfo.IsSourceReference {
+			bazelPath, err = bazelFromSource(bazeliskHome, versionInfo.Fork, versionInfo.VersionOrCommit)
 
-		bazelDirectory := filepath.Join(bazeliskHome, "bin", bazelFork)
-		err = os.MkdirAll(bazelDirectory, 0755)
-		if err != nil {
-			log.Fatalf("could not create directory %s: %v", bazelDirectory, err)
-		}
-
-		bazelPath, err = downloadBazel(bazelFork, resolvedBazelVersion, isCommit, bazelDirectory)
-		if err != nil {
-			log.Fatalf("could not download Bazel: %v", err)
+			if err != nil {
+				log.Fatalf("could not build Bazel from source: %v", err)
+			}
+		} else {
+			bazelPath, resolvedBazelVersion = bazelFromPrebuilt(bazeliskHome, versionInfo.Fork, versionInfo.VersionOrCommit)
 		}
 	}
 
@@ -815,6 +960,26 @@ func main() {
 		log.Fatalf("could not run Bazel: %v", err)
 	}
 	os.Exit(exitCode)
+}
+
+func bazelFromPrebuilt(bazeliskHome string, bazelFork string, bazelVersion string) (string, string) {
+	resolvedBazelVersion, isCommit, err := resolveVersionLabel(bazeliskHome, bazelFork, bazelVersion)
+	if err != nil {
+		log.Fatalf("could not resolve the bazelVersion '%s' to an actual bazelVersion number: %v", bazelVersion, err)
+	}
+
+	bazelDirectory := filepath.Join(bazeliskHome, "bin", bazelFork)
+	err = os.MkdirAll(bazelDirectory, 0755)
+	if err != nil {
+		log.Fatalf("could not create directory %s: %v", bazelDirectory, err)
+	}
+
+	bazelPath, err := downloadBazel(bazelFork, resolvedBazelVersion, isCommit, bazelDirectory)
+
+	if err != nil {
+		log.Fatalf("could not download Bazel: %v", err)
+	}
+	return bazelPath, resolvedBazelVersion
 }
 
 func getSortedKeys(data map[string]*flagDetails) []string {
