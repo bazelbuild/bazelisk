@@ -1,5 +1,6 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
 load("@bazel_gazelle//:def.bzl", "gazelle")
+load("@build_bazel_rules_nodejs//:index.bzl", "pkg_npm")
 
 # gazelle:prefix github.com/bazelbuild/bazelisk
 gazelle(name = "gazelle")
@@ -53,4 +54,49 @@ go_binary(
     name = "bazelisk",
     embed = [":go_default_library"],
     visibility = ["//visibility:public"],
+)
+
+
+go_binary(
+    name = "bazelisk-darwin",
+    out = "bazelisk-darwin_amd64",
+    embed = [":go_default_library"],
+    goarch = "amd64",
+    goos = "darwin",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
+go_binary(
+    name = "bazelisk-linux",
+    out = "bazelisk-linux_amd64",
+    embed = [":go_default_library"],
+    goarch = "amd64",
+    goos = "linux",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
+go_binary(
+    name = "bazelisk-windows",
+    out = "bazelisk-windows_amd64.exe",
+    embed = [":go_default_library"],
+    goarch = "amd64",
+    goos = "windows",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
+pkg_npm(
+    name = "npm_package",
+    srcs = [
+        "LICENSE",
+        "package.json",
+        "bazelisk.js",
+    ],
+    deps = [
+        ":bazelisk-darwin",
+        ":bazelisk-linux",
+        ":bazelisk-windows",
+    ],
 )
