@@ -1,0 +1,1 @@
+build:release -c opt --stamp --workspace_status_command="$PWD/stamp.sh"

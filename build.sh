@@ -22,10 +22,7 @@ mkdir bin
 
 go build
 for platform in darwin linux windows; do
-    ./bazelisk build \
-        -c opt \
-        --stamp \
-        --workspace_status_command="$PWD/stamp.sh" \
+    ./bazelisk build --config=release \
         --platforms=@io_bazel_rules_go//go/toolchain:${platform}_amd64 \
         //:bazelisk
     if [[ $platform == windows ]]; then
@@ -44,3 +41,9 @@ rm -f bazelisk
 ### Print some information about the generated binaries.
 ls -lh bin/*
 file bin/*
+
+# Non-googlers: you should run this script with NPM_REGISTRY=https://registry.npmjs.org
+readonly REGISTRY=${NPM_REGISTRY:-https://wombat-dressing-room.appspot.com}
+# Googlers: you should npm login using the go/npm-publish service:
+# $ npm login --registry https://wombat-dressing-room.appspot.com
+./bazelisk run --config=release //:npm_package.publish -- --access=public --tag latest --registry $REGISTRY
