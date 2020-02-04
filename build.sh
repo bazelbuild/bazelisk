@@ -21,16 +21,14 @@ rm -rf bazelisk bin
 mkdir bin
 
 go build
-for platform in darwin linux windows; do
-    ./bazelisk build --config=release \
-        --platforms=@io_bazel_rules_go//go/toolchain:${platform}_amd64 \
-        //:bazelisk
-    if [[ $platform == windows ]]; then
-        cp bazel-bin/${platform}_*/bazelisk.exe bin/bazelisk-${platform}-amd64.exe
-    else
-        cp bazel-bin/${platform}_*/bazelisk bin/bazelisk-${platform}-amd64
-    fi
-done
+./bazelisk build --config=release \
+    //:bazelisk-darwin \
+    //:bazelisk-linux \
+    //:bazelisk-windows
+
+cp bazel-bin/bazelisk-darwin_amd64 bin/bazelisk-darwin-amd64
+cp bazel-bin/bazelisk-linux_amd64 bin/bazelisk-linux-amd64
+cp bazel-bin/bazelisk-windows_amd64.exe bin/bazelisk-windows-amd64.exe
 rm -f bazelisk
 
 ### Build release artifacts using `go build`.
@@ -49,4 +47,3 @@ readonly REGISTRY=${NPM_REGISTRY:-https://wombat-dressing-room.appspot.com}
 echo "After testing, publish to NPM via these commands:"
 echo "$ npm config set registry https://wombat-dressing-room.appspot.com"
 echo "$ ./bazelisk run --config=release //:npm_package.publish -- --access=public --tag latest --registry $REGISTRY"
-
