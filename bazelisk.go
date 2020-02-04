@@ -46,6 +46,7 @@ const (
 )
 
 var (
+	// BazeliskVersion is filled in via x_defs when building a release.
 	BazeliskVersion = "development"
 )
 
@@ -717,7 +718,7 @@ func migrate(bazelPath string, baseArgs []string, flags map[string]*flagDetails)
 
 func getSortedKeys(data map[string]*flagDetails) []string {
 	result := make([]string, 0)
-	for key, _ := range data {
+	for key := range data {
 		result = append(result, key)
 	}
 	sort.Strings(result)
