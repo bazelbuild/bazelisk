@@ -725,6 +725,11 @@ func getSortedKeys(data map[string]*flagDetails) []string {
 	return result
 }
 
+func dirForURL(url string) string {
+	// Replace all characters that might not be allowed in filenames with "-".
+	return regexp.MustCompile("[[:^alnum:]]").ReplaceAllString(url, "-")
+}
+
 func main() {
 	bazeliskHome := os.Getenv("BAZELISK_HOME")
 	if len(bazeliskHome) == 0 {
@@ -769,7 +774,12 @@ func main() {
 			log.Fatalf("could not resolve the version '%s' to an actual version number: %v", bazelVersion, err)
 		}
 
-		bazelDirectory := filepath.Join(bazeliskHome, "bin", bazelFork)
+		bazelForkOrURL := dirForURL(os.Getenv("BAZELISK_BASE_URL"))
+		if len(bazelForkOrURL) == 0 {
+			bazelForkOrURL = bazelFork
+		}
+
+		bazelDirectory := filepath.Join(bazeliskHome, "bin", bazelForkOrURL)
 		err = os.MkdirAll(bazelDirectory, 0755)
 		if err != nil {
 			log.Fatalf("could not create directory %s: %v", bazelDirectory, err)
