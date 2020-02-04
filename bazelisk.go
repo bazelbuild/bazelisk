@@ -715,6 +715,15 @@ func migrate(bazelPath string, baseArgs []string, flags map[string]*flagDetails)
 	os.Exit(1)
 }
 
+func getSortedKeys(data map[string]*flagDetails) []string {
+	result := make([]string, 0)
+	for key, _ := range data {
+		result = append(result, key)
+	}
+	sort.Strings(result)
+	return result
+}
+
 func main() {
 	bazeliskHome := os.Getenv("BAZELISK_HOME")
 	if len(bazeliskHome) == 0 {
@@ -815,13 +824,4 @@ func main() {
 		log.Fatalf("could not run Bazel: %v", err)
 	}
 	os.Exit(exitCode)
-}
-
-func getSortedKeys(data map[string]*flagDetails) []string {
-	result := make([]string, 0)
-	for key, _ := range data {
-		result = append(result, key)
-	}
-	sort.Strings(result)
-	return result
 }
