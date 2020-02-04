@@ -79,6 +79,10 @@ This behavior can be disabled by setting the environment variable `BAZELISK_SKIP
 
 Binary and source releases are provided on our [Releases](https://github.com/bazelbuild/bazelisk/releases) page.
 
+Bazelisk is also published to npm.
+Frontend developers may want to install it with `npm install -g @bazel/bazelisk`.
+You will notice that it serves an analogous function for Bazel as the [`nvm` utility](https://github.com/nvm-sh/nvm) which manages your version of Node.js.
+
 ## Requirements
 
 For ease of use, the Python version of Bazelisk is written to work with Python 2.7 and 3.x and only uses modules provided by the standard library.

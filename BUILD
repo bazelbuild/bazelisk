@@ -91,6 +91,7 @@ pkg_npm(
     name = "npm_package",
     srcs = [
         "LICENSE",
+        "README.md",
         "package.json",
         "bazelisk.js",
     ],
