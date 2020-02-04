@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -euxo pipefail
+set -euo pipefail
 
 ### Build release artifacts using Bazel.
 rm -rf bazelisk bin
@@ -39,11 +39,14 @@ rm -f bazelisk
 # GOOS=windows GOARCH=amd64 go build -o bin/bazelisk-windows-amd64.exe
 
 ### Print some information about the generated binaries.
+echo "Bazelisk binaries are ready:"
 ls -lh bin/*
 file bin/*
+echo
 
 # Non-googlers: you should run this script with NPM_REGISTRY=https://registry.npmjs.org
 readonly REGISTRY=${NPM_REGISTRY:-https://wombat-dressing-room.appspot.com}
-# Googlers: you should npm login using the go/npm-publish service:
-# $ npm login --registry https://wombat-dressing-room.appspot.com
-./bazelisk run --config=release //:npm_package.publish -- --access=public --tag latest --registry $REGISTRY
+echo "After testing, publish to NPM via these commands:"
+echo "$ npm config set registry https://wombat-dressing-room.appspot.com"
+echo "$ ./bazelisk run --config=release //:npm_package.publish -- --access=public --tag latest --registry $REGISTRY"
+
