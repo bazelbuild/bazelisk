@@ -25,6 +25,7 @@ go build
     //:bazelisk-darwin \
     //:bazelisk-linux \
     //:bazelisk-windows
+echo
 
 cp bazel-bin/bazelisk-darwin_amd64 bin/bazelisk-darwin-amd64
 cp bazel-bin/bazelisk-linux_amd64 bin/bazelisk-linux-amd64
@@ -37,13 +38,19 @@ rm -f bazelisk
 # GOOS=windows GOARCH=amd64 go build -o bin/bazelisk-windows-amd64.exe
 
 ### Print some information about the generated binaries.
-echo "Bazelisk binaries are ready:"
+echo "== Bazelisk binaries are ready =="
 ls -lh bin/*
 file bin/*
 echo
 
+echo "== Bazelisk version output =="
+echo "Before releasing, make sure that this is the correct version string:"
+"bin/bazelisk-$(uname -s | tr [:upper:] [:lower:])-amd64" version | grep "Bazelisk version"
+echo
+
 # Non-googlers: you should run this script with NPM_REGISTRY=https://registry.npmjs.org
 readonly REGISTRY=${NPM_REGISTRY:-https://wombat-dressing-room.appspot.com}
+echo "== NPM releases =="
 echo "After testing, publish to NPM via these commands:"
 echo "$ npm config set registry https://wombat-dressing-room.appspot.com"
 echo "$ ./bazelisk run --config=release //:npm_package.publish -- --access=public --tag latest --registry $REGISTRY"
