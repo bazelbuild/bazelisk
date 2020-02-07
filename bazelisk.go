@@ -504,20 +504,30 @@ func bazelFromSource(bazeliskHome string, fork string, commitHash string) (strin
 	identifier := fmt.Sprintf("bazel-%s", commitHash)
 	bazelBinary := filepath.Join(binaryDirectory, identifier)
 
-	// we keep a single folder per source checkout. This optimizes for the use-case that someone might be getting
-	// their bazel version updated semi-regularly and we want to leverage the local build artifacts they already have
-	// to speed up the rebuild process.
-	checkoutDirectory := filepath.Join(bazeliskHome, "checkouts", fork)
-
 	if _, err := os.Stat(bazelBinary); err != nil {
 		if os.IsNotExist(err) {
-			err := checkoutSource(checkoutDirectory, fork, commitHash)
+			// we keep a single folder per source checkout. This optimizes for the use-case that someone might be getting
+			// their bazel version updated semi-regularly and we want to leverage the local build artifacts they already have
+			// to speed up the rebuild process.
+			checkoutDirectory := filepath.Join(bazeliskHome, "checkouts", fork)
+
+			if err := os.MkdirAll(filepath.Join(bazeliskHome, "checkouts"), 0755); err != nil {
+				return "", fmt.Errorf("failed to create checkout directory %v", err)
+			}
+
+			err = checkoutSource(checkoutDirectory, fork, commitHash)
 
 			if err != nil {
 				return "", fmt.Errorf("failed to checkout sources for %s/commit/%s: %v", fork, commitHash, err)
 			}
 
+			// we want to download a bootstrap bazel, so we just get the default
+			// we need to unset the base URL if it's set, this could be cleaner.
+			baseURL := os.Getenv(bazelURLEnv)
+			os.Setenv(bazelURLEnv, "")
 			bootstrapBazel, _ := bazelFromPrebuilt(bazeliskHome, "bazelbuild", "latest")
+			os.Setenv(bazelURLEnv, baseURL)
+
 			err = buildBazel(bootstrapBazel, checkoutDirectory, bazelBinary)
 
 			if err != nil {
