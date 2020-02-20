@@ -26,9 +26,9 @@ func TestScanIssuesForIncompatibleFlags(t *testing.T) {
 		"--incompatible_always_check_depset_elements",
 		"--incompatible_no_implicit_file_export",
 		"--incompatible_remove_enabled_toolchain_types",
-		"--incompatible_remove_local_resources",
 		"--incompatible_remove_ram_utilization_factor",
 		"--incompatible_validate_top_level_header_inclusions",
+		"--//some/path:incompatible_user_defined_flag",
 	}
 	var got_flags []string
 	for _, flag := range flags {
@@ -43,7 +43,7 @@ func TestScanIssuesForIncompatibleFlags(t *testing.T) {
 			break
 		}
 	}
-	if mismatch {
+	if mismatch || len(expected_flagnames) != len(got_flags) {
 		t.Errorf("Expected %s, got %s", expected_flagnames, got_flags)
 	}
 }

@@ -87,7 +87,7 @@
       "id": 546480392,
       "node_id": "MDU6SXNzdWU1NDY0ODAzOTI=",
       "number": 10536,
-      "title": "incompatible_remove_local_resources",
+      "title": "//some/path:incompatible_user_defined_flag",
       "user": {
         "login": "susinmotion",
         "id": 7410705,

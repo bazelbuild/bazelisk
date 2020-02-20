@@ -571,8 +571,12 @@ func scanIssuesForIncompatibleFlags(issuesJSON []byte) (map[string]*flagDetails,
 	}
 
 	re := regexp.MustCompile(`^incompatible_\w+`)
+	s_re := regexp.MustCompile(`^//.*[^/]:incompatible_\w+`)
 	for _, issue := range issueList.Items {
 		flag := re.FindString(issue.Title)
+		if len(flag) <= 0 {
+			flag = s_re.FindString(issue.Title)
+	        }
 		if len(flag) > 0 {
 			name := "--" + flag
 			result[name] = &flagDetails{
