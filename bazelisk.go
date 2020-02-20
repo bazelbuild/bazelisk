@@ -547,7 +547,6 @@ func (f *flagDetails) String() string {
 }
 
 func getIncompatibleFlags(bazeliskHome, resolvedBazelVersion string) (map[string]*flagDetails, error) {
-	result := make(map[string]*flagDetails)
 	// GitHub labels use only major and minor version, we ignore the patch number (and any other suffix).
 	re := regexp.MustCompile(`^\d+\.\d+`)
 	version := re.FindString(resolvedBazelVersion)
@@ -560,12 +559,18 @@ func getIncompatibleFlags(bazeliskHome, resolvedBazelVersion string) (map[string
 		return nil, fmt.Errorf("could not get issues from GitHub: %v", err)
 	}
 
+	result, err := scanIssuesForIncompatibleFlags(issuesJSON)
+	return result, err
+}
+
+func scanIssuesForIncompatibleFlags(issuesJSON []byte) (map[string]*flagDetails, error) {
+	result := make(map[string]*flagDetails)
 	var issueList issueList
 	if err := json.Unmarshal(issuesJSON, &issueList); err != nil {
 		return nil, fmt.Errorf("could not parse JSON into list of issues: %v", err)
 	}
 
-	re = regexp.MustCompile(`^incompatible_\w+`)
+	re := regexp.MustCompile(`^incompatible_\w+`)
 	for _, issue := range issueList.Items {
 		flag := re.FindString(issue.Title)
 		if len(flag) > 0 {

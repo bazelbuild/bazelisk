@@ -1,4 +1,4 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
 load("@bazel_gazelle//:def.bzl", "gazelle")
 load("@build_bazel_rules_nodejs//:index.bzl", "pkg_npm")
 
@@ -50,12 +50,24 @@ go_library(
     ],
 )
 
+go_test(
+    name = "go_default_test",
+    srcs = ["bazelisk_test.go"],
+    data = [
+        "sample-issues-migration.json",
+    ],
+    embed = [":go_default_library"],
+    importpath = "github.com/bazelbuild/bazelisk",
+    deps = [
+        "@io_bazel_rules_go//go/tools/bazel:go_default_library",
+    ],
+)
+
 go_binary(
     name = "bazelisk",
     embed = [":go_default_library"],
     visibility = ["//visibility:public"],
 )
-
 
 go_binary(
     name = "bazelisk-darwin",
@@ -92,8 +104,8 @@ pkg_npm(
     srcs = [
         "LICENSE",
         "README.md",
-        "package.json",
         "bazelisk.js",
+        "package.json",
     ],
     deps = [
         ":bazelisk-darwin",
