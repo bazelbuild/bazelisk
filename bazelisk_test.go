@@ -43,7 +43,7 @@ func TestScanIssuesForIncompatibleFlags(t *testing.T) {
 			break
 		}
 	}
-	if mismatch {
+	if mismatch || len(expected_flagnames) != len(got_flags) {
 		t.Errorf("Expected %s, got %s", expected_flagnames, got_flags)
 	}
 }
