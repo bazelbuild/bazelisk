@@ -2,10 +2,10 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 http_archive(
     name = "io_bazel_rules_go",
-    sha256 = "b27e55d2dcc9e6020e17614ae6e0374818a3e3ce6f2024036e688ada24110444",
+    sha256 = "e6a6c016b0663e06fa5fccf1cd8152eab8aa8180c583ec20c872f4f9953a7ac5",
     urls = [
-        "https://storage.googleapis.com/bazel-mirror/github.com/bazelbuild/rules_go/releases/download/v0.21.0/rules_go-v0.21.0.tar.gz",
-        "https://github.com/bazelbuild/rules_go/releases/download/v0.21.0/rules_go-v0.21.0.tar.gz",
+        "https://mirror.bazel.build/github.com/bazelbuild/rules_go/releases/download/v0.22.1/rules_go-v0.22.1.tar.gz",
+        "https://github.com/bazelbuild/rules_go/releases/download/v0.22.1/rules_go-v0.22.1.tar.gz",
     ],
 )
 
@@ -50,5 +50,7 @@ http_archive(
     sha256 = "ecaa54955b314b5e33948bd8f39e35c35ee89e905d8de1c03868100293510573",
     urls = ["https://github.com/bazelbuild/rules_nodejs/releases/download/1.2.1/rules_nodejs-1.2.1.tar.gz"],
 )
+
 load("@build_bazel_rules_nodejs//:index.bzl", "node_repositories")
+
 node_repositories()
