@@ -31,6 +31,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -48,7 +49,52 @@ const (
 var (
 	// BazeliskVersion is filled in via x_defs when building a release.
 	BazeliskVersion = "development"
+
+	fileConfig     map[string]string
+	fileConfigOnce sync.Once
 )
+
+// getEnvOrConfig will read a configuration value from the environment, but fall back to reading it from .bazeliskrc in the workspace root.
+func getEnvOrConfig(name string) string {
+	if val := os.Getenv(name); val != "" {
+		return val
+	}
+
+	// Parse .bazeliskrc in the workspace root, once, if it can be found.
+	fileConfigOnce.Do(func() {
+		workingDirectory, err := os.Getwd()
+		if err != nil {
+			return
+		}
+		workspaceRoot := findWorkspaceRoot(workingDirectory)
+		if workspaceRoot == "" {
+			return
+		}
+		rcFilePath := filepath.Join(workspaceRoot, ".bazeliskrc")
+		contents, err := ioutil.ReadFile(rcFilePath)
+		if err != nil {
+			if os.IsNotExist(err) {
+				return
+			}
+			log.Fatal(err)
+		}
+		fileConfig = make(map[string]string)
+		for _, line := range strings.Split(string(contents), "\n") {
+			parts := strings.SplitN(line, "=", 2)
+			if len(parts) < 2 {
+				continue
+			}
+			key := strings.TrimSpace(parts[0])
+			if strings.HasPrefix(key, "#") {
+				// comments
+				continue
+			}
+			fileConfig[key] = strings.TrimSpace(parts[1])
+		}
+	})
+
+	return fileConfig[name]
+}
 
 func findWorkspaceRoot(root string) string {
 	if _, err := os.Stat(filepath.Join(root, "WORKSPACE")); err == nil {
@@ -78,7 +124,7 @@ func getBazelVersion() (string, error) {
 	// - workspace_root/.bazelversion exists -> read contents, that version.
 	// - workspace_root/WORKSPACE contains a version -> that version. (TODO)
 	// - fallback: latest release
-	bazelVersion := os.Getenv("USE_BAZEL_VERSION")
+	bazelVersion := getEnvOrConfig("USE_BAZEL_VERSION")
 	if len(bazelVersion) != 0 {
 		return bazelVersion, nil
 	}
@@ -180,7 +226,7 @@ func maybeDownload(bazeliskHome, url, filename, description string) ([]byte, err
 	}
 
 	// We could also use go-github here, but I can't get it to build with Bazel's rules_go and it pulls in a lot of dependencies.
-	body, err := readRemoteFile(url, os.Getenv("BAZELISK_GITHUB_TOKEN"))
+	body, err := readRemoteFile(url, getEnvOrConfig("BAZELISK_GITHUB_TOKEN"))
 	if err != nil {
 		return nil, fmt.Errorf("could not download %s: %v", description, err)
 	}
@@ -382,7 +428,7 @@ func determineBazelFilename(version string) (string, error) {
 }
 
 func determineURL(fork string, version string, isCommit bool, filename string) string {
-	baseURL := os.Getenv("BAZELISK_BASE_URL")
+	baseURL := getEnvOrConfig("BAZELISK_BASE_URL")
 
 	if isCommit {
 		if len(baseURL) == 0 {
@@ -466,7 +512,7 @@ func downloadBazel(fork string, version string, isCommit bool, directory string)
 }
 
 func maybeDelegateToWrapper(bazel string) string {
-	if os.Getenv(skipWrapperEnv) != "" {
+	if getEnvOrConfig(skipWrapperEnv) != "" {
 		return bazel
 	}
 
@@ -616,7 +662,7 @@ func insertArgs(baseArgs []string, newArgs []string) []string {
 }
 
 func shutdownIfNeeded(bazelPath string) {
-	bazeliskClean := os.Getenv("BAZELISK_SHUTDOWN")
+	bazeliskClean := getEnvOrConfig("BAZELISK_SHUTDOWN")
 	if len(bazeliskClean) == 0 {
 		return
 	}
@@ -634,7 +680,7 @@ func shutdownIfNeeded(bazelPath string) {
 }
 
 func cleanIfNeeded(bazelPath string) {
-	bazeliskClean := os.Getenv("BAZELISK_CLEAN")
+	bazeliskClean := getEnvOrConfig("BAZELISK_CLEAN")
 	if len(bazeliskClean) == 0 {
 		return
 	}
@@ -736,7 +782,7 @@ func dirForURL(url string) string {
 }
 
 func main() {
-	bazeliskHome := os.Getenv("BAZELISK_HOME")
+	bazeliskHome := getEnvOrConfig("BAZELISK_HOME")
 	if len(bazeliskHome) == 0 {
 		userCacheDir, err := os.UserCacheDir()
 		if err != nil {
@@ -779,7 +825,7 @@ func main() {
 			log.Fatalf("could not resolve the version '%s' to an actual version number: %v", bazelVersion, err)
 		}
 
-		bazelForkOrURL := dirForURL(os.Getenv("BAZELISK_BASE_URL"))
+		bazelForkOrURL := dirForURL(getEnvOrConfig("BAZELISK_BASE_URL"))
 		if len(bazelForkOrURL) == 0 {
 			bazelForkOrURL = bazelFork
 		}
