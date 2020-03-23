@@ -4,7 +4,8 @@
     "version": "0.0.0-PLACEHOLDER",
     "license": "Apache-2.0",
     "bin": {
-        "bazelisk": "bazelisk.js"
+        "bazelisk": "bazelisk.js",
+        "bazel": "bazelisk.js"
     },
     "keywords": [
         "bazel"
