@@ -53,7 +53,7 @@ BAZEL_GCS_PATH_PATTERN = (
 
 SUPPORTED_PLATFORMS = {"linux": "ubuntu1404", "windows": "windows", "darwin": "macos"}
 
-TOOLS_BAZEL_PATH = "./tools/bazel"
+TOOLS_BAZEL_PATH = "tools/bazel"
 
 BAZEL_REAL = "BAZEL_REAL"
 

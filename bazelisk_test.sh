@@ -184,6 +184,42 @@ EOF
       (echo "FAIL: Expected to find 'BAZELISK_SKIP_WRAPPER=true' in the output of 'bazelisk version'"; exit 1)
 }
 
+function test_delegate_to_wrapper_matching_workspace_dir() {
+  setup
+
+  cat > print_workspace_dir.sh <<'EOF'
+echo "$BUILD_WORKSPACE_DIRECTORY"
+EOF
+  chmod +x print_workspace_dir.sh
+
+  cat >> BUILD <<'EOF'
+sh_binary(
+    name = "print_workspace_dir",
+    srcs = ["print_workspace_dir.sh"],
+)
+EOF
+
+  mkdir tools
+  cat > tools/bazel <<'EOF'
+#!/usr/bin/env bash
+echo "$(dirname "$(dirname "${BASH_SOURCE[0]}")")"
+$BAZEL_REAL "${@:1}"
+EOF
+  chmod +x tools/bazel
+
+  BAZELISK_HOME="$BAZELISK_HOME" \
+      bazelisk run :print_workspace_dir | tee log
+
+  last_line=""
+  tail -n +2 log | while read -r line; do
+    if [ -z "$last_line" ]; then
+        last_line="$line"
+    elif [ "$line" != "$last_line" ]; then
+        echo "FAIL: Expected workspace directories to match"; exit 1
+    fi
+  done
+}
+
 function test_skip_wrapper() {
   setup
 
@@ -228,6 +264,10 @@ echo
 
 echo "# test_bazel_last_downstream_green"
 test_bazel_last_downstream_green
+echo
+
+echo "# test_delegate_to_wrapper_matching_workspace_dir"
+test_delegate_to_wrapper_matching_workspace_dir
 echo
 
 if [[ $BAZELISK_VERSION == "GO" ]]; then
