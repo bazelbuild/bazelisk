@@ -207,6 +207,10 @@ $BAZEL_REAL "${@:1}"
 EOF
   chmod +x tools/bazel
 
+  cat > tools/bazel.bat <<'EOF'
+python %~dp0\bazel %*
+EOF
+
   BAZELISK_HOME="$BAZELISK_HOME" \
       bazelisk run :print_workspace_dir | tee log
 
