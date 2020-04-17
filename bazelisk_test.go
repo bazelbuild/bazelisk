@@ -23,10 +23,10 @@ func TestScanIssuesForIncompatibleFlags(t *testing.T) {
 		t.Errorf("Could not parse sample issues")
 	}
 	expected_flagnames := []string{
+		"--//some/path:incompatible_user_defined_flag",
 		"--incompatible_always_check_depset_elements",
 		"--incompatible_no_implicit_file_export",
 		"--incompatible_remove_enabled_toolchain_types",
-		"--incompatible_remove_local_resources",
 		"--incompatible_remove_ram_utilization_factor",
 		"--incompatible_validate_top_level_header_inclusions",
 	}
