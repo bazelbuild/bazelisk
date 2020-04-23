@@ -63,6 +63,16 @@ go_test(
     ],
 )
 
+go_test(
+    name = "go_version_test",
+    srcs = ["bazelisk_version_test.go"],
+    embed = [":go_default_library"],
+    importpath = "github.com/bazelbuild/bazelisk",
+    deps = [
+        "@io_bazel_rules_go//go/tools/bazel:go_default_library",
+    ],
+)
+
 go_binary(
     name = "bazelisk",
     embed = [":go_default_library"],
