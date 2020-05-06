@@ -17,6 +17,7 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -47,8 +48,13 @@ const (
 
 var (
 	// BazeliskVersion is filled in via x_defs when building a release.
-	BazeliskVersion = "development"
+	BazeliskVersion  = "development"
+	DefaultTransport = http.DefaultTransport
 )
+
+func getClient() *http.Client {
+	return &http.Client{Transport: DefaultTransport}
+}
 
 func findWorkspaceRoot(root string) string {
 	if _, err := os.Stat(filepath.Join(root, "WORKSPACE")); err == nil {
@@ -136,7 +142,7 @@ type release struct {
 }
 
 func readRemoteFile(url string, token string) ([]byte, error) {
-	client := &http.Client{}
+	client := getClient()
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("could not create request: %v", err)
@@ -194,15 +200,34 @@ func maybeDownload(bazeliskHome, url, filename, description string) ([]byte, err
 }
 
 func resolveLatestVersion(bazeliskHome, bazelFork string, offset int) (string, error) {
+	versions, err := getVersionHistoryFromGitHub(bazeliskHome, bazelFork)
+	if err != nil {
+		if bazelFork == bazelUpstream {
+			log.Printf("Falling back to GCS due to GitHub error: %v", err)
+			versions, err = getVersionHistoryFromGCS(true)
+		}
+		if err != nil {
+			return "", err
+		}
+	}
+
+	if offset >= len(versions) {
+		return "", fmt.Errorf("cannot resolve version \"latest-%d\": There are only %d Bazel versions", offset, len(versions))
+	}
+
+	return versions[len(versions)-1-offset], nil
+}
+
+func getVersionHistoryFromGitHub(bazeliskHome, bazelFork string) ([]string, error) {
 	url := fmt.Sprintf("https://api.github.com/repos/%s/bazel/releases", bazelFork)
 	releasesJSON, err := maybeDownload(bazeliskHome, url, bazelFork+"-releases.json", "list of Bazel releases from github.com/"+bazelFork)
 	if err != nil {
-		return "", fmt.Errorf("could not get releases from github.com/%s/bazel: %v", bazelFork, err)
+		return []string{}, fmt.Errorf("could not get releases from github.com/%s/bazel: %v", bazelFork, err)
 	}
 
 	var releases []release
 	if err := json.Unmarshal(releasesJSON, &releases); err != nil {
-		return "", fmt.Errorf("could not parse JSON into list of releases: %v", err)
+		return []string{}, fmt.Errorf("could not parse JSON into list of releases: %v", err)
 	}
 
 	var tags []string
@@ -212,14 +237,44 @@ func resolveLatestVersion(bazeliskHome, bazelFork string, offset int) (string, e
 		}
 		tags = append(tags, release.TagName)
 	}
-	return getNthMostRecentVersion(tags, offset)
+	return getVersionsInAscendingOrder(tags)
 }
 
-func getNthMostRecentVersion(versions []string, offset int) (string, error) {
-	if offset >= len(versions) {
-		return "", fmt.Errorf("cannot resolve version \"latest-%d\": There are only %d Bazel versions", offset, len(versions))
+func getVersionHistoryFromGCS(onlyFullReleases bool) ([]string, error) {
+	prefixes, _, err := listDirectoriesInReleaseBucket("")
+	if err != nil {
+		return []string{}, fmt.Errorf("could not list Bazel versions in GCS bucket: %v", err)
 	}
 
+	versions := getVersionsFromGCSPrefixes(prefixes)
+	sorted, err := getVersionsInAscendingOrder(versions)
+	if err != nil {
+		return []string{}, fmt.Errorf("invalid version label: %v", err)
+	}
+
+	if onlyFullReleases && len(sorted) > 0 {
+		latestVersion := sorted[len(sorted)-1]
+		_, isRelease, err := listDirectoriesInReleaseBucket(latestVersion + "/release/")
+		if err != nil {
+			return []string{}, fmt.Errorf("could not list release candidates for latest release: %v", err)
+		}
+		if !isRelease {
+			sorted = sorted[:len(sorted)-1]
+		}
+	}
+
+	return sorted, nil
+}
+
+func getVersionsFromGCSPrefixes(versions []string) []string {
+	result := make([]string, len(versions))
+	for i, v := range versions {
+		result[i] = strings.TrimSuffix(v, "/")
+	}
+	return result
+}
+
+func getVersionsInAscendingOrder(versions []string) ([]string, error) {
 	wrappers := make([]*version.Version, len(versions))
 	for i, v := range versions {
 		wrapper, err := version.NewVersion(v)
@@ -229,54 +284,52 @@ func getNthMostRecentVersion(versions []string, offset int) (string, error) {
 		wrappers[i] = wrapper
 	}
 	sort.Sort(version.Collection(wrappers))
-	return wrappers[len(wrappers)-1-offset].Original(), nil
+
+	sorted := make([]string, len(versions))
+	for i, w := range wrappers {
+		sorted[i] = w.Original()
+	}
+	return sorted, nil
 }
 
 type gcsListResponse struct {
-	Prefixes []string `json:"prefixes"`
+	Prefixes []string      `json:"prefixes"`
+	Items    []interface{} `json:"items"`
 }
 
 func resolveLatestRcVersion() (string, error) {
-	versions, err := listDirectoriesInReleaseBucket("")
+	versions, err := getVersionHistoryFromGCS(false)
 	if err != nil {
-		return "", fmt.Errorf("could not list Bazel versions in GCS bucket: %v", err)
+		return "", err
 	}
 
-	latestVersion, err := getHighestBazelVersion(versions)
-	if err != nil {
-		return "", fmt.Errorf("got invalid version number: %v", err)
+	if len(versions) == 0 {
+		return "", errors.New("could not find any Bazel versions")
 	}
-
+	latestVersion := versions[len(versions)-1]
 	// Append slash to match directories
-	rcVersions, err := listDirectoriesInReleaseBucket(latestVersion + "/")
+	rcVersions, _, err := listDirectoriesInReleaseBucket(latestVersion + "/")
 	if err != nil {
 		return "", fmt.Errorf("could not list release candidates for latest release: %v", err)
 	}
 	return getHighestRcVersion(rcVersions)
 }
 
-func listDirectoriesInReleaseBucket(prefix string) ([]string, error) {
+func listDirectoriesInReleaseBucket(prefix string) ([]string, bool, error) {
 	url := "https://www.googleapis.com/storage/v1/b/bazel/o?delimiter=/"
 	if prefix != "" {
 		url = fmt.Sprintf("%s&prefix=%s", url, prefix)
 	}
 	content, err := readRemoteFile(url, "")
 	if err != nil {
-		return nil, fmt.Errorf("could not list GCS objects at %s: %v", url, err)
+		return nil, false, fmt.Errorf("could not list GCS objects at %s: %v", url, err)
 	}
 
 	var response gcsListResponse
 	if err := json.Unmarshal(content, &response); err != nil {
-		return nil, fmt.Errorf("could not parse GCS index JSON: %v", err)
+		return nil, false, fmt.Errorf("could not parse GCS index JSON: %v", err)
 	}
-	return response.Prefixes, nil
-}
-
-func getHighestBazelVersion(versions []string) (string, error) {
-	for i, v := range versions {
-		versions[i] = strings.TrimSuffix(v, "/")
-	}
-	return getNthMostRecentVersion(versions, 0)
+	return response.Prefixes, len(response.Items) > 0, nil
 }
 
 func getHighestRcVersion(versions []string) (string, error) {
@@ -435,7 +488,7 @@ func downloadBazel(fork string, version string, isCommit bool, directory string)
 		}()
 
 		log.Printf("Downloading %s...", url)
-		resp, err := http.Get(url)
+		resp, err := getClient().Get(url)
 		if err != nil {
 			return "", fmt.Errorf("HTTP GET %s failed: %v", url, err)
 		}
@@ -576,7 +629,7 @@ func scanIssuesForIncompatibleFlags(issuesJSON []byte) (map[string]*flagDetails,
 		flag := re.FindString(issue.Title)
 		if len(flag) <= 0 {
 			flag = s_re.FindString(issue.Title)
-	        }
+		}
 		if len(flag) > 0 {
 			name := "--" + flag
 			result[name] = &flagDetails{

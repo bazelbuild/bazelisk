@@ -23,7 +23,7 @@ Before Bazelisk was rewritten in Go, it was a Python script.
 This still works and has the advantage that you can run it on any platform that has a Python interpreter, but is currently unmaintained and it doesn't support as many features.
 The documentation below describes the newer Go version only.
 
-## How does Bazelisk know which Bazel version to run and where to get it from?
+## How does Bazelisk know which Bazel version to run?
 
 It uses a simple algorithm:
 - If the environment variable `USE_BAZEL_VERSION` is set, it will use the version specified in the value.
@@ -32,10 +32,7 @@ It uses a simple algorithm:
 
 A version can optionally be prefixed with a fork name.
 The fork and version should be separated by slash: `<FORK>/<VERSION>`.
-If you want to create a fork with your own releases, you have to follow the naming conventions that we use in `bazelbuild/bazel` for the binary file names.
-The URL format looks like `https://github.com/<FORK>/bazel/releases/download/<VERSION>/<FILENAME>`.
-
-You can also override the URL by setting the environment variable `$BAZELISK_BASE_URL`. Bazelisk will then append `/<VERSION>/<FILENAME>` to the base URL instead of using the official release server.
+Please see the next section for how to work with forks.
 
 Bazelisk currently understands the following formats for version labels:
 - `latest` means the latest stable version of Bazel as released on GitHub.
@@ -49,6 +46,18 @@ Additionally, a few special version names are supported for our official release
 - `last_downstream_green` points to the most recent Bazel binary that builds and tests all [downstream projects](https://buildkite.com/bazel/bazel-at-head-plus-downstream) successfully.
 - `last_rc` points to the most recent release candidate.
   If there is no active release candidate, Bazelisk uses the latest Bazel release instead.
+
+## Where does Bazelisk get Bazel from?
+
+By default Bazelisk retrieves the list of Bazel versions from the Bazel GitHub project. If this fails, Bazelisk queries the official Bazel release server instead.
+In both cases the actual binaries are downloaded from the release server.
+
+As mentioned in the previous section, the `<FORK>/<VERSION>` version format allows you to use your own Bazel fork instead of working with the official servers:
+
+If you want to create a fork with your own releases, you have to follow the naming conventions that we use in `bazelbuild/bazel` for the binary file names.
+The URL format looks like `https://github.com/<FORK>/bazel/releases/download/<VERSION>/<FILENAME>`.
+
+You can also override the URL by setting the environment variable `$BAZELISK_BASE_URL`. Bazelisk will then append `/<VERSION>/<FILENAME>` to the base URL instead of using the official release server.
 
 ## Other features
 
