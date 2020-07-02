@@ -252,6 +252,18 @@ echo "# test_bazel_version_from_environment"
 test_bazel_version_from_environment
 echo
 
+echo "# test_bazel_version_prefer_environment_to_bazeliskrc"
+test_bazel_version_prefer_environment_to_bazeliskrc
+echo
+
+echo "# test_bazel_version_from_bazeliskrc"
+test_bazel_version_from_bazeliskrc
+echo
+
+echo "# test_bazel_version_prefer_bazeliskrc_to_bazelversion_file"
+test_bazel_version_prefer_bazeliskrc_to_bazelversion_file
+echo
+
 echo "# test_bazel_version_from_file"
 test_bazel_version_from_file
 echo
