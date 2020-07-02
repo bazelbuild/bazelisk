@@ -27,6 +27,7 @@ The documentation below describes the newer Go version only.
 
 It uses a simple algorithm:
 - If the environment variable `USE_BAZEL_VERSION` is set, it will use the version specified in the value.
+- Otherwise, if a `.bazeliskrc` file exists in the workspace root and contains the `USE_BAZEL_VERSION` variable, this version will be used.
 - Otherwise, if a `.bazelversion` file exists in the current directory or recursively any parent directory, it will read the file and use the version specified in it.
 - Otherwise it will use the official latest Bazel release.
 
