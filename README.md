@@ -85,6 +85,30 @@ It will set the environment variable `BAZEL_REAL` to the path of the downloaded 
 This can be useful, if you have a wrapper script that e.g. ensures that environment variables are set to known good values.
 This behavior can be disabled by setting the environment variable `BAZELISK_SKIP_WRAPPER` to any value (except the empty string) before launching Bazelisk.
 
+# .bazeliskrc configuration file
+
+The Go version supports a `.bazeliskrc` file in the root directory of a workspace. This file allows users to set environment variables persistently.
+
+Example file content:
+
+
+```shell
+USE_BAZEL_VERSION=0.19.0
+BAZELISK_GITHUB_TOKEN=abc
+```
+
+The following variables can be set:
+
+- `BAZELISK_BASE_URL`
+- `BAZELISK_CLEAN`
+- `BAZELISK_GITHUB_TOKEN`
+- `BAZELISK_HOME`
+- `BAZELISK_SHUTDOWN`
+- `BAZELISK_SKIP_WRAPPER`
+- `USE_BAZEL_VERSION`
+
+Please note that the actual environment variables take precedence over those in the `.bazeliskrc` file.
+
 ## Releases
 
 Binary and source releases are provided on our [Releases](https://github.com/bazelbuild/bazelisk/releases) page.
