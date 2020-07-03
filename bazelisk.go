@@ -86,15 +86,15 @@ func getEnvOrConfig(name string) string {
 		}
 		fileConfig = make(map[string]string)
 		for _, line := range strings.Split(string(contents), "\n") {
+			if strings.HasPrefix(line, "#") {
+				// comments
+				continue
+			}
 			parts := strings.SplitN(line, "=", 2)
 			if len(parts) < 2 {
 				continue
 			}
 			key := strings.TrimSpace(parts[0])
-			if strings.HasPrefix(key, "#") {
-				// comments
-				continue
-			}
 			fileConfig[key] = strings.TrimSpace(parts[1])
 		}
 	})
@@ -127,6 +127,8 @@ func getBazelVersion() (string, error) {
 	// - env var "USE_CANARY_BAZEL" or "USE_BAZEL_CANARY" is set -> latest
 	//   rc. (TODO)
 	// - the file workspace_root/tools/bazel exists -> that version. (TODO)
+	// - workspace_root/.bazeliskrc exists and contains a 'USE_BAZEL_VERSION'
+	//   variable -> read contents, that version.
 	// - workspace_root/.bazelversion exists -> read contents, that version.
 	// - workspace_root/WORKSPACE contains a version -> that version. (TODO)
 	// - fallback: latest release

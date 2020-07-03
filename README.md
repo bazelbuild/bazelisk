@@ -27,6 +27,7 @@ The documentation below describes the newer Go version only.
 
 It uses a simple algorithm:
 - If the environment variable `USE_BAZEL_VERSION` is set, it will use the version specified in the value.
+- Otherwise, if a `.bazeliskrc` file exists in the workspace root and contains the `USE_BAZEL_VERSION` variable, this version will be used.
 - Otherwise, if a `.bazelversion` file exists in the current directory or recursively any parent directory, it will read the file and use the version specified in it.
 - Otherwise it will use the official latest Bazel release.
 
@@ -83,6 +84,30 @@ If `tools/bazel` exists in your workspace root and is executable, Bazelisk will 
 It will set the environment variable `BAZEL_REAL` to the path of the downloaded Bazel binary.
 This can be useful, if you have a wrapper script that e.g. ensures that environment variables are set to known good values.
 This behavior can be disabled by setting the environment variable `BAZELISK_SKIP_WRAPPER` to any value (except the empty string) before launching Bazelisk.
+
+# .bazeliskrc configuration file
+
+The Go version supports a `.bazeliskrc` file in the root directory of a workspace. This file allows users to set environment variables persistently.
+
+Example file content:
+
+
+```shell
+USE_BAZEL_VERSION=0.19.0
+BAZELISK_GITHUB_TOKEN=abc
+```
+
+The following variables can be set:
+
+- `BAZELISK_BASE_URL`
+- `BAZELISK_CLEAN`
+- `BAZELISK_GITHUB_TOKEN`
+- `BAZELISK_HOME`
+- `BAZELISK_SHUTDOWN`
+- `BAZELISK_SKIP_WRAPPER`
+- `USE_BAZEL_VERSION`
+
+Please note that the actual environment variables take precedence over those in the `.bazeliskrc` file.
 
 ## Releases
 
