@@ -457,6 +457,14 @@ func getLastGreenCommit(pathSuffix string) (string, error) {
 	return strings.TrimSpace(string(content)), nil
 }
 
+func determineExecutableFilenameSuffix() string {
+	filenameSuffix := ""
+	if runtime.GOOS == "windows" {
+		filenameSuffix = ".exe"
+	}
+	return filenameSuffix
+}
+
 func determineBazelFilename(version string) (string, error) {
 	var machineName string
 	switch runtime.GOARCH {
@@ -474,10 +482,7 @@ func determineBazelFilename(version string) (string, error) {
 		return "", fmt.Errorf("unsupported operating system \"%s\", must be Linux, macOS or Windows", runtime.GOOS)
 	}
 
-	filenameSuffix := ""
-	if runtime.GOOS == "windows" {
-		filenameSuffix = ".exe"
-	}
+	filenameSuffix := determineExecutableFilenameSuffix()
 
 	return fmt.Sprintf("bazel-%s-%s-%s%s", version, osName, machineName, filenameSuffix), nil
 }
@@ -521,10 +526,18 @@ func downloadBazel(fork string, version string, isCommit bool, directory string)
 	}
 
 	url := determineURL(fork, version, isCommit, filename)
-	destinationPath := filepath.Join(directory, filename)
+
+	filenameSuffix := determineExecutableFilenameSuffix()
+	directoryName := strings.TrimSuffix(filename, filenameSuffix)
+	destinationDir := filepath.Join(directory, directoryName, "bin")
+	err = os.MkdirAll(destinationDir, 0755)
+	if err != nil {
+		return "", fmt.Errorf("could not create directory %s: %v", destinationDir, err)
+	}
+	destinationPath := filepath.Join(destinationDir, "bazel"+filenameSuffix)
 
 	if _, err := os.Stat(destinationPath); err != nil {
-		tmpfile, err := ioutil.TempFile(directory, "download")
+		tmpfile, err := ioutil.TempFile(destinationDir, "download")
 		if err != nil {
 			return "", fmt.Errorf("could not create temporary file: %v", err)
 		}
@@ -566,6 +579,41 @@ func downloadBazel(fork string, version string, isCommit bool, directory string)
 	return destinationPath, nil
 }
 
+func copyFile(src, dst string, perm os.FileMode) (err error) {
+	data, err := ioutil.ReadFile(src)
+	if err != nil {
+		return err
+	}
+	return ioutil.WriteFile(dst, data, perm)
+}
+
+func linkLocalBazel(directory string, bazelPath string) (string, error) {
+	directoryName := dirForURL(bazelPath)
+	destinationDir := filepath.Join(directory, directoryName, "bin")
+	err := os.MkdirAll(destinationDir, 0755)
+	if err != nil {
+		return "", fmt.Errorf("could not create directory %s: %v", destinationDir, err)
+	}
+	destinationPath := filepath.Join(destinationDir, "bazel"+determineExecutableFilenameSuffix())
+	if _, err := os.Stat(destinationPath); err != nil {
+		err = os.Symlink(bazelPath, destinationPath)
+		if runtime.GOOS == "windows" {
+			// If can't create Symlink on Windows, fallback to copy
+			if err != nil {
+				err = copyFile(bazelPath, destinationPath, 0755)
+				if err != nil {
+					return "", fmt.Errorf("cound not copy file from %s to %s: %v", bazelPath, destinationPath, err)
+				}
+			}
+		} else {
+			if err != nil {
+				return "", fmt.Errorf("cound not create symbolic link %s --> %s: %v", destinationPath, bazelPath, err)
+			}
+		}
+	}
+	return destinationPath, nil
+}
+
 func maybeDelegateToWrapper(bazel string) string {
 	if getEnvOrConfig(skipWrapperEnv) != "" {
 		return bazel
@@ -585,6 +633,24 @@ func maybeDelegateToWrapper(bazel string) string {
 	return wrapper
 }
 
+func prependDirToPathList(cmd *exec.Cmd, dir string) {
+	found := false
+	for idx, val := range cmd.Env {
+		splits := strings.Split(val, "=")
+		if len(splits) != 2 {
+			continue
+		}
+		if splits[0] == "PATH" {
+			found = true
+			cmd.Env[idx] = fmt.Sprintf("PATH=%s%s%s", dir, string(os.PathListSeparator), splits[1])
+		}
+	}
+
+	if !found {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("PATH=%s", dir))
+	}
+}
+
 func runBazel(bazel string, args []string) (int, error) {
 	execPath := maybeDelegateToWrapper(bazel)
 	if execPath != bazel {
@@ -593,6 +659,7 @@ func runBazel(bazel string, args []string) (int, error) {
 
 	cmd := exec.Command(execPath, args...)
 	cmd.Env = append(os.Environ(), skipWrapperEnv+"=true")
+	prependDirToPathList(cmd, filepath.Dir(execPath))
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -889,15 +956,16 @@ func main() {
 			bazelForkOrURL = bazelFork
 		}
 
-		bazelDirectory := filepath.Join(bazeliskHome, "bin", bazelForkOrURL)
-		err = os.MkdirAll(bazelDirectory, 0755)
-		if err != nil {
-			log.Fatalf("could not create directory %s: %v", bazelDirectory, err)
-		}
-
-		bazelPath, err = downloadBazel(bazelFork, resolvedBazelVersion, isCommit, bazelDirectory)
+		baseDirectory := filepath.Join(bazeliskHome, "downloads", bazelForkOrURL)
+		bazelPath, err = downloadBazel(bazelFork, resolvedBazelVersion, isCommit, baseDirectory)
 		if err != nil {
 			log.Fatalf("could not download Bazel: %v", err)
+		}
+	} else {
+		baseDirectory := filepath.Join(bazeliskHome, "local")
+		bazelPath, err = linkLocalBazel(baseDirectory, bazelPath)
+		if err != nil {
+			log.Fatalf("cound not create symbolic link: %v", err)
 		}
 	}
 
