@@ -965,7 +965,7 @@ func main() {
 		baseDirectory := filepath.Join(bazeliskHome, "local")
 		bazelPath, err = linkLocalBazel(baseDirectory, bazelPath)
 		if err != nil {
-			log.Fatalf("cound not create symbolic link: %v", err)
+			log.Fatalf("cound not link loal Bazel: %v", err)
 		}
 	}
 
