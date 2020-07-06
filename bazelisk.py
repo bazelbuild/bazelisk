@@ -57,6 +57,8 @@ TOOLS_BAZEL_PATH = "./tools/bazel"
 
 BAZEL_REAL = "BAZEL_REAL"
 
+BAZEL_UPSTREAM = "bazelbuild"
+
 
 def decide_which_bazel_version_to_use():
     # Check in this order:
@@ -193,6 +195,11 @@ def get_operating_system():
     return operating_system
 
 
+def determine_executable_filename_suffix():
+    operating_system = get_operating_system()
+    return ".exe" if operating_system == "windows" else ""
+
+
 def determine_bazel_filename(version):
     machine = normalized_machine_arch_name()
     if machine != "x86_64":
@@ -204,8 +211,8 @@ def determine_bazel_filename(version):
 
     operating_system = get_operating_system()
 
-    filename_ending = ".exe" if operating_system == "windows" else ""
-    return "bazel-{}-{}-{}{}".format(version, operating_system, machine, filename_ending)
+    filename_suffix = determine_executable_filename_suffix()
+    return "bazel-{}-{}-{}{}".format(version, operating_system, machine, filename_suffix)
 
 
 def normalized_machine_arch_name():
@@ -231,19 +238,33 @@ def determine_url(version, is_commit, bazel_filename):
     )
 
 
+def trim_suffix(string, suffix):
+    if string.endswith(suffix):
+        return string[:len(string) - len(suffix)]
+    else:
+        return string
+
+
 def download_bazel_into_directory(version, is_commit, directory):
     bazel_filename = determine_bazel_filename(version)
     url = determine_url(version, is_commit, bazel_filename)
-    destination_path = os.path.join(directory, bazel_filename)
+
+    filename_suffix = determine_executable_filename_suffix()
+    bazel_directory_name = trim_suffix(bazel_filename, filename_suffix)
+    destination_dir = os.path.join(directory, bazel_directory_name, "bin")
+    maybe_makedirs(destination_dir)
+
+    destination_path = os.path.join(destination_dir, "bazel" + filename_suffix)
     if not os.path.exists(destination_path):
         sys.stderr.write("Downloading {}...\n".format(url))
-        with tempfile.NamedTemporaryFile(prefix="bazelisk", dir=directory, delete=False) as t:
+        with tempfile.NamedTemporaryFile(prefix="bazelisk", dir=destination_dir, delete=False) as t:
             with closing(urlopen(url)) as response:
                 shutil.copyfileobj(response, t)
             t.flush()
             os.fsync(t.fileno())
         os.rename(t.name, destination_path)
-    os.chmod(destination_path, 0o755)
+        os.chmod(destination_path, 0o755)
+
     return destination_path
 
 
@@ -308,14 +329,28 @@ def delegate_tools_bazel(bazel_path):
     return None
 
 
+def prepend_directory_to_path(env, directory):
+    """
+    Prepend binary directory to PATH
+    """
+    if "PATH" in env:
+        env["PATH"] = directory + os.pathsep + env["PATH"]
+    else:
+        env["PATH"] = directory
+
+
 def execute_bazel(bazel_path, argv):
     wrapper = delegate_tools_bazel(bazel_path)
     if wrapper:
         os.putenv(BAZEL_REAL, bazel_path)
         bazel_path = wrapper
 
+    env = os.environ.copy()
+    directory = os.path.dirname(bazel_path)
+    prepend_directory_to_path(env, directory)
+
     # We cannot use close_fds on Windows, so disable it there.
-    p = subprocess.Popen([bazel_path] + argv, close_fds=os.name != "nt")
+    p = subprocess.Popen([bazel_path] + argv, close_fds=os.name != "nt", env=env)
     while True:
         try:
             return p.wait()
@@ -334,8 +369,8 @@ def get_bazel_path():
         bazelisk_directory, bazel_version
     )
 
-    bazel_directory = os.path.join(bazelisk_directory, "bin")
-    maybe_makedirs(bazel_directory)
+    # TODO: Support other forks just like Go version
+    bazel_directory = os.path.join(bazelisk_directory, "downloads", BAZEL_UPSTREAM)
     return download_bazel_into_directory(bazel_version, is_commit, bazel_directory)
 
 
