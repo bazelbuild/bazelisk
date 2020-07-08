@@ -579,7 +579,7 @@ func downloadBazel(fork string, version string, isCommit bool, directory string)
 	return destinationPath, nil
 }
 
-func copyFile(src, dst string, perm os.FileMode) (err error) {
+func copyFile(src, dst string, perm os.FileMode) error {
 	srcFile, err := os.Open(src)
 	if err != nil {
 		return err
