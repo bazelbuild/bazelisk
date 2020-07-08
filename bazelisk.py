@@ -339,18 +339,28 @@ def prepend_directory_to_path(env, directory):
         env["PATH"] = directory
 
 
-def execute_bazel(bazel_path, argv):
+def make_bazel_cmd(bazel_path, argv):
+    env = os.environ.copy()
+
     wrapper = delegate_tools_bazel(bazel_path)
     if wrapper:
-        os.putenv(BAZEL_REAL, bazel_path)
+        env[BAZEL_REAL] = bazel_path
         bazel_path = wrapper
 
-    env = os.environ.copy()
     directory = os.path.dirname(bazel_path)
     prepend_directory_to_path(env, directory)
+    return {
+        'exec': bazel_path,
+        'args': argv,
+        'env': env,
+    }
+
+
+def execute_bazel(bazel_path, argv):
+    cmd = make_bazel_cmd(bazel_path, argv)
 
     # We cannot use close_fds on Windows, so disable it there.
-    p = subprocess.Popen([bazel_path] + argv, close_fds=os.name != "nt", env=env)
+    p = subprocess.Popen([cmd['exec']] + cmd['args'], close_fds=os.name != "nt", env=cmd['env'])
     while True:
         try:
             return p.wait()
@@ -378,7 +388,18 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv
 
-    return execute_bazel(get_bazel_path(), argv[1:])
+    bazel_path = get_bazel_path()
+
+    argv = argv[1:]
+
+    if argv[0] == "--print_env":
+        cmd = make_bazel_cmd(bazel_path, argv)
+        env = cmd['env']
+        for key in env:
+            print('{}={}'.format(key, env[key]))
+        return 0
+
+    return execute_bazel(bazel_path, argv)
 
 
 if __name__ == "__main__":

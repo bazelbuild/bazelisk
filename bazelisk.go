@@ -656,18 +656,23 @@ func prependDirToPathList(cmd *exec.Cmd, dir string) {
 	}
 }
 
-func runBazel(bazel string, args []string) (int, error) {
+func makeBazelCmd(bazel string, args []string) *exec.Cmd {
 	execPath := maybeDelegateToWrapper(bazel)
-	if execPath != bazel {
-		os.Setenv(bazelReal, bazel)
-	}
 
 	cmd := exec.Command(execPath, args...)
 	cmd.Env = append(os.Environ(), skipWrapperEnv+"=true")
+	if execPath != bazel {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", bazelReal, bazel))
+	}
 	prependDirToPathList(cmd, filepath.Dir(execPath))
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+	return cmd
+}
+
+func runBazel(bazel string, args []string) (int, error) {
+	cmd := makeBazelCmd(bazel, args)
 	err := cmd.Start()
 	if err != nil {
 		return 1, fmt.Errorf("could not start Bazel: %v", err)
@@ -975,6 +980,16 @@ func main() {
 	}
 
 	args := os.Args[1:]
+
+	// --print_env must be the first argument.
+	if len(args) > 0 && args[0] == "--print_env" {
+		// print environment variables for sub-processes
+		cmd := makeBazelCmd(bazelPath, args)
+		for _, val := range cmd.Env {
+			fmt.Println(val)
+		}
+		os.Exit(0)
+	}
 
 	// --strict and --migrate must be the first argument.
 	if len(args) > 0 && (args[0] == "--strict" || args[0] == "--migrate") {
