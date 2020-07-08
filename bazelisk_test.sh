@@ -262,7 +262,7 @@ function test_bazel_prepend_binary_directory_to_path() {
   BAZELISK_HOME="$BAZELISK_HOME" \
       bazelisk --print_env 2>&1 | tee log
 
-  grep "^PATH=$BAZELISK_HOME/downloads/bazelbuild/bazel-0.21.0-[^/]*/bin:" log || \
+  grep "^PATH=${BAZELISK_HOME}[/\]downloads[/\]bazelbuild[/\]bazel-0.21.0-[^/\]*[/\]bin[:;]" log || \
       (echo "FAIL: Expected PATH to contains bazel binary directory."; exit 1)
 }
 
