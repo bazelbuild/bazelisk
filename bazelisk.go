@@ -580,16 +580,26 @@ func downloadBazel(fork string, version string, isCommit bool, directory string)
 }
 
 func copyFile(src, dst string, perm os.FileMode) (err error) {
-	data, err := ioutil.ReadFile(src)
+	srcFile, err := os.Open(src)
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(dst, data, perm)
+	defer srcFile.Close()
+
+	dstFile, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE, perm)
+	if err != nil {
+		return err
+	}
+	defer dstFile.Close()
+
+	_, err = io.Copy(dstFile, srcFile)
+
+	return err
 }
 
 func linkLocalBazel(directory string, bazelPath string) (string, error) {
-	directoryName := dirForURL(bazelPath)
-	destinationDir := filepath.Join(directory, directoryName, "bin")
+	normalizedBazelPath := dirForURL(bazelPath)
+	destinationDir := filepath.Join(directory, normalizedBazelPath, "bin")
 	err := os.MkdirAll(destinationDir, 0755)
 	if err != nil {
 		return "", fmt.Errorf("could not create directory %s: %v", destinationDir, err)
@@ -597,17 +607,11 @@ func linkLocalBazel(directory string, bazelPath string) (string, error) {
 	destinationPath := filepath.Join(destinationDir, "bazel"+determineExecutableFilenameSuffix())
 	if _, err := os.Stat(destinationPath); err != nil {
 		err = os.Symlink(bazelPath, destinationPath)
-		if runtime.GOOS == "windows" {
-			// If can't create Symlink on Windows, fallback to copy
+		// If can't create Symlink, fallback to copy
+		if err != nil {
+			err = copyFile(bazelPath, destinationPath, 0755)
 			if err != nil {
-				err = copyFile(bazelPath, destinationPath, 0755)
-				if err != nil {
-					return "", fmt.Errorf("cound not copy file from %s to %s: %v", bazelPath, destinationPath, err)
-				}
-			}
-		} else {
-			if err != nil {
-				return "", fmt.Errorf("cound not create symbolic link %s --> %s: %v", destinationPath, bazelPath, err)
+				return "", fmt.Errorf("cound not copy file from %s to %s: %v", bazelPath, destinationPath, err)
 			}
 		}
 	}
@@ -643,6 +647,7 @@ func prependDirToPathList(cmd *exec.Cmd, dir string) {
 		if splits[0] == "PATH" {
 			found = true
 			cmd.Env[idx] = fmt.Sprintf("PATH=%s%s%s", dir, string(os.PathListSeparator), splits[1])
+			break
 		}
 	}
 
@@ -965,7 +970,7 @@ func main() {
 		baseDirectory := filepath.Join(bazeliskHome, "local")
 		bazelPath, err = linkLocalBazel(baseDirectory, bazelPath)
 		if err != nil {
-			log.Fatalf("cound not link loal Bazel: %v", err)
+			log.Fatalf("cound not link local Bazel: %v", err)
 		}
 	}
 
