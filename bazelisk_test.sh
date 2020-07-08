@@ -252,7 +252,7 @@ function test_bazel_download_path() {
 
   find "$BAZELISK_HOME/downloads/bazelbuild" 2>&1 | tee log
 
-  grep "^$BAZELISK_HOME/downloads/bazelbuild/bazel-0.21.0-[^/]*/bin/bazel\(.exe\)\?$" log || \
+  grep "^$BAZELISK_HOME/downloads/bazelbuild/bazel-0.21.0-[a-z0-9_-]*/bin/bazel\(.exe\)\?$" log || \
       (echo "FAIL: Expected to download bazel binary into specific path."; exit 1)
 }
 
@@ -262,7 +262,8 @@ function test_bazel_prepend_binary_directory_to_path() {
   BAZELISK_HOME="$BAZELISK_HOME" \
       bazelisk --print_env 2>&1 | tee log
 
-  grep "^PATH=${BAZELISK_HOME}[/\]downloads[/\]bazelbuild[/\]bazel-0.21.0-[^/\]*[/\]bin[:;]" log || \
+  PATTERN=$(echo "^PATH=$BAZELISK_HOME/downloads/bazelbuild/bazel-0.21.0-[a-z0-9_-]*/bin[:;]" | sed -e 's/\//\[\/\\\\\]/g')
+  grep "$PATTERN" log || \
       (echo "FAIL: Expected PATH to contains bazel binary directory."; exit 1)
 }
 
