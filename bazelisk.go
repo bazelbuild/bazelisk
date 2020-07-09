@@ -519,7 +519,7 @@ func determineURL(fork string, version string, isCommit bool, filename string) s
 	return fmt.Sprintf("https://github.com/%s/bazel/releases/download/%s/%s", fork, version, filename)
 }
 
-func downloadBazel(fork string, version string, isCommit bool, directory string) (string, error) {
+func downloadBazel(fork string, version string, isCommit bool, baseDirectory string) (string, error) {
 	filename, err := determineBazelFilename(version)
 	if err != nil {
 		return "", fmt.Errorf("could not determine filename to use for Bazel binary: %v", err)
@@ -529,7 +529,7 @@ func downloadBazel(fork string, version string, isCommit bool, directory string)
 
 	filenameSuffix := determineExecutableFilenameSuffix()
 	directoryName := strings.TrimSuffix(filename, filenameSuffix)
-	destinationDir := filepath.Join(directory, directoryName, "bin")
+	destinationDir := filepath.Join(baseDirectory, directoryName, "bin")
 	err = os.MkdirAll(destinationDir, 0755)
 	if err != nil {
 		return "", fmt.Errorf("could not create directory %s: %v", destinationDir, err)
@@ -597,9 +597,9 @@ func copyFile(src, dst string, perm os.FileMode) error {
 	return err
 }
 
-func linkLocalBazel(directory string, bazelPath string) (string, error) {
+func linkLocalBazel(baseDirectory string, bazelPath string) (string, error) {
 	normalizedBazelPath := dirForURL(bazelPath)
-	destinationDir := filepath.Join(directory, normalizedBazelPath, "bin")
+	destinationDir := filepath.Join(baseDirectory, normalizedBazelPath, "bin")
 	err := os.MkdirAll(destinationDir, 0755)
 	if err != nil {
 		return "", fmt.Errorf("could not create directory %s: %v", destinationDir, err)
