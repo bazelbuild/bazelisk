@@ -244,6 +244,29 @@ EOF
       (echo "FAIL: Expected to find 'Build label' in the output of 'bazelisk version'"; exit 1)
 }
 
+function test_bazel_download_path() {
+  setup
+
+  BAZELISK_HOME="$BAZELISK_HOME" \
+      bazelisk version 2>&1 | tee log
+
+  find "$BAZELISK_HOME/downloads/bazelbuild" 2>&1 | tee log
+
+  grep "^$BAZELISK_HOME/downloads/bazelbuild/bazel-0.21.0-[a-z0-9_-]*/bin/bazel\(.exe\)\?$" log || \
+      (echo "FAIL: Expected to download bazel binary into specific path."; exit 1)
+}
+
+function test_bazel_prepend_binary_directory_to_path() {
+  setup
+
+  BAZELISK_HOME="$BAZELISK_HOME" \
+      bazelisk --print_env 2>&1 | tee log
+
+  PATTERN=$(echo "^PATH=$BAZELISK_HOME/downloads/bazelbuild/bazel-0.21.0-[a-z0-9_-]*/bin[:;]" | sed -e 's/\//\[\/\\\\\]/g')
+  grep "$PATTERN" log || \
+      (echo "FAIL: Expected PATH to contains bazel binary directory."; exit 1)
+}
+
 echo "# test_bazel_version"
 test_bazel_version
 echo
@@ -266,6 +289,14 @@ echo
 
 echo "# test_bazel_last_downstream_green"
 test_bazel_last_downstream_green
+echo
+
+echo '# test_bazel_download_path'
+test_bazel_download_path
+echo
+
+echo "# test_bazel_prepend_binary_directory_to_path"
+test_bazel_prepend_binary_directory_to_path
 echo
 
 if [[ $BAZELISK_VERSION == "GO" ]]; then

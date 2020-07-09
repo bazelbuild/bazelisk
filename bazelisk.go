@@ -457,6 +457,14 @@ func getLastGreenCommit(pathSuffix string) (string, error) {
 	return strings.TrimSpace(string(content)), nil
 }
 
+func determineExecutableFilenameSuffix() string {
+	filenameSuffix := ""
+	if runtime.GOOS == "windows" {
+		filenameSuffix = ".exe"
+	}
+	return filenameSuffix
+}
+
 func determineBazelFilename(version string) (string, error) {
 	var machineName string
 	switch runtime.GOARCH {
@@ -474,10 +482,7 @@ func determineBazelFilename(version string) (string, error) {
 		return "", fmt.Errorf("unsupported operating system \"%s\", must be Linux, macOS or Windows", runtime.GOOS)
 	}
 
-	filenameSuffix := ""
-	if runtime.GOOS == "windows" {
-		filenameSuffix = ".exe"
-	}
+	filenameSuffix := determineExecutableFilenameSuffix()
 
 	return fmt.Sprintf("bazel-%s-%s-%s%s", version, osName, machineName, filenameSuffix), nil
 }
@@ -514,17 +519,25 @@ func determineURL(fork string, version string, isCommit bool, filename string) s
 	return fmt.Sprintf("https://github.com/%s/bazel/releases/download/%s/%s", fork, version, filename)
 }
 
-func downloadBazel(fork string, version string, isCommit bool, directory string) (string, error) {
+func downloadBazel(fork string, version string, isCommit bool, baseDirectory string) (string, error) {
 	filename, err := determineBazelFilename(version)
 	if err != nil {
 		return "", fmt.Errorf("could not determine filename to use for Bazel binary: %v", err)
 	}
 
 	url := determineURL(fork, version, isCommit, filename)
-	destinationPath := filepath.Join(directory, filename)
+
+	filenameSuffix := determineExecutableFilenameSuffix()
+	directoryName := strings.TrimSuffix(filename, filenameSuffix)
+	destinationDir := filepath.Join(baseDirectory, directoryName, "bin")
+	err = os.MkdirAll(destinationDir, 0755)
+	if err != nil {
+		return "", fmt.Errorf("could not create directory %s: %v", destinationDir, err)
+	}
+	destinationPath := filepath.Join(destinationDir, "bazel"+filenameSuffix)
 
 	if _, err := os.Stat(destinationPath); err != nil {
-		tmpfile, err := ioutil.TempFile(directory, "download")
+		tmpfile, err := ioutil.TempFile(destinationDir, "download")
 		if err != nil {
 			return "", fmt.Errorf("could not create temporary file: %v", err)
 		}
@@ -566,6 +579,45 @@ func downloadBazel(fork string, version string, isCommit bool, directory string)
 	return destinationPath, nil
 }
 
+func copyFile(src, dst string, perm os.FileMode) error {
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer srcFile.Close()
+
+	dstFile, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE, perm)
+	if err != nil {
+		return err
+	}
+	defer dstFile.Close()
+
+	_, err = io.Copy(dstFile, srcFile)
+
+	return err
+}
+
+func linkLocalBazel(baseDirectory string, bazelPath string) (string, error) {
+	normalizedBazelPath := dirForURL(bazelPath)
+	destinationDir := filepath.Join(baseDirectory, normalizedBazelPath, "bin")
+	err := os.MkdirAll(destinationDir, 0755)
+	if err != nil {
+		return "", fmt.Errorf("could not create directory %s: %v", destinationDir, err)
+	}
+	destinationPath := filepath.Join(destinationDir, "bazel"+determineExecutableFilenameSuffix())
+	if _, err := os.Stat(destinationPath); err != nil {
+		err = os.Symlink(bazelPath, destinationPath)
+		// If can't create Symlink, fallback to copy
+		if err != nil {
+			err = copyFile(bazelPath, destinationPath, 0755)
+			if err != nil {
+				return "", fmt.Errorf("cound not copy file from %s to %s: %v", bazelPath, destinationPath, err)
+			}
+		}
+	}
+	return destinationPath, nil
+}
+
 func maybeDelegateToWrapper(bazel string) string {
 	if getEnvOrConfig(skipWrapperEnv) != "" {
 		return bazel
@@ -585,17 +637,42 @@ func maybeDelegateToWrapper(bazel string) string {
 	return wrapper
 }
 
-func runBazel(bazel string, args []string) (int, error) {
-	execPath := maybeDelegateToWrapper(bazel)
-	if execPath != bazel {
-		os.Setenv(bazelReal, bazel)
+func prependDirToPathList(cmd *exec.Cmd, dir string) {
+	found := false
+	for idx, val := range cmd.Env {
+		splits := strings.Split(val, "=")
+		if len(splits) != 2 {
+			continue
+		}
+		if splits[0] == "PATH" {
+			found = true
+			cmd.Env[idx] = fmt.Sprintf("PATH=%s%s%s", dir, string(os.PathListSeparator), splits[1])
+			break
+		}
 	}
+
+	if !found {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("PATH=%s", dir))
+	}
+}
+
+func makeBazelCmd(bazel string, args []string) *exec.Cmd {
+	execPath := maybeDelegateToWrapper(bazel)
 
 	cmd := exec.Command(execPath, args...)
 	cmd.Env = append(os.Environ(), skipWrapperEnv+"=true")
+	if execPath != bazel {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", bazelReal, bazel))
+	}
+	prependDirToPathList(cmd, filepath.Dir(execPath))
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+	return cmd
+}
+
+func runBazel(bazel string, args []string) (int, error) {
+	cmd := makeBazelCmd(bazel, args)
 	err := cmd.Start()
 	if err != nil {
 		return 1, fmt.Errorf("could not start Bazel: %v", err)
@@ -889,19 +966,30 @@ func main() {
 			bazelForkOrURL = bazelFork
 		}
 
-		bazelDirectory := filepath.Join(bazeliskHome, "bin", bazelForkOrURL)
-		err = os.MkdirAll(bazelDirectory, 0755)
-		if err != nil {
-			log.Fatalf("could not create directory %s: %v", bazelDirectory, err)
-		}
-
-		bazelPath, err = downloadBazel(bazelFork, resolvedBazelVersion, isCommit, bazelDirectory)
+		baseDirectory := filepath.Join(bazeliskHome, "downloads", bazelForkOrURL)
+		bazelPath, err = downloadBazel(bazelFork, resolvedBazelVersion, isCommit, baseDirectory)
 		if err != nil {
 			log.Fatalf("could not download Bazel: %v", err)
+		}
+	} else {
+		baseDirectory := filepath.Join(bazeliskHome, "local")
+		bazelPath, err = linkLocalBazel(baseDirectory, bazelPath)
+		if err != nil {
+			log.Fatalf("cound not link local Bazel: %v", err)
 		}
 	}
 
 	args := os.Args[1:]
+
+	// --print_env must be the first argument.
+	if len(args) > 0 && args[0] == "--print_env" {
+		// print environment variables for sub-processes
+		cmd := makeBazelCmd(bazelPath, args)
+		for _, val := range cmd.Env {
+			fmt.Println(val)
+		}
+		os.Exit(0)
+	}
 
 	// --strict and --migrate must be the first argument.
 	if len(args) > 0 && (args[0] == "--strict" || args[0] == "--migrate") {
