@@ -470,8 +470,10 @@ func determineBazelFilename(version string) (string, error) {
 	switch runtime.GOARCH {
 	case "amd64":
 		machineName = "x86_64"
+	case "arm64":
+		machineName = "arm64"
 	default:
-		return "", fmt.Errorf("unsupported machine architecture \"%s\", must be x86_64", runtime.GOARCH)
+		return "", fmt.Errorf("unsupported machine architecture \"%s\", must be arm64 or x86_64", runtime.GOARCH)
 	}
 
 	var osName string
