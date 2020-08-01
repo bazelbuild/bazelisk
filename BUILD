@@ -100,6 +100,16 @@ go_binary(
 )
 
 go_binary(
+    name = "bazelisk-linux-arm64",
+    out = "bazelisk-linux_arm64",
+    embed = [":go_default_library"],
+    goarch = "arm64",
+    goos = "linux",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
+go_binary(
     name = "bazelisk-windows",
     out = "bazelisk-windows_amd64.exe",
     embed = [":go_default_library"],
