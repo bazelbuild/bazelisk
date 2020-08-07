@@ -83,6 +83,10 @@ go_binary(
     name = "bazelisk-darwin",
     out = "bazelisk-darwin_amd64",
     embed = [":go_default_library"],
+    gc_linkopts = [
+        "-s",
+        "-w",
+    ],
     goarch = "amd64",
     goos = "darwin",
     pure = "on",
@@ -93,6 +97,10 @@ go_binary(
     name = "bazelisk-linux",
     out = "bazelisk-linux_amd64",
     embed = [":go_default_library"],
+    gc_linkopts = [
+        "-s",
+        "-w",
+    ],
     goarch = "amd64",
     goos = "linux",
     pure = "on",
@@ -103,6 +111,10 @@ go_binary(
     name = "bazelisk-linux-arm64",
     out = "bazelisk-linux_arm64",
     embed = [":go_default_library"],
+    gc_linkopts = [
+        "-s",
+        "-w",
+    ],
     goarch = "arm64",
     goos = "linux",
     pure = "on",
@@ -113,6 +125,10 @@ go_binary(
     name = "bazelisk-windows",
     out = "bazelisk-windows_amd64.exe",
     embed = [":go_default_library"],
+    gc_linkopts = [
+        "-s",
+        "-w",
+    ],
     goarch = "amd64",
     goos = "windows",
     pure = "on",
