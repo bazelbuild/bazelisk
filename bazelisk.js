@@ -22,36 +22,37 @@ const spawn = require('child_process').spawn;
 
 function getNativeBinary() {
   const arch = {
-    'x64' : 'amd64',
+    'arm64': 'arm64',
+    'x64': 'amd64',
   }[os.arch()];
   // Filter the platform based on the platforms that are build/included.
   const platform = {
-    'darwin' : 'darwin',
-    'linux' : 'linux',
-    'win32' : 'windows',
+    'darwin': 'darwin',
+    'linux': 'linux',
+    'win32': 'windows',
   }[os.platform()];
   const extension = {
-    'darwin' : '',
-    'linux' : '',
-    'win32' : '.exe',
+    'darwin': '',
+    'linux': '',
+    'win32': '.exe',
   }[os.platform()];
 
   if (arch == undefined || platform == undefined) {
     console.error(`FATAL: Your platform/architecture combination ${
-        os.platform()} - ${os.arch()} is not yet supported.
+      os.platform()} - ${os.arch()} is not yet supported.
     You may need to compile Bazelisk yourself, or use the Python version.
     See instructions at https://github.com/bazelbuild/bazelisk/blob/master/README.md.`);
     return Promise.resolve(1);
   }
 
   const binary =
-      path.join(__dirname, `bazelisk-${platform}_${arch}${extension}`);
+    path.join(__dirname, `bazelisk-${platform}_${arch}${extension}`);
   return binary;
 }
 
 function main(args) {
   const binary = getNativeBinary();
-  const ps = spawn(binary, args, {stdio : 'inherit'});
+  const ps = spawn(binary, args, { stdio: 'inherit' });
 
   function shutdown() {
     ps.kill("SIGTERM")
