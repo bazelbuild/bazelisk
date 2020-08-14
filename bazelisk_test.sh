@@ -39,6 +39,8 @@ fi
 BAZELISK_VERSION=$1
 shift 1
 
+# TODO: only the Python version reads bazelbuild-releases.json since it uses
+# GitHub by default, whereas the Go version GCS (without this json file)
 function setup() {
   unset USE_BAZEL_VERSION
   BAZELISK_HOME="$(mktemp -d $TEST_TMPDIR/home.XXXXXX)"
@@ -73,13 +75,23 @@ function bazelisk() {
   fi
 }
 
-function test_bazel_version() {
+function test_bazel_version_py() {
   setup
 
   BAZELISK_HOME="$BAZELISK_HOME" \
       bazelisk version 2>&1 | tee log
 
   grep "Build label: 0.21.0" log || \
+      (echo "FAIL: Expected to find 'Build label' in the output of 'bazelisk version'"; exit 1)
+}
+
+function test_bazel_version_go() {
+  setup
+
+  BAZELISK_HOME="$BAZELISK_HOME" \
+      bazelisk version 2>&1 | tee log
+
+  grep "Build label: " log || \
       (echo "FAIL: Expected to find 'Build label' in the output of 'bazelisk version'"; exit 1)
 }
 
@@ -157,7 +169,7 @@ function test_bazel_version_from_url() {
       (echo "FAIL: Expected to find 'Build label: 0.19.0' in the output of 'bazelisk version'"; exit 1)
 }
 
-function test_bazel_latest_minus_3() {
+function test_bazel_latest_minus_3_py() {
   setup
 
   USE_BAZEL_VERSION="latest-3" \
@@ -165,6 +177,17 @@ function test_bazel_latest_minus_3() {
       bazelisk version 2>&1 | tee log
 
   grep "Build label: 0.19.1" log || \
+      (echo "FAIL: Expected to find 'Build label' in the output of 'bazelisk version'"; exit 1)
+}
+
+function test_bazel_latest_minus_3_go() {
+  setup
+
+  USE_BAZEL_VERSION="latest-3" \
+      BAZELISK_HOME="$BAZELISK_HOME" \
+      bazelisk version 2>&1 | tee log
+
+  grep "Build label: " log || \
       (echo "FAIL: Expected to find 'Build label' in the output of 'bazelisk version'"; exit 1)
 }
 
@@ -244,7 +267,19 @@ EOF
       (echo "FAIL: Expected to find 'Build label' in the output of 'bazelisk version'"; exit 1)
 }
 
-function test_bazel_download_path() {
+function test_bazel_download_path_go() {
+  setup
+
+  BAZELISK_HOME="$BAZELISK_HOME" \
+      bazelisk version 2>&1 | tee log
+
+  find "$BAZELISK_HOME/downloads/bazelbuild" 2>&1 | tee log
+
+  grep "^$BAZELISK_HOME/downloads/bazelbuild/bazel-[0-9]+.[0-9]+.[0-9]+-[a-z0-9_-]*/bin/bazel\(.exe\)\?$" log || \
+      (echo "FAIL: Expected to download bazel binary into specific path."; exit 1)
+}
+
+function test_bazel_download_path_py() {
   setup
 
   BAZELISK_HOME="$BAZELISK_HOME" \
@@ -256,7 +291,18 @@ function test_bazel_download_path() {
       (echo "FAIL: Expected to download bazel binary into specific path."; exit 1)
 }
 
-function test_bazel_prepend_binary_directory_to_path() {
+function test_bazel_prepend_binary_directory_to_path_go() {
+  setup
+
+  BAZELISK_HOME="$BAZELISK_HOME" \
+      bazelisk --print_env 2>&1 | tee log
+
+  PATTERN=$(echo "^PATH=$BAZELISK_HOME/downloads/bazelbuild/bazel-[0-9]+.[0-9]+.[0-9]+-[a-z0-9_-]*/bin[:;]" | sed -e 's/\//\[\/\\\\\]/g')
+  grep "$PATTERN" log || \
+      (echo "FAIL: Expected PATH to contains bazel binary directory."; exit 1)
+}
+
+function test_bazel_prepend_binary_directory_to_path_py() {
   setup
 
   BAZELISK_HOME="$BAZELISK_HOME" \
@@ -267,20 +313,12 @@ function test_bazel_prepend_binary_directory_to_path() {
       (echo "FAIL: Expected PATH to contains bazel binary directory."; exit 1)
 }
 
-echo "# test_bazel_version"
-test_bazel_version
-echo
-
 echo "# test_bazel_version_from_environment"
 test_bazel_version_from_environment
 echo
 
 echo "# test_bazel_version_from_file"
 test_bazel_version_from_file
-echo
-
-echo "# test_bazel_latest_minus_3"
-test_bazel_latest_minus_3
 echo
 
 echo "# test_bazel_last_green"
@@ -291,15 +329,15 @@ echo "# test_bazel_last_downstream_green"
 test_bazel_last_downstream_green
 echo
 
-echo '# test_bazel_download_path'
-test_bazel_download_path
-echo
-
-echo "# test_bazel_prepend_binary_directory_to_path"
-test_bazel_prepend_binary_directory_to_path
-echo
-
 if [[ $BAZELISK_VERSION == "GO" ]]; then
+  echo "# test_bazel_version_go"
+  test_bazel_version_go
+  echo
+
+  echo "# test_bazel_latest_minus_3_go"
+  test_bazel_latest_minus_3_go
+  echo
+
   echo "# test_bazel_last_rc"
   test_bazel_last_rc
   echo
@@ -320,6 +358,14 @@ if [[ $BAZELISK_VERSION == "GO" ]]; then
   test_bazel_version_prefer_bazeliskrc_to_bazelversion_file
   echo
 
+  echo '# test_bazel_download_path_go'
+  test_bazel_download_path_go
+  echo
+
+  echo "# test_bazel_prepend_binary_directory_to_path"
+  test_bazel_prepend_binary_directory_to_path_go
+  echo
+
   case "$(uname -s)" in
     MSYS*)
       # The tests are currently not compatible with Windows.
@@ -334,4 +380,20 @@ if [[ $BAZELISK_VERSION == "GO" ]]; then
       echo
       ;;
   esac
+else
+  echo "# test_bazel_version_py"
+  test_bazel_version_py
+  echo
+
+  echo "# test_bazel_latest_minus_3_py"
+  test_bazel_latest_minus_3_py
+  echo
+
+  echo '# test_bazel_download_path_py'
+  test_bazel_download_path_py
+  echo
+
+  echo "# test_bazel_prepend_binary_directory_to_path_py"
+  test_bazel_prepend_binary_directory_to_path_py
+  echo
 fi

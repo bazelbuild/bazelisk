@@ -22,7 +22,6 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-	"net/http"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -34,9 +33,12 @@ import (
 	"strings"
 	"sync"
 	"syscall"
-	"time"
 
-	version "github.com/hashicorp/go-version"
+	"github.com/bazelbuild/bazelisk/core"
+	"github.com/bazelbuild/bazelisk/httputil"
+	"github.com/bazelbuild/bazelisk/platforms"
+	"github.com/bazelbuild/bazelisk/repositories"
+	"github.com/bazelbuild/bazelisk/versions"
 	homedir "github.com/mitchellh/go-homedir"
 )
 
@@ -44,21 +46,15 @@ const (
 	bazelReal      = "BAZEL_REAL"
 	skipWrapperEnv = "BAZELISK_SKIP_WRAPPER"
 	wrapperPath    = "./tools/bazel"
-	bazelUpstream  = "bazelbuild"
 )
 
 var (
 	// BazeliskVersion is filled in via x_defs when building a release.
-	BazeliskVersion  = "development"
-	DefaultTransport = http.DefaultTransport
+	BazeliskVersion = "development"
 
 	fileConfig     map[string]string
 	fileConfigOnce sync.Once
 )
-
-func getClient() *http.Client {
-	return &http.Client{Transport: DefaultTransport}
-}
 
 // getEnvOrConfig will read a configuration value from the environment, but fall back to reading it from .bazeliskrc in the workspace root.
 func getEnvOrConfig(name string) string {
@@ -174,7 +170,7 @@ func parseBazelForkAndVersion(bazelForkAndVersion string) (string, string, error
 	versionInfo := strings.Split(bazelForkAndVersion, "/")
 
 	if len(versionInfo) == 1 {
-		bazelFork, bazelVersion = bazelUpstream, versionInfo[0]
+		bazelFork, bazelVersion = core.BazelUpstream, versionInfo[0]
 	} else if len(versionInfo) == 2 {
 		bazelFork, bazelVersion = versionInfo[0], versionInfo[1]
 	} else {
@@ -184,237 +180,60 @@ func parseBazelForkAndVersion(bazelForkAndVersion string) (string, string, error
 	return bazelFork, bazelVersion, nil
 }
 
-type release struct {
-	TagName    string `json:"tag_name"`
-	Prerelease bool   `json:"prerelease"`
-}
-
-func readRemoteFile(url string, token string) ([]byte, error) {
-	client := getClient()
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, fmt.Errorf("could not create request: %v", err)
-	}
-
-	if token != "" {
-		req.Header.Set("Authorization", "token "+token)
-	}
-
-	res, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("could not fetch %s: %v", url, err)
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode != 200 {
-		return nil, fmt.Errorf("unexpected status code while reading %s: %v", url, res.StatusCode)
-	}
-
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read content at %s: %v", url, err)
-	}
-	return body, nil
-}
-
-// maybeDownload will download a file from the given url and cache the result under bazeliskHome.
-// It skips the download if the file already exists and is not outdated.
-// description is used only to provide better error messages.
-func maybeDownload(bazeliskHome, url, filename, description string) ([]byte, error) {
-	cachePath := filepath.Join(bazeliskHome, filename)
-
-	if cacheStat, err := os.Stat(cachePath); err == nil {
-		if time.Since(cacheStat.ModTime()).Hours() < 1 {
-			res, err := ioutil.ReadFile(cachePath)
-			if err != nil {
-				return nil, fmt.Errorf("could not read %s: %v", cachePath, err)
-			}
-			return res, nil
+func resolveLatestVersion(bazeliskHome, bazelFork string, offset int, repos *core.Repositories) (string, error) {
+	available, err := func() ([]string, error) {
+		if core.IsFork(bazelFork) {
+			return repos.Fork.GetVersions(bazeliskHome, bazelFork)
 		}
-	}
+		return repos.Releases.GetReleaseVersions(bazeliskHome)
+	}()
 
-	// We could also use go-github here, but I can't get it to build with Bazel's rules_go and it pulls in a lot of dependencies.
-	body, err := readRemoteFile(url, getEnvOrConfig("BAZELISK_GITHUB_TOKEN"))
 	if err != nil {
-		return nil, fmt.Errorf("could not download %s: %v", description, err)
+		return "", fmt.Errorf("unable to determine latest version: %v", err)
 	}
 
-	err = ioutil.WriteFile(cachePath, body, 0666)
-	if err != nil {
-		return nil, fmt.Errorf("could not create %s: %v", cachePath, err)
+	if offset >= len(available) {
+		return "", fmt.Errorf("cannot resolve version \"latest-%d\": There are only %d Bazel versions", offset, len(available))
 	}
 
-	return body, nil
+	sorted := versions.GetInAscendingOrder(available)
+	return sorted[len(available)-1-offset], nil
 }
 
-func resolveLatestVersion(bazeliskHome, bazelFork string, offset int) (string, error) {
-	versions, err := getVersionHistoryFromGitHub(bazeliskHome, bazelFork)
-	if err != nil {
-		if bazelFork == bazelUpstream {
-			log.Printf("Falling back to GCS due to GitHub error: %v", err)
-			versions, err = getVersionHistoryFromGCS(true)
-		}
-		if err != nil {
-			return "", err
-		}
-	}
-
-	if offset >= len(versions) {
-		return "", fmt.Errorf("cannot resolve version \"latest-%d\": There are only %d Bazel versions", offset, len(versions))
-	}
-
-	return versions[len(versions)-1-offset], nil
-}
-
-func getVersionHistoryFromGitHub(bazeliskHome, bazelFork string) ([]string, error) {
-	url := fmt.Sprintf("https://api.github.com/repos/%s/bazel/releases", bazelFork)
-	releasesJSON, err := maybeDownload(bazeliskHome, url, bazelFork+"-releases.json", "list of Bazel releases from github.com/"+bazelFork)
-	if err != nil {
-		return []string{}, fmt.Errorf("could not get releases from github.com/%s/bazel: %v", bazelFork, err)
-	}
-
-	var releases []release
-	if err := json.Unmarshal(releasesJSON, &releases); err != nil {
-		return []string{}, fmt.Errorf("could not parse JSON into list of releases: %v", err)
-	}
-
-	var tags []string
-	for _, release := range releases {
-		if release.Prerelease {
-			continue
-		}
-		tags = append(tags, release.TagName)
-	}
-	return getVersionsInAscendingOrder(tags)
-}
-
-func getVersionHistoryFromGCS(onlyFullReleases bool) ([]string, error) {
-	prefixes, _, err := listDirectoriesInReleaseBucket("")
-	if err != nil {
-		return []string{}, fmt.Errorf("could not list Bazel versions in GCS bucket: %v", err)
-	}
-
-	versions := getVersionsFromGCSPrefixes(prefixes)
-	sorted, err := getVersionsInAscendingOrder(versions)
-	if err != nil {
-		return []string{}, fmt.Errorf("invalid version label: %v", err)
-	}
-
-	if onlyFullReleases && len(sorted) > 0 {
-		latestVersion := sorted[len(sorted)-1]
-		_, isRelease, err := listDirectoriesInReleaseBucket(latestVersion + "/release/")
-		if err != nil {
-			return []string{}, fmt.Errorf("could not list release candidates for latest release: %v", err)
-		}
-		if !isRelease {
-			sorted = sorted[:len(sorted)-1]
-		}
-	}
-
-	return sorted, nil
-}
-
-func getVersionsFromGCSPrefixes(versions []string) []string {
-	result := make([]string, len(versions))
-	for i, v := range versions {
-		result[i] = strings.TrimSuffix(v, "/")
-	}
-	return result
-}
-
-func getVersionsInAscendingOrder(versions []string) ([]string, error) {
-	wrappers := make([]*version.Version, len(versions))
-	for i, v := range versions {
-		wrapper, err := version.NewVersion(v)
-		if err != nil {
-			log.Printf("WARN: Could not parse version: %s", v)
-		}
-		wrappers[i] = wrapper
-	}
-	sort.Sort(version.Collection(wrappers))
-
-	sorted := make([]string, len(versions))
-	for i, w := range wrappers {
-		sorted[i] = w.Original()
-	}
-	return sorted, nil
-}
-
-type gcsListResponse struct {
-	Prefixes []string      `json:"prefixes"`
-	Items    []interface{} `json:"items"`
-}
-
-func resolveLatestRcVersion() (string, error) {
-	versions, err := getVersionHistoryFromGCS(false)
+func resolveLatestRcVersion(bazeliskHome string, repo core.CandidateRepo) (string, error) {
+	rcVersions, err := repo.GetCandidateVersions(bazeliskHome)
 	if err != nil {
 		return "", err
 	}
 
-	if len(versions) == 0 {
+	if len(rcVersions) == 0 {
 		return "", errors.New("could not find any Bazel versions")
-	}
-	latestVersion := versions[len(versions)-1]
-	// Append slash to match directories
-	rcVersions, _, err := listDirectoriesInReleaseBucket(latestVersion + "/")
-	if err != nil {
-		return "", fmt.Errorf("could not list release candidates for latest release: %v", err)
 	}
 	return getHighestRcVersion(rcVersions)
 }
 
-func listDirectoriesInReleaseBucket(prefix string) ([]string, bool, error) {
-	url := "https://www.googleapis.com/storage/v1/b/bazel/o?delimiter=/"
-	if prefix != "" {
-		url = fmt.Sprintf("%s&prefix=%s", url, prefix)
-	}
-	content, err := readRemoteFile(url, "")
+func getHighestRcVersion(availableVersions []string) (string, error) {
+	sorted := versions.GetInAscendingOrder(availableVersions)
+	latest := sorted[len(sorted)-1]
+
+	re := regexp.MustCompile(`(\d+.\d+.\d+)rc(\d+)$`)
+	m := re.FindStringSubmatch(latest)
+	_, err := strconv.Atoi(m[2])
 	if err != nil {
-		return nil, false, fmt.Errorf("could not list GCS objects at %s: %v", url, err)
+		return "", fmt.Errorf("Invalid version number %s: %v", latest, err)
 	}
 
-	var response gcsListResponse
-	if err := json.Unmarshal(content, &response); err != nil {
-		return nil, false, fmt.Errorf("could not parse GCS index JSON: %v", err)
-	}
-	return response.Prefixes, len(response.Items) > 0, nil
+	return latest, nil
 }
 
-func getHighestRcVersion(versions []string) (string, error) {
-	var version string
-	var lastRc int
-	re := regexp.MustCompile(`(\d+.\d+.\d+)/rc(\d+)/`)
-	for _, v := range versions {
-		// Fallback: use latest release if there is no active RC.
-		if strings.Index(v, "release") > -1 {
-			return strings.Split(v, "/")[0], nil
-		}
-
-		m := re.FindStringSubmatch(v)
-		version = m[1]
-		rc, err := strconv.Atoi(m[2])
-		if err != nil {
-			return "", fmt.Errorf("Invalid version number %s: %v", strings.TrimSuffix(v, "/"), err)
-		}
-		if rc > lastRc {
-			lastRc = rc
-		}
-	}
-	return fmt.Sprintf("%src%d", version, lastRc), nil
-}
-
-func resolveVersionLabel(bazeliskHome, bazelFork, bazelVersion string) (string, bool, error) {
-	if bazelFork == bazelUpstream {
+func resolveVersionLabel(bazeliskHome, bazelFork, bazelVersion string, repos *core.Repositories) (string, bool, error) {
+	if !core.IsFork(bazelFork) {
 		// Returns three values:
 		// 1. The label of a Blaze release (if the label resolves to a release) or a commit (for unreleased binaries),
 		// 2. Whether the first value refers to a commit,
 		// 3. An error.
-		lastGreenCommitPathSuffixes := map[string]string{
-			"last_green":            "github.com/bazelbuild/bazel.git/bazel-bazel",
-			"last_downstream_green": "downstream_pipeline",
-		}
-		if pathSuffix, ok := lastGreenCommitPathSuffixes[bazelVersion]; ok {
-			commit, err := getLastGreenCommit(pathSuffix)
+		if ok, downstreamGreen := isLastGreen(bazelVersion); ok {
+			commit, err := repos.LastGreen.GetLastGreenVersion(bazeliskHome, downstreamGreen)
 			if err != nil {
 				return "", false, fmt.Errorf("cannot resolve last green commit: %v", err)
 			}
@@ -423,7 +242,7 @@ func resolveVersionLabel(bazeliskHome, bazelFork, bazelVersion string) (string, 
 		}
 
 		if bazelVersion == "last_rc" {
-			version, err := resolveLatestRcVersion()
+			version, err := resolveLatestRcVersion(bazeliskHome, repos.Candidates)
 			return version, false, err
 		}
 	}
@@ -440,145 +259,33 @@ func resolveVersionLabel(bazeliskHome, bazelFork, bazelVersion string) (string, 
 				return "", false, fmt.Errorf("invalid version \"%s\", could not parse offset: %v", bazelVersion, err)
 			}
 		}
-		version, err := resolveLatestVersion(bazeliskHome, bazelFork, offset)
+		version, err := resolveLatestVersion(bazeliskHome, bazelFork, offset, repos)
 		return version, false, err
 	}
 
 	return bazelVersion, false, nil
 }
 
-const lastGreenBasePath = "https://storage.googleapis.com/bazel-untrusted-builds/last_green_commit/"
+func isLastGreen(version string) (ok bool, includeDownstream bool) {
+	includeDownstream = version == "last_downstream_green"
+	ok = version == "last_green" || includeDownstream
+	return
+}
 
-func getLastGreenCommit(pathSuffix string) (string, error) {
-	content, err := readRemoteFile(lastGreenBasePath+pathSuffix, "")
+func downloadBazel(fork string, version string, isCommit bool, baseDirectory string, repos *core.Repositories) (string, error) {
+	pathSegment, err := platforms.DetermineBazelFilename(version, false)
 	if err != nil {
-		return "", fmt.Errorf("could not determine last green commit: %v", err)
-	}
-	return strings.TrimSpace(string(content)), nil
-}
-
-func determineExecutableFilenameSuffix() string {
-	filenameSuffix := ""
-	if runtime.GOOS == "windows" {
-		filenameSuffix = ".exe"
-	}
-	return filenameSuffix
-}
-
-func determineBazelFilename(version string) (string, error) {
-	var machineName string
-	switch runtime.GOARCH {
-	case "amd64":
-		machineName = "x86_64"
-	case "arm64":
-		machineName = "arm64"
-	default:
-		return "", fmt.Errorf("unsupported machine architecture \"%s\", must be arm64 or x86_64", runtime.GOARCH)
+		return "", fmt.Errorf("could not determine path segment to use for Bazel binary: %v", err)
 	}
 
-	var osName string
-	switch runtime.GOOS {
-	case "darwin", "linux", "windows":
-		osName = runtime.GOOS
-	default:
-		return "", fmt.Errorf("unsupported operating system \"%s\", must be Linux, macOS or Windows", runtime.GOOS)
+	destFile := "bazel" + platforms.DetermineExecutableFilenameSuffix()
+	destinationDir := filepath.Join(baseDirectory, pathSegment, "bin")
+
+	if url := getEnvOrConfig(core.BaseURLEnv); url != "" {
+		return repos.DownloadFromBaseURL(url, version, destinationDir, destFile)
 	}
 
-	filenameSuffix := determineExecutableFilenameSuffix()
-
-	return fmt.Sprintf("bazel-%s-%s-%s%s", version, osName, machineName, filenameSuffix), nil
-}
-
-func determineURL(fork string, version string, isCommit bool, filename string) string {
-	baseURL := getEnvOrConfig("BAZELISK_BASE_URL")
-
-	if isCommit {
-		if len(baseURL) == 0 {
-			baseURL = "https://storage.googleapis.com/bazel-builds/artifacts"
-		}
-		var platforms = map[string]string{"darwin": "macos", "linux": "ubuntu1404", "windows": "windows"}
-		// No need to check the OS thanks to determineBazelFilename().
-		log.Printf("Using unreleased version at commit %s", version)
-		return fmt.Sprintf("%s/%s/%s/bazel", baseURL, platforms[runtime.GOOS], version)
-	}
-
-	kind := "release"
-	if strings.Contains(version, "rc") {
-		versionComponents := strings.Split(version, "rc")
-		// Replace version with the part before rc
-		version = versionComponents[0]
-		kind = "rc" + versionComponents[1]
-	}
-
-	if len(baseURL) != 0 {
-		return fmt.Sprintf("%s/%s/%s", baseURL, version, filename)
-	}
-
-	if fork == bazelUpstream {
-		return fmt.Sprintf("https://releases.bazel.build/%s/%s/%s", version, kind, filename)
-	}
-
-	return fmt.Sprintf("https://github.com/%s/bazel/releases/download/%s/%s", fork, version, filename)
-}
-
-func downloadBazel(fork string, version string, isCommit bool, baseDirectory string) (string, error) {
-	filename, err := determineBazelFilename(version)
-	if err != nil {
-		return "", fmt.Errorf("could not determine filename to use for Bazel binary: %v", err)
-	}
-
-	url := determineURL(fork, version, isCommit, filename)
-
-	filenameSuffix := determineExecutableFilenameSuffix()
-	directoryName := strings.TrimSuffix(filename, filenameSuffix)
-	destinationDir := filepath.Join(baseDirectory, directoryName, "bin")
-	err = os.MkdirAll(destinationDir, 0755)
-	if err != nil {
-		return "", fmt.Errorf("could not create directory %s: %v", destinationDir, err)
-	}
-	destinationPath := filepath.Join(destinationDir, "bazel"+filenameSuffix)
-
-	if _, err := os.Stat(destinationPath); err != nil {
-		tmpfile, err := ioutil.TempFile(destinationDir, "download")
-		if err != nil {
-			return "", fmt.Errorf("could not create temporary file: %v", err)
-		}
-		defer func() {
-			err := tmpfile.Close()
-			if err == nil {
-				os.Remove(tmpfile.Name())
-			}
-		}()
-
-		log.Printf("Downloading %s...", url)
-		resp, err := getClient().Get(url)
-		if err != nil {
-			return "", fmt.Errorf("HTTP GET %s failed: %v", url, err)
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != 200 {
-			return "", fmt.Errorf("HTTP GET %s failed with error %v", url, resp.StatusCode)
-		}
-
-		_, err = io.Copy(tmpfile, resp.Body)
-		if err != nil {
-			return "", fmt.Errorf("could not copy from %s to %s: %v", url, tmpfile.Name(), err)
-		}
-
-		err = os.Chmod(tmpfile.Name(), 0755)
-		if err != nil {
-			return "", fmt.Errorf("could not chmod file %s: %v", tmpfile.Name(), err)
-		}
-
-		tmpfile.Close()
-		err = os.Rename(tmpfile.Name(), destinationPath)
-		if err != nil {
-			return "", fmt.Errorf("could not move %s to %s: %v", tmpfile.Name(), destinationPath, err)
-		}
-	}
-
-	return destinationPath, nil
+	return repos.DownloadFromRepo(fork, version, isCommit, destinationDir, destFile)
 }
 
 func copyFile(src, dst string, perm os.FileMode) error {
@@ -606,7 +313,7 @@ func linkLocalBazel(baseDirectory string, bazelPath string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("could not create directory %s: %v", destinationDir, err)
 	}
-	destinationPath := filepath.Join(destinationDir, "bazel"+determineExecutableFilenameSuffix())
+	destinationPath := filepath.Join(destinationDir, "bazel"+platforms.DetermineExecutableFilenameSuffix())
 	if _, err := os.Stat(destinationPath); err != nil {
 		err = os.Symlink(bazelPath, destinationPath)
 		// If can't create Symlink, fallback to copy
@@ -734,7 +441,7 @@ func getIncompatibleFlags(bazeliskHome, resolvedBazelVersion string) (map[string
 		return nil, fmt.Errorf("invalid version %v", resolvedBazelVersion)
 	}
 	url := "https://api.github.com/search/issues?per_page=100&q=repo:bazelbuild/bazel+label:migration-" + version
-	issuesJSON, err := maybeDownload(bazeliskHome, url, "flags-"+version, "list of flags from GitHub")
+	issuesJSON, err := httputil.MaybeDownload(bazeliskHome, url, "flags-"+version, "list of flags from GitHub", getEnvOrConfig("BAZELISK_GITHUB_TOKEN"))
 	if err != nil {
 		return nil, fmt.Errorf("could not get issues from GitHub: %v", err)
 	}
@@ -919,12 +626,12 @@ func dirForURL(url string) string {
 	return regexp.MustCompile("[[:^alnum:]]").ReplaceAllString(url, "-")
 }
 
-func main() {
+func RunBazelisk(args []string, repos *core.Repositories) (int, error) {
 	bazeliskHome := getEnvOrConfig("BAZELISK_HOME")
 	if len(bazeliskHome) == 0 {
 		userCacheDir, err := os.UserCacheDir()
 		if err != nil {
-			log.Fatalf("could not get the user's cache directory: %v", err)
+			return -1, fmt.Errorf("could not get the user's cache directory: %v", err)
 		}
 
 		bazeliskHome = filepath.Join(userCacheDir, "bazelisk")
@@ -932,17 +639,17 @@ func main() {
 
 	err := os.MkdirAll(bazeliskHome, 0755)
 	if err != nil {
-		log.Fatalf("could not create directory %s: %v", bazeliskHome, err)
+		return -1, fmt.Errorf("could not create directory %s: %v", bazeliskHome, err)
 	}
 
 	bazelVersionString, err := getBazelVersion()
 	if err != nil {
-		log.Fatalf("could not get Bazel version: %v", err)
+		return -1, fmt.Errorf("could not get Bazel version: %v", err)
 	}
 
 	bazelPath, err := homedir.Expand(bazelVersionString)
 	if err != nil {
-		log.Fatalf("could not expand home directory in path: %v", err)
+		return -1, fmt.Errorf("could not expand home directory in path: %v", err)
 	}
 
 	// If the Bazel version is an absolute path to a Bazel binary in the filesystem, we can
@@ -955,33 +662,31 @@ func main() {
 	if !filepath.IsAbs(bazelPath) {
 		bazelFork, bazelVersion, err := parseBazelForkAndVersion(bazelVersionString)
 		if err != nil {
-			log.Fatalf("could not parse Bazel fork and version: %v", err)
+			return -1, fmt.Errorf("could not parse Bazel fork and version: %v", err)
 		}
 
-		resolvedBazelVersion, isCommit, err = resolveVersionLabel(bazeliskHome, bazelFork, bazelVersion)
+		resolvedBazelVersion, isCommit, err = resolveVersionLabel(bazeliskHome, bazelFork, bazelVersion, repos)
 		if err != nil {
-			log.Fatalf("could not resolve the version '%s' to an actual version number: %v", bazelVersion, err)
+			return -1, fmt.Errorf("could not resolve the version '%s' to an actual version number: %v", bazelVersion, err)
 		}
 
-		bazelForkOrURL := dirForURL(getEnvOrConfig("BAZELISK_BASE_URL"))
+		bazelForkOrURL := dirForURL(getEnvOrConfig(core.BaseURLEnv))
 		if len(bazelForkOrURL) == 0 {
 			bazelForkOrURL = bazelFork
 		}
 
 		baseDirectory := filepath.Join(bazeliskHome, "downloads", bazelForkOrURL)
-		bazelPath, err = downloadBazel(bazelFork, resolvedBazelVersion, isCommit, baseDirectory)
+		bazelPath, err = downloadBazel(bazelFork, resolvedBazelVersion, isCommit, baseDirectory, repos)
 		if err != nil {
-			log.Fatalf("could not download Bazel: %v", err)
+			return -1, fmt.Errorf("could not download Bazel: %v", err)
 		}
 	} else {
 		baseDirectory := filepath.Join(bazeliskHome, "local")
 		bazelPath, err = linkLocalBazel(baseDirectory, bazelPath)
 		if err != nil {
-			log.Fatalf("cound not link local Bazel: %v", err)
+			return -1, fmt.Errorf("cound not link local Bazel: %v", err)
 		}
 	}
-
-	args := os.Args[1:]
 
 	// --print_env must be the first argument.
 	if len(args) > 0 && args[0] == "--print_env" {
@@ -990,7 +695,7 @@ func main() {
 		for _, val := range cmd.Env {
 			fmt.Println(val)
 		}
-		os.Exit(0)
+		return 0, nil
 	}
 
 	// --strict and --migrate must be the first argument.
@@ -998,7 +703,7 @@ func main() {
 		cmd := args[0]
 		newFlags, err := getIncompatibleFlags(bazeliskHome, resolvedBazelVersion)
 		if err != nil {
-			log.Fatalf("could not get the list of incompatible flags: %v", err)
+			return -1, fmt.Errorf("could not get the list of incompatible flags: %v", err)
 		}
 
 		if cmd == "--migrate" {
@@ -1032,7 +737,19 @@ func main() {
 
 	exitCode, err := runBazel(bazelPath, args)
 	if err != nil {
-		log.Fatalf("could not run Bazel: %v", err)
+		return -1, fmt.Errorf("could not run Bazel: %v", err)
+	}
+	return exitCode, nil
+}
+
+func main() {
+	gcs := &repositories.GCSRepo{}
+	gitHub := repositories.CreateGitHubRepo(getEnvOrConfig("BAZELISK_GITHUB_TOKEN"))
+	repositories := core.CreateRepositories(gcs, gcs, gitHub, gcs, true)
+
+	exitCode, err := RunBazelisk(os.Args[1:], repositories)
+	if err != nil {
+		log.Fatal(err)
 	}
 	os.Exit(exitCode)
 }
