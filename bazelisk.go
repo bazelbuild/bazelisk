@@ -646,7 +646,7 @@ func prependDirToPathList(cmd *exec.Cmd, dir string) {
 		if len(splits) != 2 {
 			continue
 		}
-		if splits[0] == "PATH" {
+		if strings.ToUpper(splits[0]) == "PATH" {
 			found = true
 			cmd.Env[idx] = fmt.Sprintf("PATH=%s%s%s", dir, string(os.PathListSeparator), splits[1])
 			break
