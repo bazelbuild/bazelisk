@@ -392,7 +392,7 @@ def main(argv=None):
 
     argv = argv[1:]
 
-    if argv[0] == "--print_env":
+    if argv and argv[0] == "--print_env":
         cmd = make_bazel_cmd(bazel_path, argv)
         env = cmd['env']
         for key in env:
