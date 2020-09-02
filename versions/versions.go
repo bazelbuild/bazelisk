@@ -21,14 +21,14 @@ var (
 	commitPattern        = regexp.MustCompile(`^[a-z0-9]{40}$`)
 )
 
-type VersionInfo struct {
+type Info struct {
 	IsRelease, IsCandidate, IsCommit, IsFork, IsRelative, IsDownstream bool
 	Fork, Value                                                        string
 	LatestOffset                                                       int
 }
 
-func Parse(fork, version string) (*VersionInfo, error) {
-	vi := &VersionInfo{Fork: fork, Value: version, IsFork: IsFork(fork)}
+func Parse(fork, version string) (*Info, error) {
+	vi := &Info{Fork: fork, Value: version, IsFork: IsFork(fork)}
 
 	if releasePattern.MatchString(version) {
 		vi.IsRelease = true

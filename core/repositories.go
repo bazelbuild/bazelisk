@@ -62,7 +62,7 @@ func (r *Repositories) ResolveVersion(bazeliskHome, fork, version string) (strin
 	return "", nil, fmt.Errorf("Unsupported version identifier '%s'", version)
 }
 
-func (r *Repositories) resolveFork(bazeliskHome string, vi *versions.VersionInfo) (string, DownloadFunc, error) {
+func (r *Repositories) resolveFork(bazeliskHome string, vi *versions.Info) (string, DownloadFunc, error) {
 	if vi.IsRelative && (vi.IsCandidate || vi.IsCommit) {
 		return "", nil, errors.New("forks do not support last_rc, last_green and last_downstream_green")
 	}
@@ -79,7 +79,7 @@ func (r *Repositories) resolveFork(bazeliskHome string, vi *versions.VersionInfo
 	return version, downloader, nil
 }
 
-func (r *Repositories) resolveRelease(bazeliskHome string, vi *versions.VersionInfo) (string, DownloadFunc, error) {
+func (r *Repositories) resolveRelease(bazeliskHome string, vi *versions.Info) (string, DownloadFunc, error) {
 	version, err := resolvePotentiallyRelativeVersion(bazeliskHome, r.Releases.GetReleaseVersions, vi)
 	if err != nil {
 		return "", nil, err
@@ -90,7 +90,7 @@ func (r *Repositories) resolveRelease(bazeliskHome string, vi *versions.VersionI
 	return version, downloader, nil
 }
 
-func (r *Repositories) resolveCandidate(bazeliskHome string, vi *versions.VersionInfo) (string, DownloadFunc, error) {
+func (r *Repositories) resolveCandidate(bazeliskHome string, vi *versions.Info) (string, DownloadFunc, error) {
 	version, err := resolvePotentiallyRelativeVersion(bazeliskHome, r.Candidates.GetCandidateVersions, vi)
 	if err != nil {
 		return "", nil, err
@@ -101,7 +101,7 @@ func (r *Repositories) resolveCandidate(bazeliskHome string, vi *versions.Versio
 	return version, downloader, nil
 }
 
-func (r *Repositories) resolveCommit(bazeliskHome string, vi *versions.VersionInfo) (string, DownloadFunc, error) {
+func (r *Repositories) resolveCommit(bazeliskHome string, vi *versions.Info) (string, DownloadFunc, error) {
 	version := vi.Value
 	if vi.IsRelative {
 		var err error
@@ -118,7 +118,7 @@ func (r *Repositories) resolveCommit(bazeliskHome string, vi *versions.VersionIn
 
 type listVersionsFunc func(bazeliskHome string) ([]string, error)
 
-func resolvePotentiallyRelativeVersion(bazeliskHome string, lister listVersionsFunc, vi *versions.VersionInfo) (string, error) {
+func resolvePotentiallyRelativeVersion(bazeliskHome string, lister listVersionsFunc, vi *versions.Info) (string, error) {
 	if !vi.IsRelative {
 		return vi.Value, nil
 	}
