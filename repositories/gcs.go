@@ -137,8 +137,8 @@ func (gcs *GCSRepo) DownloadCandidate(version, destDir, destFile string) (string
 	return httputil.DownloadBinary(url, destDir, destFile)
 }
 
-// LastGreenRepo
-func (gcs *GCSRepo) GetLastGreenVersion(bazeliskHome string, downstreamGreen bool) (string, error) {
+// CommitRepo
+func (gcs *GCSRepo) GetLastGreenCommit(bazeliskHome string, downstreamGreen bool) (string, error) {
 	pathSuffix := lastGreenCommitPathSuffixes[downstreamGreen]
 	content, err := httputil.ReadRemoteFile(lastGreenBaseURL+pathSuffix, "")
 	if err != nil {
@@ -147,7 +147,7 @@ func (gcs *GCSRepo) GetLastGreenVersion(bazeliskHome string, downstreamGreen boo
 	return strings.TrimSpace(string(content)), nil
 }
 
-func (gcs *GCSRepo) DownloadLastGreen(commit, destDir, destFile string) (string, error) {
+func (gcs *GCSRepo) DownloadAtCommit(commit, destDir, destFile string) (string, error) {
 	log.Printf("Using unreleased version at commit %s", commit)
 	url := fmt.Sprintf("%s/%s/%s/bazel", nonCandidateBaseURL, platforms.GetPlatform(), commit)
 	return httputil.DownloadBinary(url, destDir, destFile)

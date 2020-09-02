@@ -3,16 +3,17 @@ package core
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/bazelbuild/bazelisk/httputil"
 	"github.com/bazelbuild/bazelisk/platforms"
+	"github.com/bazelbuild/bazelisk/versions"
 )
 
 const (
-	BaseURLEnv    = "BAZELISK_BASE_URL"
-	BazelUpstream = "bazelbuild"
+	BaseURLEnv = "BAZELISK_BASE_URL"
 )
+
+type DownloadFunc func(destDir, destFile string) (string, error)
 
 type ReleaseRepo interface {
 	GetReleaseVersions(bazeliskHome string) ([]string, error)
@@ -29,34 +30,109 @@ type ForkRepo interface {
 	DownloadVersion(fork, version, destDir, destFile string) (string, error)
 }
 
-type LastGreenRepo interface {
-	GetLastGreenVersion(bazeliskHome string, downstreamGreen bool) (string, error)
-	DownloadLastGreen(commit, destDir, destFile string) (string, error)
+type CommitRepo interface {
+	GetLastGreenCommit(bazeliskHome string, downstreamGreen bool) (string, error)
+	DownloadAtCommit(commit, destDir, destFile string) (string, error)
 }
 
 type Repositories struct {
 	Releases        ReleaseRepo
 	Candidates      CandidateRepo
 	Fork            ForkRepo
-	LastGreen       LastGreenRepo
+	Commits         CommitRepo
 	supportsBaseURL bool
 }
 
-func IsFork(value string) bool {
-	return value != "" && value != BazelUpstream
+func (r *Repositories) ResolveVersion(bazeliskHome, fork, version string) (string, DownloadFunc, error) {
+	vi, err := versions.Parse(fork, version)
+	if err != nil {
+		return "", nil, err
+	}
+
+	if vi.IsFork {
+		return r.resolveFork(bazeliskHome, vi)
+	} else if vi.IsRelease {
+		return r.resolveRelease(bazeliskHome, vi)
+	} else if vi.IsCandidate {
+		return r.resolveCandidate(bazeliskHome, vi)
+	} else if vi.IsCommit {
+		return r.resolveCommit(bazeliskHome, vi)
+	}
+
+	return "", nil, fmt.Errorf("Unsupported version identifier '%s'", version)
 }
 
-func (r *Repositories) DownloadFromRepo(fork, version string, isCommit bool, destDir, destFile string) (string, error) {
-	switch {
-	case IsFork(fork):
-		return r.Fork.DownloadVersion(fork, version, destDir, destFile)
-	case isCommit:
-		return r.LastGreen.DownloadLastGreen(version, destDir, destFile)
-	case strings.Contains(version, "rc"):
-		return r.Candidates.DownloadCandidate(version, destDir, destFile)
-	default:
+func (r *Repositories) resolveFork(bazeliskHome string, vi *versions.VersionInfo) (string, DownloadFunc, error) {
+	if vi.IsRelative && (vi.IsCandidate || vi.IsCommit) {
+		return "", nil, errors.New("forks do not support last_rc, last_green and last_downstream_green")
+	}
+	lister := func(bazeliskHome string) ([]string, error) {
+		return r.Fork.GetVersions(bazeliskHome, vi.Fork)
+	}
+	version, err := resolvePotentiallyRelativeVersion(bazeliskHome, lister, vi)
+	if err != nil {
+		return "", nil, err
+	}
+	downloader := func(destDir, destFile string) (string, error) {
+		return r.Fork.DownloadVersion(vi.Fork, version, destDir, destFile)
+	}
+	return version, downloader, nil
+}
+
+func (r *Repositories) resolveRelease(bazeliskHome string, vi *versions.VersionInfo) (string, DownloadFunc, error) {
+	version, err := resolvePotentiallyRelativeVersion(bazeliskHome, r.Releases.GetReleaseVersions, vi)
+	if err != nil {
+		return "", nil, err
+	}
+	downloader := func(destDir, destFile string) (string, error) {
 		return r.Releases.DownloadRelease(version, destDir, destFile)
 	}
+	return version, downloader, nil
+}
+
+func (r *Repositories) resolveCandidate(bazeliskHome string, vi *versions.VersionInfo) (string, DownloadFunc, error) {
+	version, err := resolvePotentiallyRelativeVersion(bazeliskHome, r.Candidates.GetCandidateVersions, vi)
+	if err != nil {
+		return "", nil, err
+	}
+	downloader := func(destDir, destFile string) (string, error) {
+		return r.Candidates.DownloadCandidate(version, destDir, destFile)
+	}
+	return version, downloader, nil
+}
+
+func (r *Repositories) resolveCommit(bazeliskHome string, vi *versions.VersionInfo) (string, DownloadFunc, error) {
+	version := vi.Value
+	if vi.IsRelative {
+		var err error
+		version, err = r.Commits.GetLastGreenCommit(bazeliskHome, vi.IsDownstream)
+		if err != nil {
+			return "", nil, fmt.Errorf("cannot resolve last green commit: %v", err)
+		}
+	}
+	downloader := func(destDir, destFile string) (string, error) {
+		return r.Commits.DownloadAtCommit(version, destDir, destFile)
+	}
+	return version, downloader, nil
+}
+
+type listVersionsFunc func(bazeliskHome string) ([]string, error)
+
+func resolvePotentiallyRelativeVersion(bazeliskHome string, lister listVersionsFunc, vi *versions.VersionInfo) (string, error) {
+	if !vi.IsRelative {
+		return vi.Value, nil
+	}
+
+	available, err := lister(bazeliskHome)
+	if err != nil {
+		return "", fmt.Errorf("unable to determine latest version: %v", err)
+	}
+	index := len(available) - 1 - vi.LatestOffset
+	if index < 0 {
+		return "", fmt.Errorf("cannot resolve version \"%s\": There are only %d Bazel versions", vi.Value, len(available))
+	}
+	sorted := versions.GetInAscendingOrder(available)
+	return sorted[index], nil
 }
 
 func (r *Repositories) DownloadFromBaseURL(baseURL, version, destDir, destFile string) (string, error) {
@@ -75,7 +151,7 @@ func (r *Repositories) DownloadFromBaseURL(baseURL, version, destDir, destFile s
 	return httputil.DownloadBinary(url, destDir, destFile)
 }
 
-func CreateRepositories(releases ReleaseRepo, candidates CandidateRepo, fork ForkRepo, lastGreen LastGreenRepo, supportsBaseURL bool) *Repositories {
+func CreateRepositories(releases ReleaseRepo, candidates CandidateRepo, fork ForkRepo, commits CommitRepo, supportsBaseURL bool) *Repositories {
 	repos := &Repositories{supportsBaseURL: supportsBaseURL}
 
 	if releases == nil {
@@ -96,10 +172,10 @@ func CreateRepositories(releases ReleaseRepo, candidates CandidateRepo, fork For
 		repos.Fork = fork
 	}
 
-	if lastGreen == nil {
-		repos.LastGreen = &noLastGreenRepo{errors.New("Bazel-at-last-green versions are not supported")}
+	if commits == nil {
+		repos.Commits = &noCommitRepo{errors.New("Bazel versions built at commits are not supported")}
 	} else {
-		repos.LastGreen = lastGreen
+		repos.Commits = commits
 	}
 
 	return repos
@@ -143,14 +219,14 @@ func (nfr *noForkRepo) DownloadVersion(fork, version, destDir, destFile string) 
 	return "", nfr.Error
 }
 
-type noLastGreenRepo struct {
+type noCommitRepo struct {
 	Error error
 }
 
-func (nlgr *noLastGreenRepo) GetLastGreenVersion(bazeliskHome string, downstreamGreen bool) (string, error) {
+func (nlgr *noCommitRepo) GetLastGreenCommit(bazeliskHome string, downstreamGreen bool) (string, error) {
 	return "", nlgr.Error
 }
 
-func (nlgr *noLastGreenRepo) DownloadLastGreen(commit, destDir, destFile string) (string, error) {
+func (nlgr *noCommitRepo) DownloadAtCommit(commit, destDir, destFile string) (string, error) {
 	return "", nlgr.Error
 }

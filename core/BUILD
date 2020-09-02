@@ -8,5 +8,6 @@ go_library(
     deps = [
         "//httputil",
         "//platforms",
+        "//versions",
     ],
 )

@@ -13,6 +13,7 @@ import (
 	"github.com/bazelbuild/bazelisk/core"
 	"github.com/bazelbuild/bazelisk/httputil"
 	"github.com/bazelbuild/bazelisk/repositories"
+	"github.com/bazelbuild/bazelisk/versions"
 )
 
 var (
@@ -48,8 +49,8 @@ func TestResolveLatestRcVersion(t *testing.T) {
 	transport.AddResponse("https://www.googleapis.com/storage/v1/b/bazel/o?delimiter=/&prefix=11.11.0/release/", 200, rcBody)
 
 	gcs := &repositories.GCSRepo{}
-
-	version, err := resolveLatestRcVersion(tmpDir, gcs)
+	repos := core.CreateRepositories(nil, gcs, nil, nil, false)
+	version, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, "last_rc")
 
 	if err != nil {
 		t.Fatalf("Version resolution failed unexpectedly: %v", err)
@@ -65,8 +66,7 @@ func TestResolveLatestVersion_GCSIsDown(t *testing.T) {
 
 	gcs := &repositories.GCSRepo{}
 	repos := core.CreateRepositories(gcs, nil, nil, nil, false)
-
-	_, err := resolveLatestVersion(tmpDir, core.BazelUpstream, 0, repos)
+	_, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, "latest")
 
 	if err == nil {
 		t.Fatal("Expected resolveLatestVersion() to fail.")
@@ -83,7 +83,7 @@ func TestResolveLatestVersion_GitHubIsDown(t *testing.T) {
 	gh := repositories.CreateGitHubRepo("test_token")
 	repos := core.CreateRepositories(nil, nil, gh, nil, false)
 
-	_, err := resolveLatestVersion(tmpDir, "some_fork", 0, repos)
+	_, _, err := repos.ResolveVersion(tmpDir, "some_fork", "latest")
 
 	if err == nil {
 		t.Fatal("Expected resolveLatestVersion() to fail.")
