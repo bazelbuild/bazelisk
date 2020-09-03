@@ -60,6 +60,12 @@ function bazelisk() {
       echo "Running Bazelisk with $(python -V)..."
       python "$(rlocation __main__/bazelisk.py)" "$@"
     fi
+  elif [[ -n $(rlocation __main__/windows_amd64_debug/bazelisk.exe) ]]; then
+    "$(rlocation __main__/windows_amd64_debug/bazelisk.exe)" "$@"
+  elif [[ -n $(rlocation __main__/darwin_amd64_debug/bazelisk) ]]; then
+    "$(rlocation __main__/darwin_amd64_debug/bazelisk)" "$@"
+  elif [[ -n $(rlocation __main__/linux_amd64_debug/bazelisk) ]]; then
+    "$(rlocation __main__/linux_amd64_debug/bazelisk)" "$@"
   elif [[ -n $(rlocation __main__/windows_amd64_stripped/bazelisk.exe) ]]; then
     "$(rlocation __main__/windows_amd64_stripped/bazelisk.exe)" "$@"
   elif [[ -n $(rlocation __main__/darwin_amd64_stripped/bazelisk) ]]; then
