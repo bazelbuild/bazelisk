@@ -1,6 +1,6 @@
 module github.com/bazelbuild/bazelisk
 
-go 1.14
+go 1.15
 
 require (
 	github.com/hashicorp/go-version v1.2.0
