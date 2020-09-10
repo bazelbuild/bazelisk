@@ -5,13 +5,15 @@ builds:
   # - darwin
   - linux
   # - windows
-  goarch:
+  goarch: # Platforms of snapcraft.io: amd64 arm64 armhf i386 ppc64el s390x
   - 386
   - amd64
-  # TODO: - arm
-  # TODO: - arm64
-  # goarm:
-  # TODO: - 7
+  - arm
+  - arm64
+  - ppc64
+  - s390x
+  goarm:
+  - 7
   ignore: []
   ldflags:
   - '-extldflags "-static"'
