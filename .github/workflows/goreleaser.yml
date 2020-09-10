@@ -1,0 +1,109 @@
+name: goreleaser
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  goreleaser:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Unshallow (for CHANGELOG)
+      run: git fetch --prune --unshallow
+
+    - uses: actions/setup-go@v2
+      with:
+        go-version: 1.x
+
+    - name: Verify
+      run: |
+        go vet ./...
+        go test ./...
+        go fmt ./...
+        go mod tidy
+        go mod verify
+        git --no-pager diff && [[ $(git --no-pager diff --name-only | wc -l) = 0 ]]
+
+    # - name: Set CURRENT_TAG
+    #   run: |
+    #     CURRENT_TAG=M.m.p
+    #     if [[ "$GITHUB_REF" =~ ^refs/tags/ ]]; then CURRENT_TAG=${GITHUB_REF#refs/tags/}; fi
+    #     echo "::set-env name=CURRENT_TAG::$CURRENT_TAG"
+
+    - name: Build
+      uses: goreleaser/goreleaser-action@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        version: latest # FIXME: https://github.com/goreleaser/goreleaser-action/issues/157
+        args: release --rm-dist --snapshot --skip-publish
+
+    # - name: Test
+    #   run: |
+    #     tar zxvf ./dist/monkey-Linux-x86_64.tar.gz -C .
+    #     SHORT_COMMIT=$(cut -c-7 <<<$GITHUB_SHA)
+    #     ./monkey -h | grep $SHORT_COMMIT
+    #     ./monkey help | grep monkey
+    #     ./monkey version
+    #     [[ $(./monkey version | wc -l) = 1 ]]
+    #     ./monkey version | grep $CURRENT_TAG
+    #     ./monkey --version | grep $SHORT_COMMIT
+    #     rm ./monkey
+
+    # - name: Publish
+    #   uses: goreleaser/goreleaser-action@v1
+    #   env:
+    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    #   with:
+    #     version: latest # FIXME: https://github.com/goreleaser/goreleaser-action/issues/157
+    #     args: release --rm-dist
+    #   if: startsWith(github.ref, 'refs/tags/')
+
+
+  # install-on-ubuntu:
+  #   runs-on: ubuntu-latest
+  #   if: startsWith(github.ref, 'refs/tags/')
+  #   needs: goreleaser
+  #   steps:
+  #   - run: echo $PATH
+  #   - run: 'while read -d: -r path; do ls -lhd $path || echo $path; done <<<"$PATH"'
+  #   - run: '! which monkey'
+  #   - run: '! monkey help'
+  #   - run: curl -#fL https://git.io/FuzzyMonkey | BINDIR=/usr/share/rust/.cargo/bin sh -ex
+  #   - run: monkey help
+  #   - run: monkey version
+
+  # install-on-macos:
+  #   runs-on: macos-latest
+  #   if: startsWith(github.ref, 'refs/tags/')
+  #   needs: goreleaser
+  #   steps:
+  #   - run: echo $PATH
+  #   - run: 'while read -d: -r path; do ls -lhd $path || echo $path; done <<<"$PATH"'
+  #   - run: '! which monkey'
+  #   - run: '! monkey help'
+  #   - run: curl -#fL https://git.io/FuzzyMonkey | BINDIR=/usr/local/bin sh -ex
+  #   - run: monkey help
+  #   - run: monkey version
+
+  # install-on-windows:
+  #   runs-on: windows-latest
+  #   if: startsWith(github.ref, 'refs/tags/')
+  #   needs: goreleaser
+  #   steps:
+  #   - run: echo $PATH
+  #     shell: bash
+  #   - run: 'while read -d: -r path; do ls -lhd $path || echo $path; done <<<"$PATH"'
+  #     shell: bash
+  #   - run: '! which monkey'
+  #     shell: bash
+  #   - run: '! monkey help'
+  #     shell: bash
+  #   - run: curl -#fL https://git.io/FuzzyMonkey | BINDIR=/c/npm/prefix sh -ex
+  #     shell: bash
+  #   - run: monkey help
+  #     shell: bash
+  #   - run: monkey version
+  #     shell: bash
