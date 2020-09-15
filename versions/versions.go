@@ -1,3 +1,4 @@
+// Package versions contains functions to parse and sort Bazel version identifier.
 package versions
 
 import (
@@ -11,6 +12,7 @@ import (
 )
 
 const (
+	// BazelUpstream contains the name of the official Bazel GitHub organization.
 	BazelUpstream = "bazelbuild"
 )
 
@@ -21,14 +23,16 @@ var (
 	commitPattern        = regexp.MustCompile(`^[a-z0-9]{40}$`)
 )
 
+// Info represents a structured Bazel version identifier.
 type Info struct {
 	IsRelease, IsCandidate, IsCommit, IsFork, IsRelative, IsDownstream bool
 	Fork, Value                                                        string
 	LatestOffset                                                       int
 }
 
+// Parse extracts and returns structured information about the given Bazel version label.
 func Parse(fork, version string) (*Info, error) {
-	vi := &Info{Fork: fork, Value: version, IsFork: IsFork(fork)}
+	vi := &Info{Fork: fork, Value: version, IsFork: isFork(fork)}
 
 	if releasePattern.MatchString(version) {
 		vi.IsRelease = true
@@ -62,10 +66,11 @@ func Parse(fork, version string) (*Info, error) {
 	return vi, nil
 }
 
-func IsFork(value string) bool {
+func isFork(value string) bool {
 	return value != "" && value != BazelUpstream
 }
 
+// GetInAscendingOrder returns the given versions sorted in ascending order.
 func GetInAscendingOrder(versions []string) []string {
 	wrappers := make([]*version.Version, len(versions))
 	for i, v := range versions {

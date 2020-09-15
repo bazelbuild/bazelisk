@@ -532,6 +532,7 @@ func dirForURL(url string) string {
 	return regexp.MustCompile("[[:^alnum:]]").ReplaceAllString(url, "-")
 }
 
+// RunBazelisk runs the main Bazelisk logic for the given arguments and Bazel repositories.
 func RunBazelisk(args []string, repos *core.Repositories) (int, error) {
 	bazeliskHome := getEnvOrConfig("BAZELISK_HOME")
 	if len(bazeliskHome) == 0 {

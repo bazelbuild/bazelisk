@@ -1,3 +1,4 @@
+// Package core contains interfaces to work with Bazel repositories.
 package core
 
 import (
@@ -13,28 +14,49 @@ const (
 	BaseURLEnv = "BAZELISK_BASE_URL"
 )
 
+// DownloadFunc downloads a specific Bazel binary to the given location and returns the absolute path.
 type DownloadFunc func(destDir, destFile string) (string, error)
 
+// ReleaseRepo represents a repository that stores Bazel releases.
 type ReleaseRepo interface {
+	// GetReleaseVersions returns a list of all available release versions.
 	GetReleaseVersions(bazeliskHome string) ([]string, error)
+
+	// DownloadRelease downloads the given Bazel version into the specified location and returns the absolute path.
 	DownloadRelease(version, destDir, destFile string) (string, error)
 }
 
+// CandidateRepo represents a repository that stores Bazel release candidates.
 type CandidateRepo interface {
+	// GetCandidateVersions returns the versions of all available release candidates.
 	GetCandidateVersions(bazeliskHome string) ([]string, error)
+
+	// DownloadCandidate downloads the given Bazel release candidate into the specified location and returns the absolute path.
 	DownloadCandidate(version, destDir, destFile string) (string, error)
 }
 
+// ForkRepo represents a repository that stores a fork of Bazel (releases).
 type ForkRepo interface {
+	// GetVersions returns the versions of all available Bazel binaries in the given fork.
 	GetVersions(bazeliskHome, fork string) ([]string, error)
+
+	// DownloadVersion downloads the given Bazel binary from the specified fork into the given location and returns the absolute path.
 	DownloadVersion(fork, version, destDir, destFile string) (string, error)
 }
 
+// CommitRepo represents a repository that stores Bazel binaries built at specific commits.
+// It can also return the hashes of the most recent commits that passed Bazel CI pipelines successfully.
 type CommitRepo interface {
+	// GetLastGreenCommit returns the most recent commit at which a Bazel binary passed a specific Bazel CI pipeline.
+	// If downstreamGreen is true, the pipeline is https://buildkite.com/bazel/bazel-at-head-plus-downstream, otherwise
+	// it's https://buildkite.com/bazel/bazel-bazel
 	GetLastGreenCommit(bazeliskHome string, downstreamGreen bool) (string, error)
+
+	//DownloadAtCommit downloads a Bazel binary built at the given commit into the specified location and returns the absolute path.
 	DownloadAtCommit(commit, destDir, destFile string) (string, error)
 }
 
+// Repositories offers access to different types of Bazel repositories, mainly for finding and downloading the correct version of Bazel.
 type Repositories struct {
 	Releases        ReleaseRepo
 	Candidates      CandidateRepo
@@ -43,6 +65,7 @@ type Repositories struct {
 	supportsBaseURL bool
 }
 
+// ResolveVersion resolves a potentially relative Bazel version string such as "latest" to an absolute version identifier, and returns this identifier alongside a function to download said version.
 func (r *Repositories) ResolveVersion(bazeliskHome, fork, version string) (string, DownloadFunc, error) {
 	vi, err := versions.Parse(fork, version)
 	if err != nil {
@@ -135,6 +158,7 @@ func resolvePotentiallyRelativeVersion(bazeliskHome string, lister listVersionsF
 	return sorted[index], nil
 }
 
+// DownloadFromBaseURL can download Bazel binaries from a specific URL while ignoring the predefined repositories.
 func (r *Repositories) DownloadFromBaseURL(baseURL, version, destDir, destFile string) (string, error) {
 	if !r.supportsBaseURL {
 		return "", fmt.Errorf("downloads from %s are forbidden", BaseURLEnv)
@@ -151,6 +175,7 @@ func (r *Repositories) DownloadFromBaseURL(baseURL, version, destDir, destFile s
 	return httputil.DownloadBinary(url, destDir, destFile)
 }
 
+// CreateRepositories creates a new Repositories instance with the given repositories. Any nil repository will be replaced by a dummy repository that raises an error whenever a download is attempted.
 func CreateRepositories(releases ReleaseRepo, candidates CandidateRepo, fork ForkRepo, commits CommitRepo, supportsBaseURL bool) *Repositories {
 	repos := &Repositories{supportsBaseURL: supportsBaseURL}
 
@@ -183,6 +208,7 @@ func CreateRepositories(releases ReleaseRepo, candidates CandidateRepo, fork For
 
 // The whole point of the structs below this line is that users can simply call repos.Releases.GetReleaseVersions()
 // (etc) without having to worry whether `Releases` points at an actual repo.
+
 type noReleaseRepo struct {
 	Error error
 }

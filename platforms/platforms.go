@@ -1,3 +1,4 @@
+// Package platforms determins file names and extensions based on the current operating system.
 package platforms
 
 import (
@@ -7,10 +8,13 @@ import (
 
 var platforms = map[string]string{"darwin": "macos", "linux": "ubuntu1404", "windows": "windows"}
 
+// GetPlatform returns a Bazel CI-compatible platform identifier for the current operating system.
+// TODO(fweikert): raise an error for unsupported platforms
 func GetPlatform() string {
 	return platforms[runtime.GOOS]
 }
 
+// DetermineExecutableFilenameSuffix returns the extension for binaries on the current operating system.
 func DetermineExecutableFilenameSuffix() string {
 	filenameSuffix := ""
 	if runtime.GOOS == "windows" {
@@ -19,6 +23,7 @@ func DetermineExecutableFilenameSuffix() string {
 	return filenameSuffix
 }
 
+// DetermineBazelFilename returns the correct file name of a local Bazel binary.
 func DetermineBazelFilename(version string, includeSuffix bool) (string, error) {
 	var machineName string
 	switch runtime.GOARCH {

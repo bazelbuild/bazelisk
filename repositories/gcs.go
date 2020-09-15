@@ -1,3 +1,6 @@
+// Package repositories contains actual implementations of the repository interfaces defined in the `core` package.
+// It currently supports Google Cloud Storage (GCS) for Bazel releases, release candidates and Bazel binaries built at arbitrary commits.
+// Moreover, it supports GitHub for Bazel forks.
 package repositories
 
 import (
@@ -26,9 +29,13 @@ var (
 	}
 )
 
+// GCSRepo represents a Bazel repository on Google Cloud Storage that contains Bazel releases, release candidates and Bazel binaries built at arbitrary commits.
+// It can return all available Bazel versions, as well as downloading a specific version.
 type GCSRepo struct{}
 
 // ReleaseRepo
+
+// GetReleaseVersions returns the versions of all available Bazel releases in this repository.
 func (gcs *GCSRepo) GetReleaseVersions(bazeliskHome string) ([]string, error) {
 	return getVersionHistoryFromGCS(true)
 }
@@ -81,12 +88,17 @@ func getVersionsFromGCSPrefixes(versions []string) []string {
 	return result
 }
 
+// GcsListResponse represents the result of listing the contents of a GCS bucket.
 // Public for testing
 type GcsListResponse struct {
-	Prefixes []string      `json:"prefixes"`
-	Items    []interface{} `json:"items"`
+	// Prefixes contains the available string prefixes.
+	Prefixes []string `json:"prefixes"`
+
+	// Items contains the names of available objects in the current GCS bucket.
+	Items []interface{} `json:"items"`
 }
 
+// DownloadRelease downloads the given Bazel release into the specified location and returns the absolute path.
 func (gcs *GCSRepo) DownloadRelease(version, destDir, destFile string) (string, error) {
 	srcFile, err := platforms.DetermineBazelFilename(version, true)
 	if err != nil {
@@ -98,6 +110,8 @@ func (gcs *GCSRepo) DownloadRelease(version, destDir, destFile string) (string, 
 }
 
 // CandidateRepo
+
+// GetCandidateVersions returns all versions of available release candidates in this repository.
 func (gcs *GCSRepo) GetCandidateVersions(bazeliskHome string) ([]string, error) {
 	available, err := getVersionHistoryFromGCS(false)
 	if err != nil {
@@ -120,6 +134,7 @@ func (gcs *GCSRepo) GetCandidateVersions(bazeliskHome string) ([]string, error) 
 	return getVersionsFromGCSPrefixes(rcPrefixes), nil
 }
 
+// DownloadCandidate downloads the given release candidate into the specified location and returns the absolute path.
 func (gcs *GCSRepo) DownloadCandidate(version, destDir, destFile string) (string, error) {
 	if !strings.Contains(version, "rc") {
 		return "", fmt.Errorf("'%s' does not refer to a release candidate", version)
@@ -138,6 +153,10 @@ func (gcs *GCSRepo) DownloadCandidate(version, destDir, destFile string) (string
 }
 
 // CommitRepo
+
+// GetLastGreenCommit returns the most recent commit at which a Bazel binary passed a specific Bazel CI pipeline.
+// If downstreamGreen is true, the pipeline is https://buildkite.com/bazel/bazel-at-head-plus-downstream, otherwise
+// it's https://buildkite.com/bazel/bazel-bazel
 func (gcs *GCSRepo) GetLastGreenCommit(bazeliskHome string, downstreamGreen bool) (string, error) {
 	pathSuffix := lastGreenCommitPathSuffixes[downstreamGreen]
 	content, err := httputil.ReadRemoteFile(lastGreenBaseURL+pathSuffix, "")
@@ -147,6 +166,7 @@ func (gcs *GCSRepo) GetLastGreenCommit(bazeliskHome string, downstreamGreen bool
 	return strings.TrimSpace(string(content)), nil
 }
 
+//DownloadAtCommit downloads a Bazel binary built at the given commit into the specified location and returns the absolute path.
 func (gcs *GCSRepo) DownloadAtCommit(commit, destDir, destFile string) (string, error) {
 	log.Printf("Using unreleased version at commit %s", commit)
 	url := fmt.Sprintf("%s/%s/%s/bazel", nonCandidateBaseURL, platforms.GetPlatform(), commit)

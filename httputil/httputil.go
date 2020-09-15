@@ -1,3 +1,4 @@
+// Package httputil offers functions to read and download files via HTTP.
 package httputil
 
 import (
@@ -12,6 +13,7 @@ import (
 )
 
 var (
+	// DefaultTransport specifies the http.RoundTripper that is used for any network traffic, and may be replaced with a dummy implementation for unit testing.
 	DefaultTransport = http.DefaultTransport
 )
 
@@ -19,6 +21,7 @@ func getClient() *http.Client {
 	return &http.Client{Transport: DefaultTransport}
 }
 
+// ReadRemoteFile returns the contents of the given file, using the supplied Authorization token, if set.
 func ReadRemoteFile(url string, token string) ([]byte, error) {
 	client := getClient()
 	req, err := http.NewRequest("GET", url, nil)
@@ -47,6 +50,7 @@ func ReadRemoteFile(url string, token string) ([]byte, error) {
 	return body, nil
 }
 
+// DownloadBinary downloads a file from the given URL into the specified location, marks it executable and returns its full path.
 func DownloadBinary(originURL, destDir, destFile string) (string, error) {
 	err := os.MkdirAll(destDir, 0755)
 	if err != nil {
@@ -97,9 +101,9 @@ func DownloadBinary(originURL, destDir, destFile string) (string, error) {
 	return destinationPath, nil
 }
 
-// MaybeDownload will download a file from the given url and cache the result under bazeliskHome.
+// MaybeDownload downloads a file from the given url and caches the result under bazeliskHome.
 // It skips the download if the file already exists and is not outdated.
-// description is used only to provide better error messages.
+// Parameter ´description´ is only used to provide better error messages.
 func MaybeDownload(bazeliskHome, url, filename, description, token string) ([]byte, error) {
 	cachePath := filepath.Join(bazeliskHome, filename)
 
