@@ -40,6 +40,7 @@ Bazelisk currently understands the following formats for version labels:
   Previous releases can be specified via `latest-1`, `latest-2` etc.
 - A version number like `0.17.2` means that exact version of Bazel.
   It can also be a release candidate version like `0.20.0rc3`.
+- The hash of a Git commit. Please note that Bazel binaries are only available for commits that passed [Bazel CI](https://buildkite.com/bazel/bazel-bazel).
 
 Additionally, a few special version names are supported for our official releases only (these formats do not work when using a fork):
 - `last_green` refers to the Bazel binary that was built at the most recent commit that passed [Bazel CI](https://buildkite.com/bazel/bazel-bazel).

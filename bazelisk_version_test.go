@@ -9,6 +9,11 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/bazelbuild/bazelisk/core"
+	"github.com/bazelbuild/bazelisk/httputil"
+	"github.com/bazelbuild/bazelisk/repositories"
+	"github.com/bazelbuild/bazelisk/versions"
 )
 
 var (
@@ -17,7 +22,7 @@ var (
 )
 
 func init() {
-	DefaultTransport = transport
+	httputil.DefaultTransport = transport
 }
 
 func TestMain(m *testing.M) {
@@ -32,44 +37,6 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func TestResolveLatestVersion_UseGCSIfBazelGitHubIsDown_NoRC(t *testing.T) {
-	transport.AddResponse("https://api.github.com/repos/bazelbuild/bazel/releases", 500, "")
-
-	listBody := buildGCSResponseOrFail(t, []string{"4.0.0/", "12.0.0/", "10.0.0/"}, []interface{}{})
-	transport.AddResponse("https://www.googleapis.com/storage/v1/b/bazel/o?delimiter=/", 200, listBody)
-
-	rcBody := buildGCSResponseOrFail(t, []string{}, []interface{}{"this is a release"})
-	transport.AddResponse("https://www.googleapis.com/storage/v1/b/bazel/o?delimiter=/&prefix=12.0.0/release/", 200, rcBody)
-
-	version, err := resolveLatestVersion(tmpDir, bazelUpstream, 0)
-
-	if err != nil {
-		t.Fatalf("Version resolution failed unexpectedly: %v", err)
-	}
-	if version != "12.0.0" {
-		t.Fatalf("Expected version 12.0.0, but got %s", version)
-	}
-}
-
-func TestResolveLatestVersion_UseGCSIfBazelGitHubIsDown_WithRC(t *testing.T) {
-	transport.AddResponse("https://api.github.com/repos/bazelbuild/bazel/releases", 500, "")
-
-	listBody := buildGCSResponseOrFail(t, []string{"4.0.0/", "11.0.0/", "11.11.0/", "10.0.0/"}, []interface{}{})
-	transport.AddResponse("https://www.googleapis.com/storage/v1/b/bazel/o?delimiter=/", 200, listBody)
-
-	// 11.11.0 is the current RC, but the latest release is still 11.0.0
-	rcBody := buildGCSResponseOrFail(t, []string{}, []interface{}{})
-	transport.AddResponse("https://www.googleapis.com/storage/v1/b/bazel/o?delimiter=/&prefix=11.11.0/release/", 200, rcBody)
-
-	version, err := resolveLatestVersion(tmpDir, bazelUpstream, 0)
-	if err != nil {
-		t.Fatalf("Version resolution failed unexpectedly: %v", err)
-	}
-	if version != "11.0.0" {
-		t.Fatalf("Expected version 11.0.0, but got %s", version)
-	}
-}
-
 func TestResolveLatestRcVersion(t *testing.T) {
 	listBody := buildGCSResponseOrFail(t, []string{"4.0.0/", "11.0.0/", "11.11.0/", "10.0.0/"}, []interface{}{})
 	transport.AddResponse("https://www.googleapis.com/storage/v1/b/bazel/o?delimiter=/", 200, listBody)
@@ -81,7 +48,9 @@ func TestResolveLatestRcVersion(t *testing.T) {
 	rcBody := buildGCSResponseOrFail(t, []string{}, []interface{}{})
 	transport.AddResponse("https://www.googleapis.com/storage/v1/b/bazel/o?delimiter=/&prefix=11.11.0/release/", 200, rcBody)
 
-	version, err := resolveLatestRcVersion()
+	gcs := &repositories.GCSRepo{}
+	repos := core.CreateRepositories(nil, gcs, nil, nil, false)
+	version, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, "last_rc")
 
 	if err != nil {
 		t.Fatalf("Version resolution failed unexpectedly: %v", err)
@@ -92,32 +61,36 @@ func TestResolveLatestRcVersion(t *testing.T) {
 	}
 }
 
-func TestResolveLatestVersion_EverythingIsDown(t *testing.T) {
-	transport.AddResponse("https://api.github.com/repos/bazelbuild/bazel/releases", 500, "")
+func TestResolveLatestVersion_GCSIsDown(t *testing.T) {
 	transport.AddResponse("https://www.googleapis.com/storage/v1/b/bazel/o?delimiter=/", 500, "")
 
-	_, err := resolveLatestVersion(tmpDir, bazelUpstream, 0)
+	gcs := &repositories.GCSRepo{}
+	repos := core.CreateRepositories(gcs, nil, nil, nil, false)
+	_, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, "latest")
 
 	if err == nil {
 		t.Fatal("Expected resolveLatestVersion() to fail.")
 	}
-	expectedPrefix := "could not list Bazel versions in GCS bucket"
+	expectedPrefix := "unable to determine latest version: could not list Bazel versions in GCS bucket"
 	if !strings.HasPrefix(err.Error(), expectedPrefix) {
 		t.Fatalf("Expected error message that starts with '%s', but got '%v'", expectedPrefix, err)
 	}
 }
 
-func TestResolveLatestVersion_NoFallbackIfGitHubForkIsDown(t *testing.T) {
-	transport.AddResponse("https://api.github.com/repos/the_fork/bazel/releases", 500, "")
+func TestResolveLatestVersion_GitHubIsDown(t *testing.T) {
+	transport.AddResponse("https://api.github.com/repos/bazelbuild/bazel/releases", 500, "")
 
-	_, err := resolveLatestVersion(tmpDir, "the_fork", 0)
+	gh := repositories.CreateGitHubRepo("test_token")
+	repos := core.CreateRepositories(nil, nil, gh, nil, false)
+
+	_, _, err := repos.ResolveVersion(tmpDir, "some_fork", "latest")
 
 	if err == nil {
 		t.Fatal("Expected resolveLatestVersion() to fail.")
 	}
-	expectedSubstring := "github.com/the_fork/bazel"
-	if !strings.Contains(err.Error(), expectedSubstring) {
-		t.Fatalf("Expected error message that contains '%s', but got '%v'", expectedSubstring, err)
+	expectedPrefix := "unable to determine latest version: unable to dermine 'some_fork' releases: could not download list of Bazel releases from github.com/some_fork"
+	if !strings.HasPrefix(err.Error(), expectedPrefix) {
+		t.Fatalf("Expected error message that starts with '%s', but got '%v'", expectedPrefix, err)
 	}
 }
 
@@ -144,7 +117,7 @@ func (ft *fakeTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 func buildGCSResponseOrFail(t *testing.T, prefixes []string, items []interface{}) string {
-	r := &gcsListResponse{
+	r := &repositories.GcsListResponse{
 		Prefixes: prefixes,
 		Items:    items,
 	}
