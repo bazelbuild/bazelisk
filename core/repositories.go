@@ -52,7 +52,7 @@ type CommitRepo interface {
 	// it's https://buildkite.com/bazel/bazel-bazel
 	GetLastGreenCommit(bazeliskHome string, downstreamGreen bool) (string, error)
 
-	//DownloadAtCommit downloads a Bazel binary built at the given commit into the specified location and returns the absolute path.
+	// DownloadAtCommit downloads a Bazel binary built at the given commit into the specified location and returns the absolute path.
 	DownloadAtCommit(commit, destDir, destFile string) (string, error)
 }
 
