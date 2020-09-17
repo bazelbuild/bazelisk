@@ -74,6 +74,10 @@ function bazelisk() {
     "$(rlocation __main__/darwin_amd64_stripped/bazelisk)" "$@"
   elif [[ -n $(rlocation __main__/linux_amd64_stripped/bazelisk) ]]; then
     "$(rlocation __main__/linux_amd64_stripped/bazelisk)" "$@"
+  elif [[ -n $(rlocation __main__/bazelisk_/bazelisk) ]]; then
+    "$(rlocation __main__/bazelisk_/bazelisk)" "$@"
+  elif [[ -n $(rlocation __main__/bazelisk_/bazelisk.exe) ]]; then
+    "$(rlocation __main__/bazelisk_/bazelisk.exe)" "$@"
   else
     echo "Could not find the bazelisk executable, listing files:"
     find .
