@@ -6,6 +6,7 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/bazelbuild/bazelisk/core"
 	"github.com/bazelbuild/rules_go/go/tools/bazel"
 )
 
@@ -18,7 +19,7 @@ func TestScanIssuesForIncompatibleFlags(t *testing.T) {
 	if err != nil {
 		t.Errorf("Can not load sample github issues")
 	}
-	flags, err := scanIssuesForIncompatibleFlags(samplesJSON)
+	flags, err := core.ScanIssuesForIncompatibleFlags(samplesJSON)
 	if flags == nil {
 		t.Errorf("Could not parse sample issues")
 	}
