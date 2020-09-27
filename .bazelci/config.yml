@@ -3,6 +3,8 @@ platforms:
   ubuntu1604:
     test_targets:
       - //:go_bazelisk_test
+      - //:go_default_test
+      - //:go_version_test
       - //:py_bazelisk_test
       - //:py3_bazelisk_test
     test_flags:
@@ -11,6 +13,8 @@ platforms:
   ubuntu1804:
     test_targets:
       - //:go_bazelisk_test
+      - //:go_default_test
+      - //:go_version_test
       - //:py_bazelisk_test
       - //:py3_bazelisk_test
     test_flags:
@@ -19,6 +23,8 @@ platforms:
   macos:
     test_targets:
       - //:go_bazelisk_test
+      - //:go_default_test
+      - //:go_version_test
       - //:py_bazelisk_test
       - //:py3_bazelisk_test
     test_flags:
@@ -27,6 +33,8 @@ platforms:
   windows:
     test_targets:
       - //:go_bazelisk_test
+      - //:go_default_test
+      - //:go_version_test
       - //:py_bazelisk_test
     test_flags:
       - --flaky_test_attempts=1
