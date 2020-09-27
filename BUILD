@@ -70,6 +70,10 @@ go_test(
     embed = [":go_default_library"],
     importpath = "github.com/bazelbuild/bazelisk",
     deps = [
+        "//core",
+        "//httputil",
+        "//repositories",
+        "//versions",
         "@io_bazel_rules_go//go/tools/bazel:go_default_library",
     ],
 )
