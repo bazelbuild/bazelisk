@@ -46,7 +46,9 @@ go_library(
     x_defs = {"BazeliskVersion": "{STABLE_VERSION}"},
     deps = [
         "//core",
+        "//httputil",
         "//repositories",
+        "//versions",
     ],
 )
 
