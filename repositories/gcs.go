@@ -52,11 +52,11 @@ func getVersionHistoryFromGCS(onlyFullReleases bool) ([]string, error) {
 	// TODO(#171): This algorithm is incorrect if version == 'latest-n' and any of the last n versions (except the last one) does not have a release yet.
 	if onlyFullReleases {
 		for len(sorted) > 0 {
-			lastIndex := len(sorted)-1
+			lastIndex := len(sorted) - 1
 			latestVersion := sorted[lastIndex]
 			_, isRelease, err := listDirectoriesInReleaseBucket(latestVersion + "/release/")
 			if err != nil {
-				return []string{}, fmt.Errorf("could not list release candidates for latest release: %v", err)
+				return []string{}, fmt.Errorf("could not list available releases for %v: %v", latestVersion, err)
 			}
 			if isRelease {
 				break
