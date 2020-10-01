@@ -1,4 +1,3 @@
-// Package core contains interfaces to work with Bazel repositories.
 package core
 
 import (
