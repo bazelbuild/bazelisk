@@ -110,7 +110,7 @@ snapcrafts:
   # are explained later. More info about confinement here:
   # https://snapcraft.io/docs/reference/confinement
   # confinement: strict
-  confinement: devmode
+  confinement: classic
 
   # Your app's license, based on SPDX license expressions: https://spdx.org/licenses
   # Default is empty.
@@ -133,6 +133,21 @@ snapcrafts:
   #   - source: drumroll.wrapper
   #     destination: bin/drumroll.wrapper
   #     mode: 0755
+
+  # snap access python path
+  # https://forum.snapcraft.io/t/how-do-i-allow-a-snap-to-access-pythonpath/16943/3
+  # https://gitlab.com/inkscape/inkscape/-/blob/master/snap/snapcraft.yaml#L122
+  # https://snapcraft.io/docs/python-apps
+  parts:
+    bazelisk:
+    python-deps:
+      plugin: python
+      # python-packages:
+      # - numpy
+      # - six
+      stage-packages:
+      - numpy
+      - six
 
   # Each binary built by GoReleaser is an app inside the snap. In this section
   # you can declare extra details for those binaries. It is optional.
