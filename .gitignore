@@ -7,3 +7,6 @@
 
 # Binary created by 'go build'
 /bazelisk
+
+# Folder created by 'goreleaser build' or 'goreleaser release'
+/dist/
