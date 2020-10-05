@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -38,15 +39,12 @@ func TestMain(m *testing.M) {
 }
 
 func TestResolveLatestRcVersion(t *testing.T) {
-	listBody := buildGCSResponseOrFail(t, []string{"4.0.0/", "11.0.0/", "11.11.0/", "10.0.0/"}, []interface{}{})
-	transport.AddResponse("https://www.googleapis.com/storage/v1/b/bazel/o?delimiter=/", 200, listBody)
-
-	rcListBody := buildGCSResponseOrFail(t, []string{"11.11.0/rc2/", "11.11.0/rc1/"}, []interface{}{})
-	transport.AddResponse("https://www.googleapis.com/storage/v1/b/bazel/o?delimiter=/&prefix=11.11.0/", 200, rcListBody)
-
-	// 11.11.0 is the current RC, but the latest release is still 11.0.0
-	rcBody := buildGCSResponseOrFail(t, []string{}, []interface{}{})
-	transport.AddResponse("https://www.googleapis.com/storage/v1/b/bazel/o?delimiter=/&prefix=11.11.0/release/", 200, rcBody)
+	s := SetUp(t)
+	s.AddVersion("4.0.0", false)
+	s.AddVersion("10.0.0", false)
+	s.AddVersion("11.0.0", true)
+	s.AddVersion("11.11.0", false, 1, 2)
+	s.Finish()
 
 	gcs := &repositories.GCSRepo{}
 	repos := core.CreateRepositories(nil, gcs, nil, nil, false)
@@ -62,17 +60,11 @@ func TestResolveLatestRcVersion(t *testing.T) {
 }
 
 func TestResolveLatestVersion_TwoLatestVersionsDoNotHaveAReleaseYet(t *testing.T) {
-	listBody := buildGCSResponseOrFail(t, []string{"4.0.0/", "5.0.0/", "6.0.0/"}, []interface{}{})
-	transport.AddResponse("https://www.googleapis.com/storage/v1/b/bazel/o?delimiter=/", 200, listBody)
-
-	v4ReleaseBucket := buildGCSResponseOrFail(t, []string{}, []interface{}{"fake_release_item_since_this_is_a_release"})
-	transport.AddResponse("https://www.googleapis.com/storage/v1/b/bazel/o?delimiter=/&prefix=4.0.0/release/", 200, v4ReleaseBucket)
-
-	v5ReleaseBucket := buildGCSResponseOrFail(t, []string{}, []interface{}{})
-	transport.AddResponse("https://www.googleapis.com/storage/v1/b/bazel/o?delimiter=/&prefix=5.0.0/release/", 200, v5ReleaseBucket)
-
-	v6ReleaseBucket := buildGCSResponseOrFail(t, []string{}, []interface{}{})
-	transport.AddResponse("https://www.googleapis.com/storage/v1/b/bazel/o?delimiter=/&prefix=6.0.0/release/", 200, v6ReleaseBucket)
+	s := SetUp(t)
+	s.AddVersion("4.0.0", true)
+	s.AddVersion("5.0.0", false)
+	s.AddVersion("6.0.0", false)
+	s.Finish()
 
 	gcs := &repositories.GCSRepo{}
 	repos := core.CreateRepositories(gcs, nil, nil, nil, false)
@@ -88,20 +80,12 @@ func TestResolveLatestVersion_TwoLatestVersionsDoNotHaveAReleaseYet(t *testing.T
 }
 
 func TestResolveLatestVersion_FilterReleaseCandidates(t *testing.T) {
-	listBody := buildGCSResponseOrFail(t, []string{"3.0.0", "4.0.0/", "5.0.0/", "6.0.0/"}, []interface{}{})
-	transport.AddResponse("https://www.googleapis.com/storage/v1/b/bazel/o?delimiter=/", 200, listBody)
-
-	v3ReleaseBucket := buildGCSResponseOrFail(t, []string{}, []interface{}{"fake_release_item_since_this_is_a_release"})
-	transport.AddResponse("https://www.googleapis.com/storage/v1/b/bazel/o?delimiter=/&prefix=3.0.0/release/", 200, v3ReleaseBucket)
-
-	v4ReleaseBucket := buildGCSResponseOrFail(t, []string{}, []interface{}{})
-	transport.AddResponse("https://www.googleapis.com/storage/v1/b/bazel/o?delimiter=/&prefix=4.0.0/release/", 200, v4ReleaseBucket)
-
-	v5ReleaseBucket := buildGCSResponseOrFail(t, []string{}, []interface{}{})
-	transport.AddResponse("https://www.googleapis.com/storage/v1/b/bazel/o?delimiter=/&prefix=5.0.0/release/", 200, v5ReleaseBucket)
-
-	v6ReleaseBucket := buildGCSResponseOrFail(t, []string{}, []interface{}{"fake_release_item_since_this_is_a_release"})
-	transport.AddResponse("https://www.googleapis.com/storage/v1/b/bazel/o?delimiter=/&prefix=6.0.0/release/", 200, v6ReleaseBucket)
+	s := SetUp(t)
+	s.AddVersion("3.0.0", true)
+	s.AddVersion("4.0.0", false)
+	s.AddVersion("5.0.0", false)
+	s.AddVersion("6.0.0", true)
+	s.Finish()
 
 	gcs := &repositories.GCSRepo{}
 	repos := core.CreateRepositories(gcs, nil, nil, nil, false)
@@ -117,14 +101,10 @@ func TestResolveLatestVersion_FilterReleaseCandidates(t *testing.T) {
 }
 
 func TestResolveLatestVersion_ShouldFailIfNotEnoughReleases(t *testing.T) {
-	listBody := buildGCSResponseOrFail(t, []string{"3.0.0/", "4.0.0/"}, []interface{}{})
-	transport.AddResponse("https://www.googleapis.com/storage/v1/b/bazel/o?delimiter=/", 200, listBody)
-
-	v3ReleaseBucket := buildGCSResponseOrFail(t, []string{}, []interface{}{"fake_release_item_since_this_is_a_release"})
-	transport.AddResponse("https://www.googleapis.com/storage/v1/b/bazel/o?delimiter=/&prefix=3.0.0/release/", 200, v3ReleaseBucket)
-
-	v4ReleaseBucket := buildGCSResponseOrFail(t, []string{}, []interface{}{})
-	transport.AddResponse("https://www.googleapis.com/storage/v1/b/bazel/o?delimiter=/&prefix=4.0.0/release/", 200, v4ReleaseBucket)
+	s := SetUp(t)
+	s.AddVersion("3.0.0", true)
+	s.AddVersion("4.0.0", false)
+	s.Finish()
 
 	gcs := &repositories.GCSRepo{}
 	repos := core.CreateRepositories(gcs, nil, nil, nil, false)
@@ -140,6 +120,8 @@ func TestResolveLatestVersion_ShouldFailIfNotEnoughReleases(t *testing.T) {
 }
 
 func TestResolveLatestVersion_GCSIsDown(t *testing.T) {
+	SetUp(t).WithError().Finish()
+
 	transport.AddResponse("https://www.googleapis.com/storage/v1/b/bazel/o?delimiter=/", 500, "")
 
 	gcs := &repositories.GCSRepo{}
@@ -170,6 +152,62 @@ func TestResolveLatestVersion_GitHubIsDown(t *testing.T) {
 	if !strings.HasPrefix(err.Error(), expectedPrefix) {
 		t.Fatalf("Expected error message that starts with '%s', but got '%v'", expectedPrefix, err)
 	}
+}
+
+type gcsSetup struct {
+	baseURL         string
+	versionPrefixes []string
+	status          int
+	test            *testing.T
+}
+
+func (g *gcsSetup) AddVersion(version string, hasRelease bool, rcs ...int) *gcsSetup {
+	g.versionPrefixes = append(g.versionPrefixes, fmt.Sprintf("%s/", version))
+	prefixes := make([]string, 0)
+	for _, rc := range rcs {
+		prefix := fmt.Sprintf("%s/rc%d/", version, rc)
+		prefixes = append(prefixes, prefix)
+		g.addURL(prefix, false)
+	}
+
+	// The /release/ URLs have to exist, even if there is no release. In this case GCS returns no items, though.
+	releasePrefix := fmt.Sprintf("%s/release/", version)
+	g.addURL(releasePrefix, hasRelease)
+	if hasRelease {
+		prefixes = append(prefixes, releasePrefix)
+	}
+
+	g.addURL(fmt.Sprintf("%s/", version), false, prefixes...)
+	return g
+}
+
+func (g *gcsSetup) addURL(prefix string, containsItem bool, childPrefixes ...string) {
+	items := make([]interface{}, 0)
+	if containsItem {
+		items = append(items, "this_is_a_release")
+	}
+	resp := buildGCSResponseOrFail(g.test, childPrefixes, items)
+	transport.AddResponse(fmt.Sprintf("%s&prefix=%s", g.baseURL, prefix), 200, resp)
+}
+
+func SetUp(t *testing.T) *gcsSetup {
+	return &gcsSetup{
+		baseURL:         "https://www.googleapis.com/storage/v1/b/bazel/o?delimiter=/",
+		status:          200,
+		versionPrefixes: make([]string, 0),
+		test:            t,
+	}
+}
+
+func (g *gcsSetup) WithError() *gcsSetup {
+	g.status = 500
+	return g
+}
+
+func (g *gcsSetup) Finish() {
+	// TODO: sort and deduplicate versionPrefixes
+	listBody := buildGCSResponseOrFail(g.test, g.versionPrefixes, []interface{}{})
+	transport.AddResponse(g.baseURL, g.status, listBody)
 }
 
 type fakeTransport struct {
