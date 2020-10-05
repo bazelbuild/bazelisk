@@ -116,9 +116,8 @@ func (gcs *GCSRepo) removeCandidates(history []string, lastN int) ([]string, err
 		resolvedLimit = lastN
 	}
 
-	hpos := len(history) - 1
 	descendingReleases := make([]string, 0)
-	for hpos >= 0 && len(descendingReleases) < resolvedLimit {
+	for hpos := len(history) - 1; hpos >= 0 && len(descendingReleases) < resolvedLimit; hpos-- {
 		latestVersion := history[hpos]
 		_, isRelease, err := listDirectoriesInReleaseBucket(latestVersion + "/release/")
 		if err != nil {
@@ -127,7 +126,6 @@ func (gcs *GCSRepo) removeCandidates(history []string, lastN int) ([]string, err
 		if isRelease {
 			descendingReleases = append(descendingReleases, latestVersion)
 		}
-		hpos -= 1
 	}
 
 	if lastN > 0 && len(descendingReleases) < lastN {
