@@ -18,8 +18,8 @@ type DownloadFunc func(destDir, destFile string) (string, error)
 
 // ReleaseRepo represents a repository that stores Bazel releases.
 type ReleaseRepo interface {
-	// GetReleaseVersions returns a list of all available release versions.
-	GetReleaseVersions(bazeliskHome string) ([]string, error)
+	// GetReleaseVersions returns a list of all available release versions. If lastN is smaller than 1, all available versions are being returned.
+	GetReleaseVersions(bazeliskHome string, lastN int) ([]string, error)
 
 	// DownloadRelease downloads the given Bazel version into the specified location and returns the absolute path.
 	DownloadRelease(version, destDir, destFile string) (string, error)
@@ -102,7 +102,10 @@ func (r *Repositories) resolveFork(bazeliskHome string, vi *versions.Info) (stri
 }
 
 func (r *Repositories) resolveRelease(bazeliskHome string, vi *versions.Info) (string, DownloadFunc, error) {
-	version, err := resolvePotentiallyRelativeVersion(bazeliskHome, r.Releases.GetReleaseVersions, vi)
+	lister := func(bazeliskHome string) ([]string, error) {
+		return r.Releases.GetReleaseVersions(bazeliskHome, vi.LatestOffset+1)
+	}
+	version, err := resolvePotentiallyRelativeVersion(bazeliskHome, lister, vi)
 	if err != nil {
 		return "", nil, err
 	}
@@ -212,7 +215,7 @@ type noReleaseRepo struct {
 	Error error
 }
 
-func (nrr *noReleaseRepo) GetReleaseVersions(bazeliskHome string) ([]string, error) {
+func (nrr *noReleaseRepo) GetReleaseVersions(bazeliskHome string, lastN int) ([]string, error) {
 	return []string{}, nrr.Error
 }
 

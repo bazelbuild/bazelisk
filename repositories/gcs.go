@@ -36,11 +36,22 @@ type GCSRepo struct{}
 // ReleaseRepo
 
 // GetReleaseVersions returns the versions of all available Bazel releases in this repository.
-func (gcs *GCSRepo) GetReleaseVersions(bazeliskHome string) ([]string, error) {
-	return getVersionHistoryFromGCS(true)
+func (gcs *GCSRepo) GetReleaseVersions(bazeliskHome string, lastN int) ([]string, error) {
+	history, err := getVersionHistoryFromGCS()
+	if err != nil {
+		return []string{}, err
+	}
+	releases, err := gcs.removeCandidates(history, lastN)
+	if err != nil {
+		return []string{}, err
+	}
+	if len(releases) == 0 {
+		return []string{}, errors.New("there are no releases available")
+	}
+	return releases, nil
 }
 
-func getVersionHistoryFromGCS(onlyFullReleases bool) ([]string, error) {
+func getVersionHistoryFromGCS() ([]string, error) {
 	prefixes, _, err := listDirectoriesInReleaseBucket("")
 	if err != nil {
 		return []string{}, fmt.Errorf("could not list Bazel versions in GCS bucket: %v", err)
@@ -48,26 +59,6 @@ func getVersionHistoryFromGCS(onlyFullReleases bool) ([]string, error) {
 
 	available := getVersionsFromGCSPrefixes(prefixes)
 	sorted := versions.GetInAscendingOrder(available)
-
-	// TODO(#171): This algorithm is incorrect if version == 'latest-n' and any of the last n versions (except the last one) does not have a release yet.
-	if onlyFullReleases {
-		for len(sorted) > 0 {
-			lastIndex := len(sorted) - 1
-			latestVersion := sorted[lastIndex]
-			_, isRelease, err := listDirectoriesInReleaseBucket(latestVersion + "/release/")
-			if err != nil {
-				return []string{}, fmt.Errorf("could not list available releases for %v: %v", latestVersion, err)
-			}
-			if isRelease {
-				break
-			}
-			sorted = sorted[:lastIndex]
-		}
-		if len(sorted) == 0 {
-			return []string{}, errors.New("there are no releases available")
-		}
-	}
-
 	return sorted, nil
 }
 
@@ -117,21 +108,54 @@ func (gcs *GCSRepo) DownloadRelease(version, destDir, destFile string) (string, 
 	return httputil.DownloadBinary(url, destDir, destFile)
 }
 
+func (gcs *GCSRepo) removeCandidates(history []string, lastN int) ([]string, error) {
+	var resolvedLimit int
+	if lastN < 1 {
+		resolvedLimit = len(history)
+	} else {
+		resolvedLimit = lastN
+	}
+
+	descendingReleases := make([]string, 0)
+	for hpos := len(history) - 1; hpos >= 0 && len(descendingReleases) < resolvedLimit; hpos-- {
+		latestVersion := history[hpos]
+		_, isRelease, err := listDirectoriesInReleaseBucket(latestVersion + "/release/")
+		if err != nil {
+			return []string{}, fmt.Errorf("could not list available releases for %v: %v", latestVersion, err)
+		}
+		if isRelease {
+			descendingReleases = append(descendingReleases, latestVersion)
+		}
+	}
+
+	if lastN > 0 && len(descendingReleases) < lastN {
+		return []string{}, fmt.Errorf("requested %d latest releases, but only found %d", lastN, len(descendingReleases))
+	}
+	return reverseInPlace(descendingReleases), nil
+}
+
+func reverseInPlace(values []string) []string {
+	for i := 0; i < len(values)/2; i++ {
+		j := len(values) - 1 - i
+		values[i], values[j] = values[j], values[i]
+	}
+	return values
+}
+
 // CandidateRepo
 
-// GetCandidateVersions returns all versions of available release candidates in this repository.
+// GetCandidateVersions returns all versions of available release candidates for the latest release in this repository.
 func (gcs *GCSRepo) GetCandidateVersions(bazeliskHome string) ([]string, error) {
-	available, err := getVersionHistoryFromGCS(false)
+	history, err := getVersionHistoryFromGCS()
 	if err != nil {
 		return []string{}, err
 	}
 
-	if len(available) == 0 {
+	if len(history) == 0 {
 		return []string{}, errors.New("could not find any Bazel versions")
 	}
 
-	sorted := versions.GetInAscendingOrder(available)
-	latestVersion := sorted[len(sorted)-1]
+	latestVersion := history[len(history)-1]
 
 	// Append slash to match directories
 	rcPrefixes, _, err := listDirectoriesInReleaseBucket(latestVersion + "/")
