@@ -70,20 +70,6 @@ go_test(
     ],
 )
 
-go_test(
-    name = "go_version_test",
-    srcs = ["bazelisk_version_test.go"],
-    embed = [":go_default_library"],
-    importpath = "github.com/bazelbuild/bazelisk",
-    deps = [
-        "//core",
-        "//httputil",
-        "//repositories",
-        "//versions",
-        "@io_bazel_rules_go//go/tools/bazel:go_default_library",
-    ],
-)
-
 go_binary(
     name = "bazelisk",
     embed = [":go_default_library"],
@@ -136,10 +122,6 @@ go_binary(
     name = "bazelisk-windows",
     out = "bazelisk-windows_amd64.exe",
     embed = [":go_default_library"],
-    gc_linkopts = [
-        "-s",
-        "-w",
-    ],
     goarch = "amd64",
     goos = "windows",
     pure = "on",

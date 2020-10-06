@@ -1,41 +1,34 @@
 ---
 platforms:
   ubuntu1604:
+    build_targets:
+      - //...
     test_targets:
-      - //:go_bazelisk_test
-      - //:go_default_test
-      - //:go_version_test
-      - //:py_bazelisk_test
-      - //:py3_bazelisk_test
+      - //...
     test_flags:
       - --flaky_test_attempts=1
       - --test_output=streamed
   ubuntu1804:
+    build_targets:
+      - //...
     test_targets:
-      - //:go_bazelisk_test
-      - //:go_default_test
-      - //:go_version_test
-      - //:py_bazelisk_test
-      - //:py3_bazelisk_test
+      - //...
     test_flags:
       - --flaky_test_attempts=1
       - --test_output=streamed
   macos:
+    build_targets:
+      - //...
     test_targets:
-      - //:go_bazelisk_test
-      - //:go_default_test
-      - //:go_version_test
-      - //:py_bazelisk_test
-      - //:py3_bazelisk_test
+      - //...
     test_flags:
       - --flaky_test_attempts=1
       - --test_output=streamed
   windows:
+    build_targets:
+      - //...
     test_targets:
-      - //:go_bazelisk_test
-      - //:go_default_test
-      - //:go_version_test
-      - //:py_bazelisk_test
+      - //...
     test_flags:
       - --flaky_test_attempts=1
       - --test_env=PATH
