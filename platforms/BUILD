@@ -1,7 +1,7 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
-    name = "platforms",
+    name = "go_default_library",
     srcs = ["platforms.go"],
     importpath = "github.com/bazelbuild/bazelisk/platforms",
     visibility = ["//visibility:public"],

@@ -45,23 +45,27 @@ go_library(
     visibility = ["//visibility:private"],
     x_defs = {"BazeliskVersion": "{STABLE_VERSION}"},
     deps = [
-        "//core",
-        "//httputil",
-        "//repositories",
-        "//versions",
+        "//core:go_default_library",
+        "//repositories:go_default_library",
     ],
 )
 
 go_test(
     name = "go_default_test",
-    srcs = ["bazelisk_test.go"],
+    srcs = [
+        "bazelisk_test.go",
+        "bazelisk_version_test.go",
+    ],
     data = [
         "sample-issues-migration.json",
     ],
     embed = [":go_default_library"],
     importpath = "github.com/bazelbuild/bazelisk",
     deps = [
-        "//core",
+        "//core:go_default_library",
+        "//httputil:go_default_library",
+        "//repositories:go_default_library",
+        "//versions:go_default_library",
         "@io_bazel_rules_go//go/tools/bazel:go_default_library",
     ],
 )

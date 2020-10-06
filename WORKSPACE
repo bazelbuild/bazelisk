@@ -2,10 +2,10 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 http_archive(
     name = "io_bazel_rules_go",
-    sha256 = "7f1aa43d986df189f7cf30e81dd2dc9d8ed7c74e356341a17267f6d7e5748382",
+    sha256 = "b725e6497741d7fc2d55fcc29a276627d10e43fa5d0bb692692890ae30d98d00",
     urls = [
-        "https://mirror.bazel.build/github.com/bazelbuild/rules_go/releases/download/v0.24.1/rules_go-v0.24.1.tar.gz",
-        "https://github.com/bazelbuild/rules_go/releases/download/v0.24.1/rules_go-v0.24.1.tar.gz",
+        "https://mirror.bazel.build/github.com/bazelbuild/rules_go/releases/download/v0.24.3/rules_go-v0.24.3.tar.gz",
+        "https://github.com/bazelbuild/rules_go/releases/download/v0.24.3/rules_go-v0.24.3.tar.gz",
     ],
 )
 
@@ -17,23 +17,30 @@ go_register_toolchains()
 
 http_archive(
     name = "bazel_gazelle",
-    sha256 = "d4113967ab451dd4d2d767c3ca5f927fec4b30f3b2c6f8135a2033b9c05a5687",
+    sha256 = "72d339ff874a382f819aaea80669be049069f502d6c726a07759fdca99653c48",
     urls = [
-        "https://mirror.bazel.build/github.com/bazelbuild/bazel-gazelle/releases/download/v0.22.0/bazel-gazelle-v0.22.0.tar.gz",
-        "https://github.com/bazelbuild/bazel-gazelle/releases/download/v0.22.0/bazel-gazelle-v0.22.0.tar.gz",
+        "https://mirror.bazel.build/github.com/bazelbuild/bazel-gazelle/releases/download/v0.22.1/bazel-gazelle-v0.22.1.tar.gz",
+        "https://github.com/bazelbuild/bazel-gazelle/releases/download/v0.22.1/bazel-gazelle-v0.22.1.tar.gz",
     ],
 )
 
 # Load and call Gazelle dependencies
 load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies", "go_repository")
 
+go_repository(
+    name = "com_github_bazelbuild_rules_go",
+    importpath = "github.com/bazelbuild/rules_go",
+    sum = "h1:BKNgfYF+WS0pBpmMy2w9k6TqMpxuzL3JI0oWmhZ4JRU=",
+    version = "v0.24.3",
+)
+
 gazelle_dependencies()
 
 go_repository(
     name = "com_github_hashicorp_go_version",
     importpath = "github.com/hashicorp/go-version",
-    sum = "h1:3vNe/fWF5CBgRIguda1meWhsZHy3m8gCJ5wx+dIzX/E=",
-    version = "v1.2.0",
+    sum = "h1:zEfKbn2+PDgroKdiOzqiE8rsmLqU2uwi5PB5pBJ3TkI=",
+    version = "v1.2.1",
 )
 
 go_repository(
