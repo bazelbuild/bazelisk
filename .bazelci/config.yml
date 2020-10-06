@@ -29,6 +29,8 @@ platforms:
       - //...
     test_targets:
       - //...
+      # Windows doesn't have a `python3` executable on PATH.
+      - -//:py3_bazelisk_test
     test_flags:
       - --flaky_test_attempts=1
       - --test_env=PATH
