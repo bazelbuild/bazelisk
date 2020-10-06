@@ -28,10 +28,10 @@ go build
     //:bazelisk-windows
 echo
 
-cp bazel-bin/bazelisk-darwin_amd64 bin/bazelisk-darwin-amd64
-cp bazel-bin/bazelisk-linux_amd64 bin/bazelisk-linux-amd64
-cp bazel-bin/bazelisk-linux_arm64 bin/bazelisk-linux-arm64
-cp bazel-bin/bazelisk-windows_amd64.exe bin/bazelisk-windows-amd64.exe
+cp bazel-out/*-opt-*/bin/bazelisk-darwin_amd64 bin/bazelisk-darwin-amd64
+cp bazel-out/*-opt-*/bin/bazelisk-linux_amd64 bin/bazelisk-linux-amd64
+cp bazel-out/*-opt-*/bin/bazelisk-linux_arm64 bin/bazelisk-linux-arm64
+cp bazel-out/*-opt-*/bin/bazelisk-windows_amd64.exe bin/bazelisk-windows-amd64.exe
 rm -f bazelisk
 
 ### Build release artifacts using `go build`.
