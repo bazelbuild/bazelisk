@@ -8,6 +8,7 @@ go_library(
     ],
     importpath = "github.com/bazelbuild/bazelisk/core",
     visibility = ["//visibility:public"],
+    x_defs = {"BazeliskVersion": "{STABLE_VERSION}"},
     deps = [
         "//httputil:go_default_library",
         "//platforms:go_default_library",

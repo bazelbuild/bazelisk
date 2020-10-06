@@ -43,7 +43,6 @@ go_library(
     srcs = ["bazelisk.go"],
     importpath = "github.com/bazelbuild/bazelisk",
     visibility = ["//visibility:private"],
-    x_defs = {"BazeliskVersion": "{STABLE_VERSION}"},
     deps = [
         "//core:go_default_library",
         "//repositories:go_default_library",
