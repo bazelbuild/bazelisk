@@ -432,17 +432,18 @@ type issueList struct {
 	Items []issue `json:"items"`
 }
 
-type flagDetails struct {
+// Visible for testing
+type FlagDetails struct {
 	Name          string
 	ReleaseToFlip string
 	IssueURL      string
 }
 
-func (f *flagDetails) String() string {
+func (f *FlagDetails) String() string {
 	return fmt.Sprintf("%s (Bazel %s: %s)", f.Name, f.ReleaseToFlip, f.IssueURL)
 }
 
-func getIncompatibleFlags(bazeliskHome, resolvedBazelVersion string) (map[string]*flagDetails, error) {
+func getIncompatibleFlags(bazeliskHome, resolvedBazelVersion string) (map[string]*FlagDetails, error) {
 	// GitHub labels use only major and minor version, we ignore the patch number (and any other suffix).
 	re := regexp.MustCompile(`^\d+\.\d+`)
 	version := re.FindString(resolvedBazelVersion)
@@ -461,23 +462,23 @@ func getIncompatibleFlags(bazeliskHome, resolvedBazelVersion string) (map[string
 
 // ScanIssuesForIncompatibleFlags is visible for testing.
 // TODO: move this function and its test into a dedicated package.
-func ScanIssuesForIncompatibleFlags(issuesJSON []byte) (map[string]*flagDetails, error) {
-	result := make(map[string]*flagDetails)
+func ScanIssuesForIncompatibleFlags(issuesJSON []byte) (map[string]*FlagDetails, error) {
+	result := make(map[string]*FlagDetails)
 	var issueList issueList
 	if err := json.Unmarshal(issuesJSON, &issueList); err != nil {
 		return nil, fmt.Errorf("could not parse JSON into list of issues: %v", err)
 	}
 
 	re := regexp.MustCompile(`^incompatible_\w+`)
-	s_re := regexp.MustCompile(`^//.*[^/]:incompatible_\w+`)
+	sRe := regexp.MustCompile(`^//.*[^/]:incompatible_\w+`)
 	for _, issue := range issueList.Items {
 		flag := re.FindString(issue.Title)
 		if len(flag) <= 0 {
-			flag = s_re.FindString(issue.Title)
+			flag = sRe.FindString(issue.Title)
 		}
 		if len(flag) > 0 {
 			name := "--" + flag
-			result[name] = &flagDetails{
+			result[name] = &FlagDetails{
 				Name:          name,
 				ReleaseToFlip: getBreakingRelease(issue.Labels),
 				IssueURL:      issue.URL,
@@ -554,7 +555,7 @@ func cleanIfNeeded(bazelPath string) {
 }
 
 // migrate will run Bazel with each newArgs separately and report which ones are failing.
-func migrate(bazelPath string, baseArgs []string, flags map[string]*flagDetails) {
+func migrate(bazelPath string, baseArgs []string, flags map[string]*FlagDetails) {
 	newArgs := getSortedKeys(flags)
 	// 1. Try with all the flags.
 	args := insertArgs(baseArgs, newArgs)
@@ -623,7 +624,7 @@ func migrate(bazelPath string, baseArgs []string, flags map[string]*flagDetails)
 	os.Exit(1)
 }
 
-func getSortedKeys(data map[string]*flagDetails) []string {
+func getSortedKeys(data map[string]*FlagDetails) []string {
 	result := make([]string, 0)
 	for key := range data {
 		result = append(result, key)

@@ -10,6 +10,7 @@ import (
 )
 
 const (
+	// BaseURLEnv is the name of the environment variable that stores the base URL for downloads.
 	BaseURLEnv = "BAZELISK_BASE_URL"
 )
 

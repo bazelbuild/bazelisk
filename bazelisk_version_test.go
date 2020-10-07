@@ -39,7 +39,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestResolveLatestRcVersion(t *testing.T) {
-	s := SetUp(t)
+	s := setUp(t)
 	s.AddVersion("4.0.0", false)
 	s.AddVersion("10.0.0", false)
 	s.AddVersion("11.0.0", true)
@@ -60,7 +60,7 @@ func TestResolveLatestRcVersion(t *testing.T) {
 }
 
 func TestResolveLatestVersion_TwoLatestVersionsDoNotHaveAReleaseYet(t *testing.T) {
-	s := SetUp(t)
+	s := setUp(t)
 	s.AddVersion("4.0.0", true)
 	s.AddVersion("5.0.0", false)
 	s.AddVersion("6.0.0", false)
@@ -80,7 +80,7 @@ func TestResolveLatestVersion_TwoLatestVersionsDoNotHaveAReleaseYet(t *testing.T
 }
 
 func TestResolveLatestVersion_FilterReleaseCandidates(t *testing.T) {
-	s := SetUp(t)
+	s := setUp(t)
 	s.AddVersion("3.0.0", true)
 	s.AddVersion("4.0.0", false)
 	s.AddVersion("5.0.0", false)
@@ -101,7 +101,7 @@ func TestResolveLatestVersion_FilterReleaseCandidates(t *testing.T) {
 }
 
 func TestResolveLatestVersion_ShouldFailIfNotEnoughReleases(t *testing.T) {
-	s := SetUp(t)
+	s := setUp(t)
 	s.AddVersion("3.0.0", true)
 	s.AddVersion("4.0.0", false)
 	s.Finish()
@@ -120,7 +120,7 @@ func TestResolveLatestVersion_ShouldFailIfNotEnoughReleases(t *testing.T) {
 }
 
 func TestResolveLatestVersion_GCSIsDown(t *testing.T) {
-	SetUp(t).WithError().Finish()
+	setUp(t).WithError().Finish()
 
 	transport.AddResponse("https://www.googleapis.com/storage/v1/b/bazel/o?delimiter=/", 500, "")
 
@@ -190,7 +190,7 @@ func (g *gcsSetup) addURL(prefix string, containsItem bool, childPrefixes ...str
 	transport.AddResponse(fmt.Sprintf("%s&prefix=%s", g.baseURL, prefix), 200, resp)
 }
 
-func SetUp(t *testing.T) *gcsSetup {
+func setUp(t *testing.T) *gcsSetup {
 	return &gcsSetup{
 		baseURL:         "https://www.googleapis.com/storage/v1/b/bazel/o?delimiter=/",
 		status:          200,
@@ -237,10 +237,10 @@ func buildGCSResponseOrFail(t *testing.T, prefixes []string, items []interface{}
 		Prefixes: prefixes,
 		Items:    items,
 	}
-	if bytes, err := json.Marshal(r); err != nil {
+	byteValue, err := json.Marshal(r)
+	if err != nil {
 		t.Fatalf("Could not build GCS json response: %v", err)
 		return ""
-	} else {
-		return string(bytes)
 	}
+	return string(byteValue)
 }
