@@ -432,7 +432,7 @@ type issueList struct {
 	Items []issue `json:"items"`
 }
 
-// Visible for testing
+// FlagDetails represents an incompatible flag that should be flipped later. It's currently exported for testing purposes.
 type FlagDetails struct {
 	Name          string
 	ReleaseToFlip string
