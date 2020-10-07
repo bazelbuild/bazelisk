@@ -127,6 +127,38 @@ go_binary(
     visibility = ["//visibility:public"],
 )
 
+genrule(
+    name = "bazelisk-darwin-for-npm",
+    srcs = [":bazelisk-darwin"],
+    outs = ["bazelisk-darwin_amd64"],
+    cmd = "cp $(location :bazelisk-darwin) \"$@\"",
+    output_to_bindir = 1,
+)
+
+genrule(
+    name = "bazelisk-linux-for-npm",
+    srcs = [":bazelisk-linux"],
+    outs = ["bazelisk-linux_amd64"],
+    cmd = "cp $(location :bazelisk-linux) \"$@\"",
+    output_to_bindir = 1,
+)
+
+genrule(
+    name = "bazelisk-linux-arm64-for-npm",
+    srcs = [":bazelisk-linux-arm64"],
+    outs = ["bazelisk-linux_arm64"],
+    cmd = "cp $(location :bazelisk-linux-arm64) \"$@\"",
+    output_to_bindir = 1,
+)
+
+genrule(
+    name = "bazelisk-windows-for-npm",
+    srcs = [":bazelisk-windows"],
+    outs = ["bazelisk-windows_amd64.exe"],
+    cmd = "cp $(location :bazelisk-windows) \"$@\"",
+    output_to_bindir = 1,
+)
+
 pkg_npm(
     name = "npm_package",
     srcs = [
@@ -136,9 +168,9 @@ pkg_npm(
         "package.json",
     ],
     deps = [
-        ":bazelisk-darwin",
-        ":bazelisk-linux",
-        ":bazelisk-linux-arm64",
-        ":bazelisk-windows",
+        ":bazelisk-darwin-for-npm",
+        ":bazelisk-linux-for-npm",
+        ":bazelisk-linux-arm64-for-npm",
+        ":bazelisk-windows-for-npm",
     ],
 )
