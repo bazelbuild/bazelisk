@@ -2,20 +2,15 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"sort"
 	"testing"
 
 	"github.com/bazelbuild/bazelisk/core"
-	"github.com/bazelbuild/rules_go/go/tools/bazel"
+	"github.com/bazelbuild/bazelisk/runfiles"
 )
 
 func TestScanIssuesForIncompatibleFlags(t *testing.T) {
-	path, err := bazel.Runfile("sample-issues-migration.json")
-	if err != nil {
-		t.Errorf("Can not load sample github issues")
-	}
-	samplesJSON, err := ioutil.ReadFile(path)
+	samplesJSON, err := runfiles.ReadFile("sample-issues-migration.json")
 	if err != nil {
 		t.Errorf("Can not load sample github issues")
 	}

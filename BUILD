@@ -64,8 +64,8 @@ go_test(
         "//core:go_default_library",
         "//httputil:go_default_library",
         "//repositories:go_default_library",
+        "//runfiles:go_default_library",
         "//versions:go_default_library",
-        "@io_bazel_rules_go//go/tools/bazel:go_default_library",
     ],
 )
 
