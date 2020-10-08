@@ -15,7 +15,7 @@ func TestScanIssuesForIncompatibleFlags(t *testing.T) {
 		t.Errorf("Can not load sample github issues")
 	}
 	flags, err := core.ScanIssuesForIncompatibleFlags(samplesJSON)
-	if flags == nil {
+	if err != nil || flags == nil {
 		t.Errorf("Could not parse sample issues")
 	}
 	expectedFlagnames := []string{
