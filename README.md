@@ -51,10 +51,9 @@ Additionally, a few special version names are supported for our official release
 
 ## Where does Bazelisk get Bazel from?
 
-By default Bazelisk retrieves the list of Bazel versions from the Bazel GitHub project. If this fails, Bazelisk queries the official Bazel release server instead.
-In both cases the actual binaries are downloaded from the release server.
+By default Bazelisk retrieves Bazel releases, release candidates and binaries built at green commits from Google Cloud Storage.
 
-As mentioned in the previous section, the `<FORK>/<VERSION>` version format allows you to use your own Bazel fork instead of working with the official servers:
+As mentioned in the previous section, the `<FORK>/<VERSION>` version format allows you to use your own Bazel fork hosted on GitHub:
 
 If you want to create a fork with your own releases, you have to follow the naming conventions that we use in `bazelbuild/bazel` for the binary file names.
 The URL format looks like `https://github.com/<FORK>/bazel/releases/download/<VERSION>/<FILENAME>`.
