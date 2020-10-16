@@ -80,7 +80,8 @@ func RunBazelisk(args []string, repos *Repositories) (int, error) {
 			return -1, fmt.Errorf("could not parse Bazel fork and version: %v", err)
 		}
 
-		resolvedBazelVersion, downloader, err := repos.ResolveVersion(bazeliskHome, bazelFork, bazelVersion)
+		var downloader DownloadFunc
+		resolvedBazelVersion, downloader, err = repos.ResolveVersion(bazeliskHome, bazelFork, bazelVersion)
 		if err != nil {
 			return -1, fmt.Errorf("could not resolve the version '%s' to an actual version number: %v", bazelVersion, err)
 		}
