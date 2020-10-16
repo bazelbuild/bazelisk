@@ -234,17 +234,6 @@ function test_bazel_last_rc() {
       (echo "FAIL: Expected to find 'Build label' in the output of 'bazelisk version'"; exit 1)
 }
 
-function test_bazel_migrate() {
-  setup
-
-  USE_BAZEL_VERSION="3.5.0" \
-      BAZELISK_HOME="$BAZELISK_HOME" \
-      bazelisk --migrate 2>&1 | tee log
-
-  grep "3.5.0" log || \
-      (echo "FAIL: Expected to find '3.5.0' in the output of 'bazelisk --migrate'"; exit 1)
-}
-
 function test_delegate_to_wrapper() {
   setup
 
@@ -385,10 +374,6 @@ if [[ $BAZELISK_VERSION == "GO" ]]; then
 
   echo "# test_bazel_prepend_binary_directory_to_path_go"
   test_bazel_prepend_binary_directory_to_path_go
-  echo
-
-  echo "# test_bazel_migrate"
-  test_bazel_migrate
   echo
 
   case "$(uname -s)" in
