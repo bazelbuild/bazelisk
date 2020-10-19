@@ -6,6 +6,8 @@ platforms:
     shell_commands:
       - go vet github.com/bazelbuild/bazelisk/...
       - go get -u golang.org/x/tools/go/analysis/passes/shadow/cmd/shadow
+      - pwd
+      - ls
       - go vet -vettool=$(which shadow) github.com/bazelbuild/bazelisk/...
   ubuntu1604:
     build_targets:
