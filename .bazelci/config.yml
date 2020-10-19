@@ -1,5 +1,12 @@
 ---
 platforms:
+  go_vet:
+    name: ":go: vet"
+    platform: ubuntu1804
+    shell_commands:
+      - go vet github.com/bazelbuild/bazelisk/...
+      - go get -u golang.org/x/tools/go/analysis/passes/shadow/cmd/shadow
+      - go vet -vettool=$(which shadow) github.com/bazelbuild/bazelisk/...
   ubuntu1604:
     build_targets:
       - //...
