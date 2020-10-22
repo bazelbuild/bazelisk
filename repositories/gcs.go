@@ -82,7 +82,8 @@ func listDirectoriesInReleaseBucket(prefix string) ([]string, bool, error) {
 func getVersionsFromGCSPrefixes(versions []string) []string {
 	result := make([]string, len(versions))
 	for i, v := range versions {
-		result[i] = strings.ReplaceAll(v, "/", "")
+		noSlashes := strings.ReplaceAll(v, "/", "")
+		result[i] =  strings.TrimSuffix(noSlashes, "release")
 	}
 	return result
 }
@@ -163,7 +164,14 @@ func (gcs *GCSRepo) GetCandidateVersions(bazeliskHome string) ([]string, error) 
 		return []string{}, fmt.Errorf("could not list release candidates for latest release: %v", err)
 	}
 
-	return getVersionsFromGCSPrefixes(rcPrefixes), nil
+	rcs := make([]string, 0)
+	for _, v := range getVersionsFromGCSPrefixes(rcPrefixes) {
+		// Remove full releases
+		if strings.Contains(v, "rc") {
+			rcs = append(rcs, v)
+		}
+	}
+	return rcs, nil
 }
 
 // DownloadCandidate downloads the given release candidate into the specified location and returns the absolute path.
