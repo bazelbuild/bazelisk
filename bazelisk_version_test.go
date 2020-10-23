@@ -59,6 +59,24 @@ func TestResolveLatestRcVersion(t *testing.T) {
 	}
 }
 
+func TestResolveLatestRcVersion_WithFullRelease(t *testing.T) {
+	s := setUp(t)
+	s.AddVersion("4.0.0", true, 1, 2, 3)
+	s.Finish()
+
+	gcs := &repositories.GCSRepo{}
+	repos := core.CreateRepositories(nil, gcs, nil, nil, false)
+	version, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, "last_rc")
+
+	if err != nil {
+		t.Fatalf("Version resolution failed unexpectedly: %v", err)
+	}
+	expectedRC := "4.0.0rc3"
+	if version != expectedRC {
+		t.Fatalf("Expected version %s, but got %s", expectedRC, version)
+	}
+}
+
 func TestResolveLatestVersion_TwoLatestVersionsDoNotHaveAReleaseYet(t *testing.T) {
 	s := setUp(t)
 	s.AddVersion("4.0.0", true)
