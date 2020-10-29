@@ -175,7 +175,7 @@ func (r *Repositories) DownloadFromBaseURL(baseURL, version, destDir, destFile s
 	}
 
 	url := fmt.Sprintf("%s/%s/%s", baseURL, version, srcFile)
-	return httputil.DownloadBinary(url, destDir, destFile)
+	return httputil.DownloadBinary(url, "", "", destDir, destFile)
 }
 
 // CreateRepositories creates a new Repositories instance with the given repositories. Any nil repository will be replaced by a dummy repository that raises an error whenever a download is attempted.

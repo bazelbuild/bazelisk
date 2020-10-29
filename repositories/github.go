@@ -59,5 +59,5 @@ func (gh *GitHubRepo) DownloadVersion(fork, version, destDir, destFile string) (
 		return "", err
 	}
 	url := fmt.Sprintf(urlPattern, fork, version, filename)
-	return httputil.DownloadBinary(url, destDir, destFile)
+	return httputil.DownloadBinary(url, "", "", destDir, destFile)
 }

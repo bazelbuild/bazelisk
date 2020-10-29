@@ -5,4 +5,5 @@ go_library(
     srcs = ["httputil.go"],
     importpath = "github.com/bazelbuild/bazelisk/httputil",
     visibility = ["//visibility:public"],
+    deps = ["@org_golang_x_crypto//openpgp:go_default_library"],
 )
