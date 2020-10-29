@@ -72,10 +72,10 @@ type RollingRepo interface {
 
 // Repositories offers access to different types of Bazel repositories, mainly for finding and downloading the correct version of Bazel.
 type Repositories struct {
-	LTS             LTSRepo
-	Fork            ForkRepo
-	Commits         CommitRepo
-	Rolling         RollingRepo
+	LTS                     LTSRepo
+	Fork                    ForkRepo
+	Commits                 CommitRepo
+	Rolling                 RollingRepo
 	supportsBaseOrFormatURL bool
 }
 
@@ -219,7 +219,7 @@ func (r *Repositories) DownloadFromBaseURL(baseURL, version, destDir, destFile s
 	}
 
 	url := fmt.Sprintf("%s/%s/%s", baseURL, version, srcFile)
-	return httputil.DownloadBinary(url, destDir, destFile, config)
+	return httputil.DownloadBinary(url, "", "", destDir, destFile, config)
 }
 
 // BuildURLFromFormat returns a Bazel download URL based on formatURL.
@@ -282,7 +282,7 @@ func (r *Repositories) DownloadFromFormatURL(config config.Config, formatURL, ve
 		return "", err
 	}
 
-	return httputil.DownloadBinary(url, destDir, destFile, config)
+	return httputil.DownloadBinary(url, "", "", destDir, destFile, config)
 }
 
 // CreateRepositories creates a new Repositories instance with the given repositories. Any nil repository will be replaced by a dummy repository that raises an error whenever a download is attempted.
