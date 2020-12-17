@@ -230,11 +230,15 @@ def determine_url(version, is_commit, bazel_filename):
             platform=SUPPORTED_PLATFORMS[platform.system().lower()], commit=version
         )
 
+    if "BAZELISK_BASE_URL" in os.environ:
+        base_url = os.environ["BAZELISK_BASE_URL"]
+    else:
+        bazel_url = "https://releases.bazel.build"
     # Split version into base version and optional additional identifier.
     # Example: '0.19.1' -> ('0.19.1', None), '0.20.0rc1' -> ('0.20.0', 'rc1')
     (version, rc) = re.match(r"(\d*\.\d*(?:\.\d*)?)(rc\d+)?", version).groups()
-    return "https://releases.bazel.build/{}/{}/{}".format(
-        version, rc if rc else "release", bazel_filename
+    return "{}/{}/{}/{}".format(
+        bazel_url, version, rc if rc else "release", bazel_filename
     )
 
 
