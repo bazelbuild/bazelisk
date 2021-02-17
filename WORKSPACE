@@ -81,9 +81,8 @@ go_repository(
 # We don't use any nodejs but this includes a rule for publishing releases to npm
 http_archive(
     name = "build_bazel_rules_nodejs",
-    patches = ["//:rules_nodejs.pr1591.patch"],
-    sha256 = "ecaa54955b314b5e33948bd8f39e35c35ee89e905d8de1c03868100293510573",
-    urls = ["https://github.com/bazelbuild/rules_nodejs/releases/download/1.2.1/rules_nodejs-1.2.1.tar.gz"],
+    sha256 = "84abf7ac4234a70924628baa9a73a5a5cbad944c4358cf9abdb4aab29c9a5b77",
+    urls = ["https://github.com/bazelbuild/rules_nodejs/releases/download/1.7.0/rules_nodejs-1.7.0.tar.gz"],
 )
 
 load("@build_bazel_rules_nodejs//:index.bzl", "node_repositories")

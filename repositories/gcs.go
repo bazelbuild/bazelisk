@@ -136,7 +136,7 @@ func listDirectoriesInReleaseBucket(prefix string) ([]string, bool, error) {
 func getVersionsFromGCSPrefixes(versions []string) []string {
 	result := make([]string, len(versions))
 	for i, v := range versions {
-		noSlashes := strings.ReplaceAll(v, "/", "")
+		noSlashes := strings.Replace(v, "/", "", -1)
 		result[i] =  strings.TrimSuffix(noSlashes, "release")
 	}
 	return result
