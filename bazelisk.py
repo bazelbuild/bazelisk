@@ -233,9 +233,15 @@ def determine_url(version, is_commit, bazel_filename):
     # Split version into base version and optional additional identifier.
     # Example: '0.19.1' -> ('0.19.1', None), '0.20.0rc1' -> ('0.20.0', 'rc1')
     (version, rc) = re.match(r"(\d*\.\d*(?:\.\d*)?)(rc\d+)?", version).groups()
-    return "https://releases.bazel.build/{}/{}/{}".format(
-        version, rc if rc else "release", bazel_filename
-    )
+
+    if "BAZELISK_BASE_URL" in os.environ:
+        return "{}/{}/{}".format(
+            os.environ["BAZELISK_BASE_URL"], version, bazel_filename
+        )
+    else:
+        return "https://releases.bazel.build/{}/{}/{}".format(
+            version, rc if rc else "release", bazel_filename
+        )
 
 
 def trim_suffix(string, suffix):
