@@ -203,7 +203,7 @@ func GetEnvOrConfig(name string) string {
 // isValidWorkspace returns true iff the supplied path is the workspace root, defined by the presence of
 // a file named WORKSPACE or WORKSPACE.bazel
 // see https://github.com/bazelbuild/bazel/blob/8346ea4cfdd9fbd170d51a528fee26f912dad2d5/src/main/cpp/workspace_layout.cc#L37
-func isWorkspaceRoot(path string) bool {
+func isValidWorkspace(path string) bool {
 	info, err := os.Stat(path)
 	if err != nil {
 		return false
