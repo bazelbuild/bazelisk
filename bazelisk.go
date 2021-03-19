@@ -26,8 +26,9 @@ import (
 func main() {
 	gcs := &repositories.GCSRepo{}
 	gitHub := repositories.CreateGitHubRepo(core.GetEnvOrConfig("BAZELISK_GITHUB_TOKEN"))
-	// Fetch releases, release candidates and Bazel-at-commits from GCS, forks from GitHub
-	repos := core.CreateRepositories(gcs, gcs, gitHub, gcs, true)
+	// Fetch LTS releases, release candidates and Bazel-at-commits from GCS, forks and rolling releases from GitHub
+	// TODO: get rolling releases from GCS, too
+	repos := core.CreateRepositories(gcs, gcs, gitHub, gcs, gitHub, true)
 
 	exitCode, err := core.RunBazelisk(os.Args[1:], repos)
 	if err != nil {

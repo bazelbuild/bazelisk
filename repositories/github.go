@@ -6,6 +6,7 @@ import (
 
 	"github.com/bazelbuild/bazelisk/httputil"
 	"github.com/bazelbuild/bazelisk/platforms"
+	"github.com/bazelbuild/bazelisk/versions"
 )
 
 const (
@@ -26,6 +27,10 @@ func CreateGitHubRepo(token string) *GitHubRepo {
 
 // GetVersions returns the versions of all available Bazel binaries in the given fork.
 func (gh *GitHubRepo) GetVersions(bazeliskHome, bazelFork string) ([]string, error) {
+	return gh.getFilteredVersions(bazeliskHome, bazelFork, false)
+}
+
+func (gh *GitHubRepo) getFilteredVersions(bazeliskHome, bazelFork string, wantPrerelease bool) ([]string, error) {
 	url := fmt.Sprintf("https://api.github.com/repos/%s/bazel/releases", bazelFork)
 	releasesJSON, err := httputil.MaybeDownload(bazeliskHome, url, bazelFork+"-releases.json", "list of Bazel releases from github.com/"+bazelFork, gh.token)
 	if err != nil {
@@ -39,7 +44,7 @@ func (gh *GitHubRepo) GetVersions(bazeliskHome, bazelFork string) ([]string, err
 
 	var tags []string
 	for _, release := range releases {
-		if release.Prerelease {
+		if release.Prerelease != wantPrerelease {
 			continue
 		}
 		tags = append(tags, release.TagName)
@@ -60,4 +65,15 @@ func (gh *GitHubRepo) DownloadVersion(fork, version, destDir, destFile string) (
 	}
 	url := fmt.Sprintf(urlPattern, fork, version, filename)
 	return httputil.DownloadBinary(url, destDir, destFile)
+}
+
+// GetRollingVersions returns a list of all available rolling release versions.
+func (gh *GitHubRepo) GetRollingVersions(bazeliskHome string) ([]string, error) {
+	// Release candidates are uploaded to GCS only, which means that all prerelease binaries on GitHub belong to rolling releases.
+	return gh.getFilteredVersions(bazeliskHome, versions.BazelUpstream, true)
+}
+
+// DownloadRolling downloads the given Bazel version into the specified location and returns the absolute path.
+func (gh *GitHubRepo) DownloadRolling(version, destDir, destFile string) (string, error) {
+	return gh.DownloadVersion(versions.BazelUpstream, version, destDir, destFile)
 }

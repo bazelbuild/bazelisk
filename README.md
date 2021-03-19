@@ -36,10 +36,10 @@ The fork and version should be separated by slash: `<FORK>/<VERSION>`.
 Please see the next section for how to work with forks.
 
 Bazelisk currently understands the following formats for version labels:
-- `latest` means the latest stable version of Bazel as released on GitHub.
+- `latest` means the latest stable (LTS) version of Bazel as released on GitHub.
   Previous releases can be specified via `latest-1`, `latest-2` etc.
 - A version number like `0.17.2` means that exact version of Bazel.
-  It can also be a release candidate version like `0.20.0rc3`.
+  It can also be a release candidate version like `0.20.0rc3`, or a rolling release version like `5.0.0-pre.20210317.1`.
 - The hash of a Git commit. Please note that Bazel binaries are only available for commits that passed [Bazel CI](https://buildkite.com/bazel/bazel-bazel).
 
 Additionally, a few special version names are supported for our official releases only (these formats do not work when using a fork):
@@ -48,6 +48,7 @@ Additionally, a few special version names are supported for our official release
 - `last_downstream_green` points to the most recent Bazel binary that builds and tests all [downstream projects](https://buildkite.com/bazel/bazel-at-head-plus-downstream) successfully.
 - `last_rc` points to the most recent release candidate.
   If there is no active release candidate, Bazelisk uses the latest Bazel release instead.
+- `rolling` refers to the latest rolling release (even if there is a newer LTS release).
 
 ## Where does Bazelisk get Bazel from?
 

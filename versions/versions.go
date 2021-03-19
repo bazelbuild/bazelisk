@@ -19,13 +19,14 @@ const (
 var (
 	releasePattern       = regexp.MustCompile(`^(\d+\.\d+\.\d+)$`)
 	candidatePattern     = regexp.MustCompile(`^(\d+\.\d+\.\d+)rc(\d+)$`)
+	rollingPattern 		 = regexp.MustCompile(`\d+\.0\.0-pre\.\d{6}(\.\d+)?`)
 	latestReleasePattern = regexp.MustCompile(`^latest(?:-(?P<offset>\d+))?$`)
 	commitPattern        = regexp.MustCompile(`^[a-z0-9]{40}$`)
 )
 
 // Info represents a structured Bazel version identifier.
 type Info struct {
-	IsRelease, IsCandidate, IsCommit, IsFork, IsRelative, IsDownstream bool
+	IsRelease, IsCandidate, IsCommit, IsFork, IsRolling, IsRelative, IsDownstream bool
 	Fork, Value                                                        string
 	LatestOffset                                                       int
 }
@@ -60,6 +61,11 @@ func Parse(fork, version string) (*Info, error) {
 		vi.IsCommit = true
 		vi.IsRelative = true
 		vi.IsDownstream = true
+	} else if rollingPattern.MatchString(version) {
+		vi.IsRolling = true
+	} else if version == "rolling" {
+		vi.IsRolling = true
+		vi.IsRelative = true
 	} else {
 		return nil, fmt.Errorf("Invalid version '%s'", version)
 	}
