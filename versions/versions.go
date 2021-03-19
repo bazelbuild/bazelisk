@@ -17,8 +17,8 @@ const (
 )
 
 var (
-	releasePattern       = regexp.MustCompile(`^(\d+.\d+.\d+)$`)
-	candidatePattern     = regexp.MustCompile(`^(\d+.\d+.\d+)rc(\d+)$`)
+	releasePattern       = regexp.MustCompile(`^(\d+\.\d+\.\d+)$`)
+	candidatePattern     = regexp.MustCompile(`^(\d+\.\d+\.\d+)rc(\d+)$`)
 	latestReleasePattern = regexp.MustCompile(`^latest(?:-(?P<offset>\d+))?$`)
 	commitPattern        = regexp.MustCompile(`^[a-z0-9]{40}$`)
 )
