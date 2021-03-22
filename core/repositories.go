@@ -71,7 +71,7 @@ type Repositories struct {
 	Candidates      CandidateRepo
 	Fork            ForkRepo
 	Commits         CommitRepo
-	Rolling			RollingRepo
+	Rolling         RollingRepo
 	supportsBaseURL bool
 }
 
