@@ -47,7 +47,7 @@ func TestResolveLatestRcVersion(t *testing.T) {
 	s.Finish()
 
 	gcs := &repositories.GCSRepo{}
-	repos := core.CreateRepositories(nil, gcs, nil, nil, false)
+	repos := core.CreateRepositories(nil, gcs, nil, nil, nil, false)
 	version, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, "last_rc")
 
 	if err != nil {
@@ -65,7 +65,7 @@ func TestResolveLatestRcVersion_WithFullRelease(t *testing.T) {
 	s.Finish()
 
 	gcs := &repositories.GCSRepo{}
-	repos := core.CreateRepositories(nil, gcs, nil, nil, false)
+	repos := core.CreateRepositories(nil, gcs, nil, nil, nil, false)
 	version, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, "last_rc")
 
 	if err != nil {
@@ -85,7 +85,7 @@ func TestResolveLatestVersion_TwoLatestVersionsDoNotHaveAReleaseYet(t *testing.T
 	s.Finish()
 
 	gcs := &repositories.GCSRepo{}
-	repos := core.CreateRepositories(gcs, nil, nil, nil, false)
+	repos := core.CreateRepositories(gcs, nil, nil, nil, nil, false)
 	version, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, "latest")
 
 	if err != nil {
@@ -106,7 +106,7 @@ func TestResolveLatestVersion_FilterReleaseCandidates(t *testing.T) {
 	s.Finish()
 
 	gcs := &repositories.GCSRepo{}
-	repos := core.CreateRepositories(gcs, nil, nil, nil, false)
+	repos := core.CreateRepositories(gcs, nil, nil, nil, nil, false)
 	version, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, "latest-1")
 
 	if err != nil {
@@ -125,7 +125,7 @@ func TestResolveLatestVersion_ShouldFailIfNotEnoughReleases(t *testing.T) {
 	s.Finish()
 
 	gcs := &repositories.GCSRepo{}
-	repos := core.CreateRepositories(gcs, nil, nil, nil, false)
+	repos := core.CreateRepositories(gcs, nil, nil, nil, nil, false)
 	_, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, "latest-1")
 
 	if err == nil {
@@ -143,7 +143,7 @@ func TestResolveLatestVersion_GCSIsDown(t *testing.T) {
 	transport.AddResponse("https://www.googleapis.com/storage/v1/b/bazel/o?delimiter=/", 500, "")
 
 	gcs := &repositories.GCSRepo{}
-	repos := core.CreateRepositories(gcs, nil, nil, nil, false)
+	repos := core.CreateRepositories(gcs, nil, nil, nil, nil, false)
 	_, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, "latest")
 
 	if err == nil {
@@ -159,7 +159,7 @@ func TestResolveLatestVersion_GitHubIsDown(t *testing.T) {
 	transport.AddResponse("https://api.github.com/repos/bazelbuild/bazel/releases", 500, "")
 
 	gh := repositories.CreateGitHubRepo("test_token")
-	repos := core.CreateRepositories(nil, nil, gh, nil, false)
+	repos := core.CreateRepositories(nil, nil, gh, nil, nil, false)
 
 	_, _, err := repos.ResolveVersion(tmpDir, "some_fork", "latest")
 
@@ -169,6 +169,62 @@ func TestResolveLatestVersion_GitHubIsDown(t *testing.T) {
 	expectedPrefix := "unable to determine latest version: unable to dermine 'some_fork' releases: could not download list of Bazel releases from github.com/some_fork"
 	if !strings.HasPrefix(err.Error(), expectedPrefix) {
 		t.Fatalf("Expected error message that starts with '%s', but got '%v'", expectedPrefix, err)
+	}
+}
+
+func TestAcceptRollingReleaseName(t *testing.T) {
+	gh := repositories.CreateGitHubRepo("test_token")
+	repos := core.CreateRepositories(nil, nil, nil, nil, gh, false)
+
+	version := "10.0.0-pre.20201103.4"
+
+	resolvedVersion, _, err := repos.ResolveVersion(tmpDir, "", version)
+
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	if resolvedVersion != version {
+		t.Fatalf("Expected version '%s', but got '%s'", version, resolvedVersion)
+	}
+}
+
+func TestResolveLatestRollingRelease(t *testing.T) {
+	text := `
+	[
+	  {
+		"tag_name": "4.0.0",
+		"prerelease": false
+	  },
+	  {
+		"tag_name": "5.0.0-pre.20210319",
+		"prerelease": true
+	  },
+	  {
+		"tag_name": "5.0.0-pre.20210322.4",
+		"prerelease": true
+	  },
+	  {
+		"tag_name": "5.0.0",
+		"prerelease": false
+	  }
+	]
+	`
+
+	transport.AddResponse("https://api.github.com/repos/bazelbuild/bazel/releases", 200, text)
+
+	gh := repositories.CreateGitHubRepo("test_token")
+	repos := core.CreateRepositories(nil, nil, nil, nil, gh, false)
+
+	version, _, err := repos.ResolveVersion(tmpDir, "", "rolling")
+
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	want := "5.0.0-pre.20210322.4"
+	if version != want {
+		t.Fatalf("Expected version '%s', but got '%s'", want, version)
 	}
 }
 
