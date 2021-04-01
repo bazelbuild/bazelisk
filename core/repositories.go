@@ -209,31 +209,31 @@ func CreateRepositories(releases ReleaseRepo, candidates CandidateRepo, fork For
 	repos := &Repositories{supportsBaseURL: supportsBaseURL}
 
 	if releases == nil {
-		repos.Releases = &noReleaseRepo{errors.New("Bazel LTS releases are not supported")}
+		repos.Releases = &noReleaseRepo{err: errors.New("Bazel LTS releases are not supported")}
 	} else {
 		repos.Releases = releases
 	}
 
 	if candidates == nil {
-		repos.Candidates = &noCandidateRepo{errors.New("Bazel release candidates are not supported")}
+		repos.Candidates = &noCandidateRepo{err: errors.New("Bazel release candidates are not supported")}
 	} else {
 		repos.Candidates = candidates
 	}
 
 	if fork == nil {
-		repos.Fork = &noForkRepo{errors.New("forked versions of Bazel are not supported")}
+		repos.Fork = &noForkRepo{err: errors.New("forked versions of Bazel are not supported")}
 	} else {
 		repos.Fork = fork
 	}
 
 	if commits == nil {
-		repos.Commits = &noCommitRepo{errors.New("Bazel versions built at commits are not supported")}
+		repos.Commits = &noCommitRepo{err: errors.New("Bazel versions built at commits are not supported")}
 	} else {
 		repos.Commits = commits
 	}
 
 	if rolling == nil {
-		repos.Rolling = &noRollingRepo{errors.New("Bazel rolling releases are not supported")}
+		repos.Rolling = &noRollingRepo{err: errors.New("Bazel rolling releases are not supported")}
 	} else {
 		repos.Rolling = rolling
 	}
@@ -245,61 +245,61 @@ func CreateRepositories(releases ReleaseRepo, candidates CandidateRepo, fork For
 // (etc) without having to worry whether `Releases` points at an actual repo.
 
 type noReleaseRepo struct {
-	Error error
+	err error
 }
 
 func (nrr *noReleaseRepo) GetReleaseVersions(bazeliskHome string, lastN int) ([]string, error) {
-	return []string{}, nrr.Error
+	return nil, nrr.err
 }
 
 func (nrr *noReleaseRepo) DownloadRelease(version, destDir, destFile string) (string, error) {
-	return "", nrr.Error
+	return "", nrr.err
 }
 
 type noCandidateRepo struct {
-	Error error
+	err error
 }
 
 func (ncc *noCandidateRepo) GetCandidateVersions(bazeliskHome string) ([]string, error) {
-	return []string{}, ncc.Error
+	return nil, ncc.err
 }
 
 func (ncc *noCandidateRepo) DownloadCandidate(version, destDir, destFile string) (string, error) {
-	return "", ncc.Error
+	return "", ncc.err
 }
 
 type noForkRepo struct {
-	Error error
+	err error
 }
 
 func (nfr *noForkRepo) GetVersions(bazeliskHome, fork string) ([]string, error) {
-	return []string{}, nfr.Error
+	return nil, nfr.Error
 }
 
 func (nfr *noForkRepo) DownloadVersion(fork, version, destDir, destFile string) (string, error) {
-	return "", nfr.Error
+	return "", nfr.err
 }
 
 type noCommitRepo struct {
-	Error error
+	err error
 }
 
 func (nlgr *noCommitRepo) GetLastGreenCommit(bazeliskHome string, downstreamGreen bool) (string, error) {
-	return "", nlgr.Error
+	return "", nlgr.err
 }
 
 func (nlgr *noCommitRepo) DownloadAtCommit(commit, destDir, destFile string) (string, error) {
-	return "", nlgr.Error
+	return "", nlgr.err
 }
 
 type noRollingRepo struct {
-	Error error
+	err error
 }
 
 func (nrr *noRollingRepo) GetRollingVersions(bazeliskHome string) ([]string, error) {
-	return []string{}, nrr.Error
+	return nil, nrr.err
 }
 
 func (nrr *noRollingRepo) DownloadRolling(version, destDir, destFile string) (string, error) {
-	return "", nrr.Error
+	return "", nrr.err
 }
