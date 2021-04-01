@@ -273,7 +273,7 @@ type noForkRepo struct {
 }
 
 func (nfr *noForkRepo) GetVersions(bazeliskHome, fork string) ([]string, error) {
-	return nil, nfr.Error
+	return nil, nfr.err
 }
 
 func (nfr *noForkRepo) DownloadVersion(fork, version, destDir, destFile string) (string, error) {
