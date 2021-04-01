@@ -219,7 +219,7 @@ func TestResolveLatestRollingRelease(t *testing.T) {
 
 	version, _, err := repos.ResolveVersion(tmpDir, "", "rolling")
 
-	details := fmt.Sprintf("ResolveVersion(%s, \"\", \"rolling\")")
+	details := fmt.Sprintf("ResolveVersion(%s, \"\", \"rolling\")", tmpDir)
 	if err != nil {
 		t.Fatalf("Unexpected error in %s: %v", details, err)
 	}
