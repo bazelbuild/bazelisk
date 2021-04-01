@@ -133,7 +133,7 @@ func TestResolveLatestVersion_ShouldFailIfNotEnoughReleases(t *testing.T) {
 	}
 	expectedError := "unable to determine latest version: requested 2 latest releases, but only found 1"
 	if err.Error() != expectedError {
-		t.Fatalf("Expected error message '%s', but got '%v'", expectedError, err)
+		t.Fatalf("Expected error message %q, but got '%v'", expectedError, err)
 	}
 }
 
@@ -151,7 +151,7 @@ func TestResolveLatestVersion_GCSIsDown(t *testing.T) {
 	}
 	expectedPrefix := "unable to determine latest version: could not list Bazel versions in GCS bucket"
 	if !strings.HasPrefix(err.Error(), expectedPrefix) {
-		t.Fatalf("Expected error message that starts with '%s', but got '%v'", expectedPrefix, err)
+		t.Fatalf("Expected error message that starts with %q, but got '%v'", expectedPrefix, err)
 	}
 }
 
@@ -168,7 +168,7 @@ func TestResolveLatestVersion_GitHubIsDown(t *testing.T) {
 	}
 	expectedPrefix := "unable to determine latest version: unable to dermine 'some_fork' releases: could not download list of Bazel releases from github.com/some_fork"
 	if !strings.HasPrefix(err.Error(), expectedPrefix) {
-		t.Fatalf("Expected error message that starts with '%s', but got '%v'", expectedPrefix, err)
+		t.Fatalf("Expected error message that starts with %q, but got '%v'", expectedPrefix, err)
 	}
 }
 
@@ -180,12 +180,13 @@ func TestAcceptRollingReleaseName(t *testing.T) {
 
 	resolvedVersion, _, err := repos.ResolveVersion(tmpDir, "", version)
 
+	details := fmt.Sprintf("ResolveVersion(%s, \"\", %s)", tmpDir, version)
 	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
+		t.Fatalf("Unexpected error in %s: %v", details, err)
 	}
 
 	if resolvedVersion != version {
-		t.Fatalf("Expected version '%s', but got '%s'", version, resolvedVersion)
+		t.Fatalf("Expected version %q from %s, but got %q", version, details, resolvedVersion)
 	}
 }
 
@@ -218,13 +219,14 @@ func TestResolveLatestRollingRelease(t *testing.T) {
 
 	version, _, err := repos.ResolveVersion(tmpDir, "", "rolling")
 
+	details := fmt.Sprintf("ResolveVersion(%s, \"\", \"rolling\")")
 	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
+		t.Fatalf("Unexpected error in %s: %v", details, err)
 	}
 
 	want := "5.0.0-pre.20210322.4"
 	if version != want {
-		t.Fatalf("Expected version '%s', but got '%s'", want, version)
+		t.Fatalf("Expected version %q from %s, but got %q", want, details, version)
 	}
 }
 
