@@ -180,13 +180,12 @@ func TestAcceptRollingReleaseName(t *testing.T) {
 
 	resolvedVersion, _, err := repos.ResolveVersion(tmpDir, "", version)
 
-	details := fmt.Sprintf("ResolveVersion(%s, \"\", %s)", tmpDir, version)
 	if err != nil {
-		t.Fatalf("Unexpected error in %s: %v", details, err)
+		t.Fatalf("ResolveVersion(%q, \"\", %q): expected no error, but got %v", tmpDir, version, err)
 	}
 
 	if resolvedVersion != version {
-		t.Fatalf("Expected version %q from %s, but got %q", version, details, resolvedVersion)
+		t.Fatalf("ResolveVersion(%q, \"\", %q) = %v, but expected %v", tmpDir, version, resolvedVersion, version)
 	}
 }
 
@@ -219,14 +218,13 @@ func TestResolveLatestRollingRelease(t *testing.T) {
 
 	version, _, err := repos.ResolveVersion(tmpDir, "", "rolling")
 
-	details := fmt.Sprintf("ResolveVersion(%s, \"\", \"rolling\")", tmpDir)
 	if err != nil {
-		t.Fatalf("Unexpected error in %s: %v", details, err)
+		t.Fatalf("ResolveVersion(%q, \"\", \"rolling\"): expected no error, but got %v", tmpDir, err)
 	}
 
 	want := "5.0.0-pre.20210322.4"
 	if version != want {
-		t.Fatalf("Expected version %q from %s, but got %q", want, details, version)
+		t.Fatalf("ResolveVersion(%q, \"\", \"rolling\") = %v, but expected %v", tmpDir, version, want)
 	}
 }
 
