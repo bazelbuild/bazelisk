@@ -17,6 +17,10 @@ import (
 	"github.com/bazelbuild/bazelisk/versions"
 )
 
+const (
+	rollingReleaseIdentifier = "rolling"
+)
+
 var (
 	transport = &fakeTransport{responses: make(map[string]*http.Response)}
 	tmpDir    = ""
@@ -216,15 +220,15 @@ func TestResolveLatestRollingRelease(t *testing.T) {
 	gh := repositories.CreateGitHubRepo("test_token")
 	repos := core.CreateRepositories(nil, nil, nil, nil, gh, false)
 
-	version, _, err := repos.ResolveVersion(tmpDir, "", "rolling")
+	version, _, err := repos.ResolveVersion(tmpDir, "", rollingReleaseIdentifier)
 
 	if err != nil {
-		t.Fatalf("ResolveVersion(%q, \"\", \"rolling\"): expected no error, but got %v", tmpDir, err)
+		t.Fatalf("ResolveVersion(%q, \"\", %q): expected no error, but got %v", tmpDir, rollingReleaseIdentifier, err)
 	}
 
 	want := "5.0.0-pre.20210322.4"
 	if version != want {
-		t.Fatalf("ResolveVersion(%q, \"\", \"rolling\") = %v, but expected %v", tmpDir, version, want)
+		t.Fatalf("ResolveVersion(%q, \"\", %q) = %v, but expected %v", tmpDir, rollingReleaseIdentifier, version, want)
 	}
 }
 
