@@ -180,16 +180,16 @@ func TestAcceptRollingReleaseName(t *testing.T) {
 	gh := repositories.CreateGitHubRepo("test_token")
 	repos := core.CreateRepositories(nil, nil, nil, nil, gh, false)
 
-	version := "10.0.0-pre.20201103.4"
+	for _, version := range []string{"10.0.0-pre.20201103.4", "10.0.0-pre.20201103.4.2"} {
+		resolvedVersion, _, err := repos.ResolveVersion(tmpDir, "", version)
 
-	resolvedVersion, _, err := repos.ResolveVersion(tmpDir, "", version)
+		if err != nil {
+			t.Fatalf("ResolveVersion(%q, \"\", %q): expected no error, but got %v", tmpDir, version, err)
+		}
 
-	if err != nil {
-		t.Fatalf("ResolveVersion(%q, \"\", %q): expected no error, but got %v", tmpDir, version, err)
-	}
-
-	if resolvedVersion != version {
-		t.Fatalf("ResolveVersion(%q, \"\", %q) = %v, but expected %v", tmpDir, version, resolvedVersion, version)
+		if resolvedVersion != version {
+			t.Fatalf("ResolveVersion(%q, \"\", %q) = %v, but expected %v", tmpDir, version, resolvedVersion, version)
+		}
 	}
 }
 
@@ -201,7 +201,7 @@ func TestResolveLatestRollingRelease(t *testing.T) {
 		"prerelease": false
 	  },
 	  {
-		"tag_name": "5.0.0-pre.20210319",
+		"tag_name": "5.0.0-pre.20210319.1",
 		"prerelease": true
 	  },
 	  {
