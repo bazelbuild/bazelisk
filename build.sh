@@ -54,5 +54,5 @@ echo
 readonly REGISTRY=${NPM_REGISTRY:-https://wombat-dressing-room.appspot.com}
 echo "== NPM releases =="
 echo "After testing, publish to NPM via these commands:"
-echo "$ npm config set registry https://wombat-dressing-room.appspot.com"
+echo "$ npm login --registry $REGISTRY"
 echo "$ ./bazelisk run --config=release //:npm_package.publish -- --access=public --tag latest --registry $REGISTRY"
