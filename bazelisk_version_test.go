@@ -201,7 +201,7 @@ func TestResolveLatestRollingRelease(t *testing.T) {
 		"prerelease": false
 	  },
 	  {
-		"tag_name": "5.0.0-pre.20210319",
+		"tag_name": "5.0.0-pre.20210319.1",
 		"prerelease": true
 	  },
 	  {
