@@ -156,22 +156,28 @@ func (gcs *GCSRepo) GetCandidateVersions(bazeliskHome string) ([]string, error) 
 		return []string{}, errors.New("could not find any Bazel versions")
 	}
 
-	latestVersion := history[len(history)-1]
+	// Find most recent directory that contains any release candidates.
+	// Typically it should be the last or second-to-last, depending on whether there are new rolling releases.
+	for pos := len(history) - 1; pos >= 0; pos-- {
+		// Append slash to match directories
+		bucket := fmt.Sprintf("%s/", history[pos])
+		rcPrefixes, _, err := listDirectoriesInReleaseBucket(bucket)
+		if err != nil {
+			return []string{}, fmt.Errorf("could not list release candidates for latest release: %v", err)
+		}
 
-	// Append slash to match directories
-	rcPrefixes, _, err := listDirectoriesInReleaseBucket(latestVersion + "/")
-	if err != nil {
-		return []string{}, fmt.Errorf("could not list release candidates for latest release: %v", err)
-	}
-
-	rcs := make([]string, 0)
-	for _, v := range getVersionsFromGCSPrefixes(rcPrefixes) {
-		// Remove full releases
-		if strings.Contains(v, "rc") {
-			rcs = append(rcs, v)
+		rcs := make([]string, 0)
+		for _, v := range getVersionsFromGCSPrefixes(rcPrefixes) {
+			// Remove full and rolling releases
+			if strings.Contains(v, "rc") {
+				rcs = append(rcs, v)
+			}
+		}
+		if len(rcs) > 0 {
+			return rcs, nil
 		}
 	}
-	return rcs, nil
+	return nil, nil
 }
 
 // DownloadCandidate downloads the given release candidate into the specified location and returns the absolute path.

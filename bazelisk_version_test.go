@@ -44,10 +44,11 @@ func TestMain(m *testing.M) {
 
 func TestResolveLatestRcVersion(t *testing.T) {
 	s := setUp(t)
-	s.AddVersion("4.0.0", false)
-	s.AddVersion("10.0.0", false)
-	s.AddVersion("11.0.0", true)
-	s.AddVersion("11.11.0", false, 1, 2)
+	s.AddVersion("4.0.0", false, nil, nil)
+	s.AddVersion("10.0.0", false, nil, nil)
+	s.AddVersion("11.0.0", true, nil, nil)
+	s.AddVersion("11.11.0", false, []int{1, 2}, nil)
+	s.AddVersion("12.0.0", false, nil, []string{"12.0.0-pre.20210504.1"})
 	s.Finish()
 
 	gcs := &repositories.GCSRepo{}
@@ -65,7 +66,7 @@ func TestResolveLatestRcVersion(t *testing.T) {
 
 func TestResolveLatestRcVersion_WithFullRelease(t *testing.T) {
 	s := setUp(t)
-	s.AddVersion("4.0.0", true, 1, 2, 3)
+	s.AddVersion("4.0.0", true, []int{1, 2, 3}, nil)
 	s.Finish()
 
 	gcs := &repositories.GCSRepo{}
@@ -83,9 +84,9 @@ func TestResolveLatestRcVersion_WithFullRelease(t *testing.T) {
 
 func TestResolveLatestVersion_TwoLatestVersionsDoNotHaveAReleaseYet(t *testing.T) {
 	s := setUp(t)
-	s.AddVersion("4.0.0", true)
-	s.AddVersion("5.0.0", false)
-	s.AddVersion("6.0.0", false)
+	s.AddVersion("4.0.0", true, nil, nil)
+	s.AddVersion("5.0.0", false, nil, nil)
+	s.AddVersion("6.0.0", false, nil, nil)
 	s.Finish()
 
 	gcs := &repositories.GCSRepo{}
@@ -101,12 +102,13 @@ func TestResolveLatestVersion_TwoLatestVersionsDoNotHaveAReleaseYet(t *testing.T
 	}
 }
 
-func TestResolveLatestVersion_FilterReleaseCandidates(t *testing.T) {
+func TestResolveLatestVersion_ShouldOnlyReturnStableReleases(t *testing.T) {
 	s := setUp(t)
-	s.AddVersion("3.0.0", true)
-	s.AddVersion("4.0.0", false)
-	s.AddVersion("5.0.0", false)
-	s.AddVersion("6.0.0", true)
+	s.AddVersion("3.0.0", true, []int{1}, nil)
+	s.AddVersion("4.0.0", false, nil, nil)
+	s.AddVersion("5.0.0", false, nil, nil)
+	s.AddVersion("6.0.0", true, []int{1, 2}, nil)
+	s.AddVersion("7.0.0", false, nil, []string{"12.0.0-pre.20210504.1"})
 	s.Finish()
 
 	gcs := &repositories.GCSRepo{}
@@ -124,8 +126,8 @@ func TestResolveLatestVersion_FilterReleaseCandidates(t *testing.T) {
 
 func TestResolveLatestVersion_ShouldFailIfNotEnoughReleases(t *testing.T) {
 	s := setUp(t)
-	s.AddVersion("3.0.0", true)
-	s.AddVersion("4.0.0", false)
+	s.AddVersion("3.0.0", true, nil, nil)
+	s.AddVersion("4.0.0", false, nil, nil)
 	s.Finish()
 
 	gcs := &repositories.GCSRepo{}
@@ -239,13 +241,22 @@ type gcsSetup struct {
 	test            *testing.T
 }
 
-func (g *gcsSetup) AddVersion(version string, hasRelease bool, rcs ...int) *gcsSetup {
+func (g *gcsSetup) AddVersion(version string, hasRelease bool, rcs []int, rolling []string) *gcsSetup {
 	g.versionPrefixes = append(g.versionPrefixes, fmt.Sprintf("%s/", version))
 	prefixes := make([]string, 0)
+
+	register := func(subDir string) {
+		path := fmt.Sprintf("%s/%s/", version, subDir)
+		prefixes = append(prefixes, path)
+		g.addURL(path, false)
+	}
+
 	for _, rc := range rcs {
-		prefix := fmt.Sprintf("%s/rc%d/", version, rc)
-		prefixes = append(prefixes, prefix)
-		g.addURL(prefix, false)
+		register(fmt.Sprintf("rc%d", rc))
+	}
+
+	for _, r := range rolling {
+		register(r)
 	}
 
 	// The /release/ URLs have to exist, even if there is no release. In this case GCS returns no items, though.
