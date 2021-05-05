@@ -94,7 +94,6 @@ func listDirectoriesInReleaseBucket(prefix string) ([]string, bool, error) {
 		}
 		nextPageToken = response.NextPageToken
 	}
-	fmt.Printf("%+v\n", prefixes)
 	return prefixes, isRelease, nil
 }
 
