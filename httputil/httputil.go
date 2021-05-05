@@ -3,12 +3,14 @@ package httputil
 
 import (
 	"fmt"
+	"golang.org/x/crypto/openpgp"
 	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -51,7 +53,7 @@ func ReadRemoteFile(url string, token string) ([]byte, error) {
 }
 
 // DownloadBinary downloads a file from the given URL into the specified location, marks it executable and returns its full path.
-func DownloadBinary(originURL, destDir, destFile string) (string, error) {
+func DownloadBinary(originURL, signatureURL, verificationKey, destDir, destFile string) (string, error) {
 	err := os.MkdirAll(destDir, 0755)
 	if err != nil {
 		return "", fmt.Errorf("could not create directory %s: %v", destDir, err)
@@ -89,6 +91,38 @@ func DownloadBinary(originURL, destDir, destFile string) (string, error) {
 		err = os.Chmod(tmpfile.Name(), 0755)
 		if err != nil {
 			return "", fmt.Errorf("could not chmod file %s: %v", tmpfile.Name(), err)
+		}
+
+		if signatureURL != "" && verificationKey != "" {
+			signature, err := getClient().Get(signatureURL)
+			if err != nil {
+				return "", fmt.Errorf("HTTP GET %s failed: %v", signatureURL, err)
+			}
+			defer signature.Body.Close()
+
+			if signature.StatusCode != 200 {
+				return "", fmt.Errorf("HTTP GET %s failed with error %v", signatureURL, signature.StatusCode)
+			}
+
+			keys, err := openpgp.ReadArmoredKeyRing(strings.NewReader(verificationKey))
+			if err != nil {
+				return "", fmt.Errorf("failed to load the embedded Verification Key")
+			}
+
+			if len(keys) != 1 {
+				return "", fmt.Errorf("failed to load the embedded Verification Key")
+			}
+
+			tmpfile.Seek(0, io.SeekStart)
+
+			entity, err := openpgp.CheckDetachedSignature(keys, tmpfile, signature.Body)
+			if err != nil {
+				return "", fmt.Errorf("failed to verify the downloaded file using signature from %s", signatureURL)
+			}
+
+			for _, identity := range entity.Identities {
+				log.Printf("Signed by %s", identity.Name)
+			}
 		}
 
 		tmpfile.Close()
