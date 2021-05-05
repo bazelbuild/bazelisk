@@ -63,27 +63,44 @@ func getVersionHistoryFromGCS() ([]string, error) {
 }
 
 func listDirectoriesInReleaseBucket(prefix string) ([]string, bool, error) {
-	url := "https://www.googleapis.com/storage/v1/b/bazel/o?delimiter=/"
+	baseURL := "https://www.googleapis.com/storage/v1/b/bazel/o?delimiter=/"
 	if prefix != "" {
-		url = fmt.Sprintf("%s&prefix=%s", url, prefix)
-	}
-	content, err := httputil.ReadRemoteFile(url, "")
-	if err != nil {
-		return nil, false, fmt.Errorf("could not list GCS objects at %s: %v", url, err)
+		baseURL = fmt.Sprintf("%s&prefix=%s", baseURL, prefix)
 	}
 
-	var response GcsListResponse
-	if err := json.Unmarshal(content, &response); err != nil {
-		return nil, false, fmt.Errorf("could not parse GCS index JSON: %v", err)
+	var result GcsListResponse
+	var nextPageToken = ""
+	for {
+		var url = baseURL
+		if nextPageToken != "" {
+			url = fmt.Sprintf("%s&pageToken=%s", baseURL, nextPageToken)
+		}
+		content, err := httputil.ReadRemoteFile(url, "")
+		if err != nil {
+			return nil, false, fmt.Errorf("could not list GCS objects at %s: %v", url, err)
+		}
+
+		var response GcsListResponse
+		if err := json.Unmarshal(content, &response); err != nil {
+			return nil, false, fmt.Errorf("could not parse GCS index JSON: %v", err)
+		}
+
+		result.Prefixes = append(response.Prefixes)
+		result.Items = append(response.Items)
+
+		if response.NextPageToken == "" {
+			break
+		}
+		nextPageToken = response.NextPageToken
 	}
-	return response.Prefixes, len(response.Items) > 0, nil
+	return result.Prefixes, len(result.Items) > 0, nil
 }
 
 func getVersionsFromGCSPrefixes(versions []string) []string {
 	result := make([]string, len(versions))
 	for i, v := range versions {
 		noSlashes := strings.Replace(v, "/", "", -1)
-		result[i] =  strings.TrimSuffix(noSlashes, "release")
+		result[i] = strings.TrimSuffix(noSlashes, "release")
 	}
 	return result
 }
@@ -96,6 +113,9 @@ type GcsListResponse struct {
 
 	// Items contains the names of available objects in the current GCS bucket.
 	Items []interface{} `json:"items"`
+
+	// Optional token when the result is paginated.
+	NextPageToken string `json:"nextPageToken"`
 }
 
 // DownloadRelease downloads the given Bazel release into the specified location and returns the absolute path.
