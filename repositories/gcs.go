@@ -68,7 +68,8 @@ func listDirectoriesInReleaseBucket(prefix string) ([]string, bool, error) {
 		baseURL = fmt.Sprintf("%s&prefix=%s", baseURL, prefix)
 	}
 
-	var result GcsListResponse
+	var prefixes []string
+	var isRelease = false
 	var nextPageToken = ""
 	for {
 		var url = baseURL
@@ -85,15 +86,16 @@ func listDirectoriesInReleaseBucket(prefix string) ([]string, bool, error) {
 			return nil, false, fmt.Errorf("could not parse GCS index JSON: %v", err)
 		}
 
-		result.Prefixes = append(response.Prefixes)
-		result.Items = append(response.Items)
+		prefixes = append(prefixes, response.Prefixes...)
+		isRelease = isRelease || len(response.Items) > 0
 
 		if response.NextPageToken == "" {
 			break
 		}
 		nextPageToken = response.NextPageToken
 	}
-	return result.Prefixes, len(result.Items) > 0, nil
+	fmt.Printf("%+v\n", prefixes)
+	return prefixes, isRelease, nil
 }
 
 func getVersionsFromGCSPrefixes(versions []string) []string {
