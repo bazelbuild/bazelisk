@@ -76,7 +76,7 @@ func listDirectoriesInReleaseBucket(prefix string) ([]string, bool, error) {
 		if nextPageToken != "" {
 			url = fmt.Sprintf("%s&pageToken=%s", baseURL, nextPageToken)
 		}
-		content, err := httputil.ReadRemoteFile(url, "")
+		content, _, err := httputil.ReadRemoteFile(url, "")
 		if err != nil {
 			return nil, false, fmt.Errorf("could not list GCS objects at %s: %v", url, err)
 		}
@@ -226,7 +226,7 @@ func (gcs *GCSRepo) DownloadCandidate(version, destDir, destFile string) (string
 // it's https://buildkite.com/bazel/bazel-bazel
 func (gcs *GCSRepo) GetLastGreenCommit(bazeliskHome string, downstreamGreen bool) (string, error) {
 	pathSuffix := lastGreenCommitPathSuffixes[downstreamGreen]
-	content, err := httputil.ReadRemoteFile(lastGreenBaseURL+pathSuffix, "")
+	content, _, err := httputil.ReadRemoteFile(lastGreenBaseURL+pathSuffix, "")
 	if err != nil {
 		return "", fmt.Errorf("could not determine last green commit: %v", err)
 	}

@@ -31,15 +31,38 @@ func (gh *GitHubRepo) GetVersions(bazeliskHome, bazelFork string) ([]string, err
 }
 
 func (gh *GitHubRepo) getFilteredVersions(bazeliskHome, bazelFork string, wantPrerelease bool) ([]string, error) {
+	parse := func(data []byte) ([]gitHubRelease, error) {
+		var releases []gitHubRelease
+		if err := json.Unmarshal(data, &releases); err != nil {
+			return nil, fmt.Errorf("could not parse JSON into list of releases: %v", err)
+		}
+		return releases, nil
+	}
+
+	var releases []gitHubRelease
+
+	merger := func(chunks [][]byte) ([]byte, error) {
+		for _, chunk := range chunks {
+			current, err := parse(chunk)
+			if err != nil {
+				return nil, err
+			}
+			releases = append(releases, current...)
+		}
+		return json.Marshal(releases)
+	}
+
 	url := fmt.Sprintf("https://api.github.com/repos/%s/bazel/releases", bazelFork)
-	releasesJSON, err := httputil.MaybeDownload(bazeliskHome, url, bazelFork+"-releases.json", "list of Bazel releases from github.com/"+bazelFork, gh.token)
+	releasesJSON, err := httputil.MaybeDownload(bazeliskHome, url, bazelFork+"-releases.json", "list of Bazel releases from github.com/"+bazelFork, gh.token, merger)
 	if err != nil {
 		return []string{}, fmt.Errorf("unable to dermine '%s' releases: %v", bazelFork, err)
 	}
 
-	var releases []gitHubRelease
-	if err := json.Unmarshal(releasesJSON, &releases); err != nil {
-		return []string{}, fmt.Errorf("could not parse JSON into list of releases: %v", err)
+	if len(releases) == 0 {
+		releases, err = parse(releasesJSON)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	var tags []string
