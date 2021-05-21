@@ -9,24 +9,26 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"time"
 )
 
 var (
 	// DefaultTransport specifies the http.RoundTripper that is used for any network traffic, and may be replaced with a dummy implementation for unit testing.
 	DefaultTransport = http.DefaultTransport
+	linkPattern = regexp.MustCompile(`<(.*?)>; rel="(\w+)"`)
 )
 
 func getClient() *http.Client {
 	return &http.Client{Transport: DefaultTransport}
 }
 
-// ReadRemoteFile returns the contents of the given file, using the supplied Authorization token, if set.
-func ReadRemoteFile(url string, token string) ([]byte, error) {
+// ReadRemoteFile returns the contents of the given file, using the supplied Authorization token, if set. It also returns the HTTP headers.
+func ReadRemoteFile(url string, token string) ([]byte, http.Header, error) {
 	client := getClient()
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return nil, fmt.Errorf("could not create request: %v", err)
+		return nil, nil, fmt.Errorf("could not create request: %v", err)
 	}
 
 	if token != "" {
@@ -35,19 +37,19 @@ func ReadRemoteFile(url string, token string) ([]byte, error) {
 
 	res, err := client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("could not fetch %s: %v", url, err)
+		return nil, nil, fmt.Errorf("could not fetch %s: %v", url, err)
 	}
 	defer res.Body.Close()
 
 	if res.StatusCode != 200 {
-		return nil, fmt.Errorf("unexpected status code while reading %s: %v", url, res.StatusCode)
+		return nil, res.Header, fmt.Errorf("unexpected status code while reading %s: %v", url, res.StatusCode)
 	}
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read content at %s: %v", url, err)
+		return nil, res.Header, fmt.Errorf("failed to read content at %s: %v", url, err)
 	}
-	return body, nil
+	return body, res.Header, nil
 }
 
 // DownloadBinary downloads a file from the given URL into the specified location, marks it executable and returns its full path.
@@ -101,12 +103,13 @@ func DownloadBinary(originURL, destDir, destFile string) (string, error) {
 	return destinationPath, nil
 }
 
+type ContentMerger func([][]byte) ([]byte, error)
+
 // MaybeDownload downloads a file from the given url and caches the result under bazeliskHome.
 // It skips the download if the file already exists and is not outdated.
 // Parameter ´description´ is only used to provide better error messages.
-func MaybeDownload(bazeliskHome, url, filename, description, token string) ([]byte, error) {
+func MaybeDownload(bazeliskHome, url, filename, description, token string, merger ContentMerger) ([]byte, error) {
 	cachePath := filepath.Join(bazeliskHome, filename)
-
 	if cacheStat, err := os.Stat(cachePath); err == nil {
 		if time.Since(cacheStat.ModTime()).Hours() < 1 {
 			res, err := ioutil.ReadFile(cachePath)
@@ -117,16 +120,40 @@ func MaybeDownload(bazeliskHome, url, filename, description, token string) ([]by
 		}
 	}
 
-	// We could also use go-github here, but I can't get it to build with Bazel's rules_go and it pulls in a lot of dependencies.
-	body, err := ReadRemoteFile(url, token)
-	if err != nil {
-		return nil, fmt.Errorf("could not download %s: %v", description, err)
+	contents := make([][]byte, 0)
+	nextUrl := url
+	for nextUrl != "" {
+		// We could also use go-github here, but I can't get it to build with Bazel's rules_go and it pulls in a lot of dependencies.
+		body, headers, err := ReadRemoteFile(nextUrl, token)
+		if err != nil {
+			return nil, fmt.Errorf("could not download %s: %v", description, err)
+		}
+		contents = append(contents, body)
+		nextUrl = getNextUrl(headers)
 	}
 
-	err = ioutil.WriteFile(cachePath, body, 0666)
+	merged, err := merger(contents)
+	if err != nil {
+		return nil, fmt.Errorf("failed to merge %d chunks from %s: %v", len(contents), url, err)
+	}
+
+	err = ioutil.WriteFile(cachePath, merged, 0666)
 	if err != nil {
 		return nil, fmt.Errorf("could not create %s: %v", cachePath, err)
 	}
 
-	return body, nil
+	return merged, nil
+}
+
+func getNextUrl(headers http.Header) string {
+	links := headers["Link"]
+	if len(links) != 1 {
+		return ""
+	}
+	for _, m := range linkPattern.FindAllStringSubmatch(links[0], -1) {
+		if m[2] == "next" {
+			return m[1]
+		}
+	}	
+	return ""
 }

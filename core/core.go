@@ -441,7 +441,8 @@ type issue struct {
 	Labels []label `json:"labels"`
 }
 
-type issueList struct {
+// IssueList is visible for testing
+type IssueList struct {
 	Items []issue `json:"items"`
 }
 
@@ -464,27 +465,51 @@ func getIncompatibleFlags(bazeliskHome, resolvedBazelVersion string) (map[string
 		return nil, fmt.Errorf("invalid version %v", resolvedBazelVersion)
 	}
 	url := "https://api.github.com/search/issues?per_page=100&q=repo:bazelbuild/bazel+label:migration-" + version
-	issuesJSON, err := httputil.MaybeDownload(bazeliskHome, url, "flags-"+version, "list of flags from GitHub", GetEnvOrConfig("BAZELISK_GITHUB_TOKEN"))
+	
+	var issueList IssueList
+
+	merger := func(chunks [][]byte) ([]byte, error) {
+		for _, chunk := range chunks {
+			current, err := ParseIssues(chunk)
+			if err != nil {
+				return nil, err
+			}
+			issueList.Items = append(issueList.Items, current.Items...)
+		}
+		return json.Marshal(issueList)
+	}
+	
+	issuesJSON, err := httputil.MaybeDownload(bazeliskHome, url, "flags-"+version, "list of flags from GitHub", GetEnvOrConfig("BAZELISK_GITHUB_TOKEN"), merger)
 	if err != nil {
 		return nil, fmt.Errorf("could not get issues from GitHub: %v", err)
 	}
 
-	result, err := ScanIssuesForIncompatibleFlags(issuesJSON)
-	return result, err
+	if len(issueList.Items) == 0 {
+		issueList, err = ParseIssues(issuesJSON)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return ScanIssuesForIncompatibleFlags(issueList), nil
+}
+
+// ParseIssues is visible for testing
+func ParseIssues(data []byte) (IssueList, error) {
+	var result IssueList
+	if err := json.Unmarshal(data, &result); err != nil {
+		return result, fmt.Errorf("could not parse JSON into list of issues: %v", err)
+	}
+	return result, nil
 }
 
 // ScanIssuesForIncompatibleFlags is visible for testing.
 // TODO: move this function and its test into a dedicated package.
-func ScanIssuesForIncompatibleFlags(issuesJSON []byte) (map[string]*FlagDetails, error) {
+func ScanIssuesForIncompatibleFlags(issues IssueList) map[string]*FlagDetails {
 	result := make(map[string]*FlagDetails)
-	var issueList issueList
-	if err := json.Unmarshal(issuesJSON, &issueList); err != nil {
-		return nil, fmt.Errorf("could not parse JSON into list of issues: %v", err)
-	}
-
 	re := regexp.MustCompile(`^incompatible_\w+`)
 	sRe := regexp.MustCompile(`^//.*[^/]:incompatible_\w+`)
-	for _, issue := range issueList.Items {
+	for _, issue := range issues.Items {
 		flag := re.FindString(issue.Title)
 		if len(flag) <= 0 {
 			flag = sRe.FindString(issue.Title)
@@ -499,7 +524,7 @@ func ScanIssuesForIncompatibleFlags(issuesJSON []byte) (map[string]*FlagDetails,
 		}
 	}
 
-	return result, nil
+	return result
 }
 
 func getBreakingRelease(labels []label) string {

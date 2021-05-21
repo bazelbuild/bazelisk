@@ -14,10 +14,12 @@ func TestScanIssuesForIncompatibleFlags(t *testing.T) {
 	if err != nil {
 		t.Errorf("Can not load sample github issues")
 	}
-	flags, err := core.ScanIssuesForIncompatibleFlags(samplesJSON)
-	if err != nil || flags == nil {
-		t.Errorf("Could not parse sample issues")
+	issues, err := core.ParseIssues(samplesJSON)
+	if err != nil {
+		t.Errorf("Can not parse sample github issues: %v", err)
 	}
+
+	flags := core.ScanIssuesForIncompatibleFlags(issues)
 	expectedFlagnames := []string{
 		"--//some/path:incompatible_user_defined_flag",
 		"--incompatible_always_check_depset_elements",
