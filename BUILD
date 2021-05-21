@@ -112,6 +112,9 @@ genrule(
     outs = ["bazelisk-darwin_universal"],
     cmd = "lipo -create -output \"$@\" $(SRCS)",
     output_to_bindir = 1,
+    target_compatible_with = [
+        "@platforms//os:macos",
+    ],
 )
 
 go_binary(
