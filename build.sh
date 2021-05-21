@@ -22,13 +22,17 @@ mkdir bin
 
 go build
 ./bazelisk build --config=release \
-    //:bazelisk-darwin \
-    //:bazelisk-linux \
+    //:bazelisk-darwin-amd64 \
+    //:bazelisk-darwin-arm64 \
+    //:bazelisk-darwin-universal \
+    //:bazelisk-linux-amd64 \
     //:bazelisk-linux-arm64 \
-    //:bazelisk-windows
+    //:bazelisk-windows-amd64
 echo
 
 cp bazel-out/*-opt-*/bin/bazelisk-darwin_amd64 bin/bazelisk-darwin-amd64
+cp bazel-out/*-opt-*/bin/bazelisk-darwin_arm64 bin/bazelisk-darwin-arm64
+cp bazel-out/*-opt/bin/bazelisk-darwin_universal bin/bazelisk-darwin
 cp bazel-out/*-opt-*/bin/bazelisk-linux_amd64 bin/bazelisk-linux-amd64
 cp bazel-out/*-opt-*/bin/bazelisk-linux_arm64 bin/bazelisk-linux-arm64
 cp bazel-out/*-opt-*/bin/bazelisk-windows_amd64.exe bin/bazelisk-windows-amd64.exe
@@ -36,7 +40,10 @@ rm -f bazelisk
 
 ### Build release artifacts using `go build`.
 # GOOS=linux GOARCH=amd64 go build -o bin/bazelisk-linux-amd64
+# GOOS=linux GOARCH=arm64 go build -o bin/bazelisk-linux-arm64
 # GOOS=darwin GOARCH=amd64 go build -o bin/bazelisk-darwin-amd64
+# GOOS=darwin GOARCH=arm64 go build -o bin/bazelisk-darwin-arm64
+# lipo -create -output bin/bazelisk-darwin bin/bazelisk-darwin-amd64 bin/bazelisk-darwin-arm64
 # GOOS=windows GOARCH=amd64 go build -o bin/bazelisk-windows-amd64.exe
 
 ### Print some information about the generated binaries.
