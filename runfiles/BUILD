@@ -2,9 +2,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "go_default_library",
-    srcs = [
-        "runfiles.go",
-    ],
+    srcs = ["runfiles.go"],
     importpath = "github.com/bazelbuild/bazelisk/runfiles",
     visibility = ["//visibility:public"],
     deps = [

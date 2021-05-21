@@ -169,8 +169,8 @@ pkg_npm(
     ],
     deps = [
         ":bazelisk-darwin-for-npm",
-        ":bazelisk-linux-for-npm",
         ":bazelisk-linux-arm64-for-npm",
+        ":bazelisk-linux-for-npm",
         ":bazelisk-windows-for-npm",
     ],
 )
