@@ -8,8 +8,21 @@ Bazelisk is a wrapper for Bazel written in Go.
 It automatically picks a good version of Bazel given your current working directory, downloads it from the official server (if required) and then transparently passes through all command-line arguments to the real Bazel binary.
 You can call it just like you would call Bazel.
 
+## Installation
+
+On MacOS, you can `brew install bazelisk`. This adds both `bazelisk` and `bazel` to the `PATH`.
+
+Binary and source releases are provided on our [Releases](https://github.com/bazelbuild/bazelisk/releases) page.
+You can download one of these and add it to your `PATH` manually.
+
+Bazelisk is also published to npm.
+Frontend developers may want to install it with `npm install -g @bazel/bazelisk`.
+
+> You will notice that it serves an analogous function for Bazel as the
+> [`nvm` utility](https://github.com/nvm-sh/nvm) which manages your version of Node.js.
+
 Some ideas how to use it:
-- Install it as the `bazel` binary in your PATH (e.g. /usr/local/bin).
+- Install it as the `bazel` binary in your `PATH` (e.g. copy it to `/usr/local/bin/bazel`).
   Never worry about upgrading Bazel to the latest version again.
 - Check it into your repository and recommend users to build your software via `./bazelisk build //my:software`.
   That way, even someone who has never used Bazel or doesn't have it installed can build your software.
@@ -17,7 +30,7 @@ Some ideas how to use it:
   This will tell Bazelisk to use the exact version specified in the file when running in your workspace.
   The fact that it's versioned inside your repository will then allow for atomic upgrades of Bazel including all necessary changes.
   If you install Bazelisk as `bazel` on your CI machines, too, you can even test Bazel upgrades via a normal presubmit / pull request.
-  It will also ensure that users will not try to build your project with an incompatible version of Bazel, which is often a cause for frustration and failing builds.
+  It will also ensure that users will not try to build your project with an incompatible version of Bazel, which is often a cause for frustration and failing builds. (But see the note below about ensuring your developers install Bazelisk.)
 
 Before Bazelisk was rewritten in Go, it was a Python script.
 This still works and has the advantage that you can run it on any platform that has a Python interpreter, but is currently unmaintained and it doesn't support as many features.
@@ -60,6 +73,14 @@ If you want to create a fork with your own releases, you have to follow the nami
 The URL format looks like `https://github.com/<FORK>/bazel/releases/download/<VERSION>/<FILENAME>`.
 
 You can also override the URL by setting the environment variable `$BAZELISK_BASE_URL`. Bazelisk will then append `/<VERSION>/<FILENAME>` to the base URL instead of using the official release server.
+
+## Ensuring that your developers use Bazelisk rather than Bazel
+
+Bazel does check the `.bazelversion` file itself, but the failure when it mismatches with the actual version of Bazel can be quite confusing to developers.
+You may find yourself having to explain the difference between Bazel and Bazelisk (especially when you upgrade the pinned version).
+To avoid this, you can add a check in your `tools/bazel` wrapper.
+Since Bazelisk is careful to avoid calling itself in a loop, it always calls the wrapper with the environment variable `BAZELISK_SKIP_WRAPPER` set to `true'.
+You can check for the presence of that variable, and when not found, report a useful error to your users about how to install Bazelisk.
 
 ## Other features
 
@@ -109,14 +130,6 @@ The following variables can be set:
 - `USE_BAZEL_VERSION`
 
 Please note that the actual environment variables take precedence over those in the `.bazeliskrc` file.
-
-## Releases
-
-Binary and source releases are provided on our [Releases](https://github.com/bazelbuild/bazelisk/releases) page.
-
-Bazelisk is also published to npm.
-Frontend developers may want to install it with `npm install -g @bazel/bazelisk`.
-You will notice that it serves an analogous function for Bazel as the [`nvm` utility](https://github.com/nvm-sh/nvm) which manages your version of Node.js.
 
 ## Requirements
 
