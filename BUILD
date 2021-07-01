@@ -52,7 +52,6 @@ go_library(
 go_test(
     name = "go_default_test",
     srcs = [
-        "bazelisk_test.go",
         "bazelisk_version_test.go",
     ],
     data = [
