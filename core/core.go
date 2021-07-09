@@ -118,6 +118,9 @@ func RunBazelisk(args []string, repos *Repositories) (int, error) {
 	// --strict and --migrate must be the first argument.
 	if len(args) > 0 && (args[0] == "--strict" || args[0] == "--migrate") {
 		cmd, err := getBazelCommand(args)
+		if err != nil {
+			return -1, err
+		}
 		newFlags, err := getIncompatibleFlags(bazelPath, cmd)
 		if err != nil {
 			return -1, fmt.Errorf("could not get the list of incompatible flags: %v", err)
