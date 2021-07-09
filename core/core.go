@@ -20,6 +20,7 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/bazelbuild/bazelisk/httputil"
 	"github.com/bazelbuild/bazelisk/platforms"
 	"github.com/bazelbuild/bazelisk/versions"
 	"github.com/mitchellh/go-homedir"
@@ -116,13 +117,13 @@ func RunBazelisk(args []string, repos *Repositories) (int, error) {
 
 	// --strict and --migrate must be the first argument.
 	if len(args) > 0 && (args[0] == "--strict" || args[0] == "--migrate") {
-		cmd := args[0]
-		newFlags, err := getIncompatibleFlags(bazelPath)
+		cmd, err := getBazelCommand(args)
+		newFlags, err := getIncompatibleFlags(bazelPath, cmd)
 		if err != nil {
 			return -1, fmt.Errorf("could not get the list of incompatible flags: %v", err)
 		}
 
-		if cmd == "--migrate" {
+		if args[0] == "--migrate" {
 			migrate(bazelPath, args[1:], newFlags)
 		} else {
 			// When --strict is present, it expands to the list of --incompatible_ flags
@@ -156,6 +157,15 @@ func RunBazelisk(args []string, repos *Repositories) (int, error) {
 		return -1, fmt.Errorf("could not run Bazel: %v", err)
 	}
 	return exitCode, nil
+}
+
+func getBazelCommand(args []string) (string, error) {
+	for _, a := range args {
+		if !strings.HasPrefix(a, "-") {
+			return a, nil
+		}
+	}
+	return "", fmt.Errorf("could not find a valid Bazel command in %q. Please run `bazel help` if you need help on how to use Bazel.", strings.Join(args, " "))
 }
 
 func getUserAgent() string {
@@ -443,25 +453,18 @@ func runBazel(bazel string, args []string, out io.Writer) (int, error) {
 	return 0, nil
 }
 
-// getIncompatibleFlags returns all implemented incompatible flags in alphabetical order.
-// The emphasis is on "all"; it does not only return the ones implemented for the actual command.
-// However, the previous implementation didn't do this either, since we most likely run "bazel --migrate build" anyway.
-func getIncompatibleFlags(bazelPath string) ([]string, error) {
+// getIncompatibleFlags returns all incompatible flags for the current Bazel command in alphabetical order.
+func getIncompatibleFlags(bazelPath, cmd string) ([]string, error) {
 	out := strings.Builder{}
-	if _, err := runBazel(bazelPath, []string{"help", "completion"}, &out); err != nil {
+	if _, err := runBazel(bazelPath, []string{"help", cmd, "--short"}, &out); err != nil {
 		return nil, fmt.Errorf("unable to determine incompatible flags with binary %s: %v", bazelPath, err)
 	}
 
-	re := regexp.MustCompile(`(?m)^--incompatible_\w+$`)
+	re := regexp.MustCompile(`(?m)^\s*--\[no\](incompatible_\w+)$`)
 	flags := make([]string, 0)
-	seen := make(map[string]struct{})
-	for _, m := range re.FindAllString(out.String(), -1) {
-		if _, ok := seen[m]; !ok {
-			flags = append(flags, m)
-			seen[m] = struct{}{}
-		}
+	for _, m := range re.FindAllStringSubmatch(out.String(), -1) {
+		flags = append(flags, fmt.Sprintf("--%s", m[1]))
 	}
-
 	sort.Strings(flags)
 	return flags, nil
 }
