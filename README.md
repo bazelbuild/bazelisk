@@ -107,6 +107,8 @@ It will set the environment variable `BAZEL_REAL` to the path of the downloaded 
 This can be useful, if you have a wrapper script that e.g. ensures that environment variables are set to known good values.
 This behavior can be disabled by setting the environment variable `BAZELISK_SKIP_WRAPPER` to any value (except the empty string) before launching Bazelisk.
 
+You can control the user agent that Bazelisk sends in all HTTP requests by setting `BAZELISK_USER_AGENT` to the desired value.
+
 # .bazeliskrc configuration file
 
 The Go version supports a `.bazeliskrc` file in the root directory of a workspace. This file allows users to set environment variables persistently.
@@ -127,6 +129,7 @@ The following variables can be set:
 - `BAZELISK_HOME`
 - `BAZELISK_SHUTDOWN`
 - `BAZELISK_SKIP_WRAPPER`
+- `BAZELISK_USER_AGENT`
 - `USE_BAZEL_VERSION`
 
 Please note that the actual environment variables take precedence over those in the `.bazeliskrc` file.

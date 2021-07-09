@@ -43,6 +43,8 @@ var (
 
 // RunBazelisk runs the main Bazelisk logic for the given arguments and Bazel repositories.
 func RunBazelisk(args []string, repos *Repositories) (int, error) {
+	httputil.UserAgent = getUserAgent()
+
 	bazeliskHome := GetEnvOrConfig("BAZELISK_HOME")
 	if len(bazeliskHome) == 0 {
 		userCacheDir, err := os.UserCacheDir()
@@ -156,6 +158,14 @@ func RunBazelisk(args []string, repos *Repositories) (int, error) {
 		return -1, fmt.Errorf("could not run Bazel: %v", err)
 	}
 	return exitCode, nil
+}
+
+func getUserAgent() string {
+	agent := GetEnvOrConfig("BAZELISK_USER_AGENT")
+	if len(agent) > 0 {
+		return agent
+	}
+	return fmt.Sprintf("Bazelisk/%s", BazeliskVersion)
 }
 
 // GetEnvOrConfig reads a configuration value from the environment, but fall back to reading it from .bazeliskrc in the workspace root.

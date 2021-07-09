@@ -16,26 +16,13 @@ import (
 var (
 	// DefaultTransport specifies the http.RoundTripper that is used for any network traffic, and may be replaced with a dummy implementation for unit testing.
 	DefaultTransport = http.DefaultTransport
+	UserAgent = "Bazelisk"
 	linkPattern = regexp.MustCompile(`<(.*?)>; rel="(\w+)"`)
 )
 
-func getClient() *http.Client {
-	return &http.Client{Transport: DefaultTransport}
-}
-
 // ReadRemoteFile returns the contents of the given file, using the supplied Authorization token, if set. It also returns the HTTP headers.
 func ReadRemoteFile(url string, token string) ([]byte, http.Header, error) {
-	client := getClient()
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, nil, fmt.Errorf("could not create request: %v", err)
-	}
-
-	if token != "" {
-		req.Header.Set("Authorization", "token "+token)
-	}
-
-	res, err := client.Do(req)
+	res, err := get(url, token)
 	if err != nil {
 		return nil, nil, fmt.Errorf("could not fetch %s: %v", url, err)
 	}
@@ -50,6 +37,20 @@ func ReadRemoteFile(url string, token string) ([]byte, http.Header, error) {
 		return nil, res.Header, fmt.Errorf("failed to read content at %s: %v", url, err)
 	}
 	return body, res.Header, nil
+}
+
+func get(url, token string) (*http.Response, error) {
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("could not create request: %v", err)
+	}
+
+	req.Header.Set("User-Agent", UserAgent)
+	if token != "" {
+		req.Header.Set("Authorization", "token "+token)
+	}
+	client := &http.Client{Transport: DefaultTransport}
+	return client.Do(req)
 }
 
 // DownloadBinary downloads a file from the given URL into the specified location, marks it executable and returns its full path.
@@ -73,7 +74,7 @@ func DownloadBinary(originURL, destDir, destFile string) (string, error) {
 		}()
 
 		log.Printf("Downloading %s...", originURL)
-		resp, err := getClient().Get(originURL)
+		resp, err := get(originURL, "")
 		if err != nil {
 			return "", fmt.Errorf("HTTP GET %s failed: %v", originURL, err)
 		}
