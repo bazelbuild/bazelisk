@@ -51,9 +51,7 @@ go_library(
 
 go_test(
     name = "go_default_test",
-    srcs = [
-        "bazelisk_version_test.go",
-    ],
+    srcs = ["bazelisk_version_test.go"],
     data = [
         "sample-issues-migration.json",
     ],
@@ -63,7 +61,6 @@ go_test(
         "//core:go_default_library",
         "//httputil:go_default_library",
         "//repositories:go_default_library",
-        "//runfiles:go_default_library",
         "//versions:go_default_library",
     ],
 )
