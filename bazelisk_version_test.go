@@ -22,13 +22,8 @@ const (
 )
 
 var (
-	transport = &fakeTransport{responses: make(map[string]*http.Response)}
-	tmpDir    = ""
+	tmpDir = ""
 )
-
-func init() {
-	httputil.DefaultTransport = transport
-}
 
 func TestMain(m *testing.M) {
 	var err error
@@ -144,9 +139,8 @@ func TestResolveLatestVersion_ShouldFailIfNotEnoughReleases(t *testing.T) {
 }
 
 func TestResolveLatestVersion_GCSIsDown(t *testing.T) {
-	setUp(t).WithError().Finish()
-
-	transport.AddResponse("https://www.googleapis.com/storage/v1/b/bazel/o?delimiter=/", 500, "")
+	g := setUp(t).WithError().Finish()
+	g.Transport.AddResponse("https://www.googleapis.com/storage/v1/b/bazel/o?delimiter=/", 500, "")
 
 	gcs := &repositories.GCSRepo{}
 	repos := core.CreateRepositories(gcs, nil, nil, nil, nil, false)
@@ -162,6 +156,7 @@ func TestResolveLatestVersion_GCSIsDown(t *testing.T) {
 }
 
 func TestResolveLatestVersion_GitHubIsDown(t *testing.T) {
+	transport := installTransport()
 	transport.AddResponse("https://api.github.com/repos/bazelbuild/bazel/releases", 500, "")
 
 	gh := repositories.CreateGitHubRepo("test_token")
@@ -216,7 +211,7 @@ func TestResolveLatestRollingRelease(t *testing.T) {
 	  }
 	]
 	`
-
+	transport := installTransport()
 	transport.AddResponse("https://api.github.com/repos/bazelbuild/bazel/releases", 200, text)
 
 	gh := repositories.CreateGitHubRepo("test_token")
@@ -239,6 +234,7 @@ type gcsSetup struct {
 	versionPrefixes []string
 	status          int
 	test            *testing.T
+	Transport       *fakeTransport
 }
 
 func (g *gcsSetup) AddVersion(version string, hasRelease bool, rcs []int, rolling []string) *gcsSetup {
@@ -276,7 +272,7 @@ func (g *gcsSetup) addURL(prefix string, containsItem bool, childPrefixes ...str
 		items = append(items, "this_is_a_release")
 	}
 	resp := buildGCSResponseOrFail(g.test, childPrefixes, items)
-	transport.AddResponse(fmt.Sprintf("%s&prefix=%s", g.baseURL, prefix), 200, resp)
+	g.Transport.AddResponse(fmt.Sprintf("%s&prefix=%s", g.baseURL, prefix), 200, resp)
 }
 
 func setUp(t *testing.T) *gcsSetup {
@@ -285,7 +281,14 @@ func setUp(t *testing.T) *gcsSetup {
 		status:          200,
 		versionPrefixes: make([]string, 0),
 		test:            t,
+		Transport:       installTransport(),
 	}
+}
+
+func installTransport() *fakeTransport {
+	ft := &fakeTransport{responses: make(map[string]*http.Response)}
+	httputil.DefaultTransport = ft
+	return ft
 }
 
 func (g *gcsSetup) WithError() *gcsSetup {
@@ -293,10 +296,11 @@ func (g *gcsSetup) WithError() *gcsSetup {
 	return g
 }
 
-func (g *gcsSetup) Finish() {
+func (g *gcsSetup) Finish() *gcsSetup {
 	// TODO: sort and deduplicate versionPrefixes
 	listBody := buildGCSResponseOrFail(g.test, g.versionPrefixes, []interface{}{})
-	transport.AddResponse(g.baseURL, g.status, listBody)
+	g.Transport.AddResponse(g.baseURL, g.status, listBody)
+	return g
 }
 
 type fakeTransport struct {
