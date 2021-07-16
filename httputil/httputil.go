@@ -23,6 +23,7 @@ var (
 
 	RetryClock = Clock(&realClock{})
 	MaxRetries = 4
+	// MaxRequestDuration defines the maximum amount of time that a request and its retries may take in total
 	MaxRequestDuration = time.Second * 10
 	retryHeaders = []string{"Retry-After", "X-RateLimit-Reset", "Rate-Limit-Reset"}
 )
@@ -43,6 +44,8 @@ func (*realClock) Now() time.Time {
 }
 
 // ReadRemoteFile returns the contents of the given file, using the supplied Authorization token, if set. It also returns the HTTP headers.
+// If the request fails with a transient error it will retry the request for at most MaxRetries times.
+// It obeys HTTP headers such as "Retry-After" when calculating the start time of the next attempt. If no such header is present, it uses an exponential backoff strategy.
 func ReadRemoteFile(url string, token string) ([]byte, http.Header, error) {
 	res, err := get(url, token)
 	if err != nil {
