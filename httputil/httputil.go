@@ -6,10 +6,12 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"time"
 )
 
@@ -18,9 +20,33 @@ var (
 	DefaultTransport = http.DefaultTransport
 	UserAgent = "Bazelisk"
 	linkPattern = regexp.MustCompile(`<(.*?)>; rel="(\w+)"`)
+
+	RetryClock = Clock(&realClock{})
+	MaxRetries = 4
+	// MaxRequestDuration defines the maximum amount of time that a request and its retries may take in total
+	MaxRequestDuration = time.Second * 10
+	retryHeaders = []string{"Retry-After", "X-RateLimit-Reset", "Rate-Limit-Reset"}
 )
 
+type Clock interface {
+	Sleep(time.Duration)
+	Now() time.Time
+}
+
+type realClock struct {}
+
+func (*realClock) Sleep(d time.Duration) {
+	time.Sleep(d)
+}
+
+func (*realClock) Now() time.Time {
+	return time.Now()
+}
+
 // ReadRemoteFile returns the contents of the given file, using the supplied Authorization token, if set. It also returns the HTTP headers.
+// If the request fails with a transient error it will retry the request for at most MaxRetries times.
+// It obeys HTTP headers such as "Retry-After" when calculating the start time of the next attempt.
+// If no such header is present, it uses an exponential backoff strategy.
 func ReadRemoteFile(url string, token string) ([]byte, http.Header, error) {
 	res, err := get(url, token)
 	if err != nil {
@@ -50,7 +76,57 @@ func get(url, token string) (*http.Response, error) {
 		req.Header.Set("Authorization", "token "+token)
 	}
 	client := &http.Client{Transport: DefaultTransport}
-	return client.Do(req)
+	deadline := RetryClock.Now().Add(MaxRequestDuration)
+	lastStatus := 0
+	for attempt := 0; attempt <= MaxRetries; attempt++ {
+		res, err := client.Do(req)
+		// Do not retry on success and permanent/fatal errors
+		if err != nil || !shouldRetry(res) {
+			return res, err
+		}
+
+		lastStatus = res.StatusCode
+		waitFor, err := getWaitPeriod(res, attempt)
+		if err != nil {
+			return nil, err
+		}
+
+		nextTryAt := RetryClock.Now().Add(waitFor)
+		if nextTryAt.After(deadline) {
+			return nil, fmt.Errorf("unable to complete request to %s within %v", url, MaxRequestDuration)
+		}
+		if attempt < MaxRetries {
+			RetryClock.Sleep(waitFor)
+		}
+	}
+	return nil, fmt.Errorf("unable to complete request to %s after %d retries. Most recent status: %d", url, MaxRetries, lastStatus)
+}
+
+func shouldRetry(res *http.Response) bool {
+	return res.StatusCode == 429 || (500 <= res.StatusCode && res.StatusCode <= 504)
+}
+
+func getWaitPeriod(res *http.Response, attempt int) (time.Duration, error) {
+	// Check if the server told us when to retry
+	for _, header := range retryHeaders {
+		if value := res.Header[header]; len(value) > 0 {
+			return parseRetryHeader(value[0])
+		}
+	}
+	// Let's just use exponential backoff: 1s + d1, 2s + d2, 4s + d3, 8s + d4 with dx being a random value in [0ms, 500ms]
+	return time.Duration(1 << attempt) * time.Second + time.Duration(rand.Intn(500)) * time.Millisecond, nil
+}
+
+func parseRetryHeader(value string) (time.Duration, error) {
+	// Depending on the server the header value can be a number of seconds (how long to wait) or an actual date (when to retry).
+	if seconds, err := strconv.Atoi(value); err == nil {
+		return time.Second * time.Duration(seconds), nil
+	}
+	t, err := http.ParseTime(value)
+	if err != nil {
+		return 0, err
+	}
+	return time.Until(t), nil
 }
 
 // DownloadBinary downloads a file from the given URL into the specified location, marks it executable and returns its full path.
