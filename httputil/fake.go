@@ -1,6 +1,6 @@
 package httputil
 
-import(
+import (
 	"bytes"
 	"io/ioutil"
 	"net/http"
@@ -32,7 +32,7 @@ func (ft *FakeTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 type responseCollection struct {
-	all []*http.Response
+	all  []*http.Response
 	next int
 }
 
@@ -52,7 +52,7 @@ func createResponse(status int, body string, headers map[string]string) *http.Re
 	return &http.Response{
 		StatusCode: status,
 		Body:       ioutil.NopCloser(bytes.NewBufferString(body)),
-		Header: transformHeaders(headers),
+		Header:     transformHeaders(headers),
 	}
 }
 
