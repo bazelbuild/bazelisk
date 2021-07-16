@@ -79,6 +79,7 @@ func get(url, token string) (*http.Response, error) {
 	lastStatus := 0
 	for attempt := 0; attempt <= MaxRetries; attempt++ {
 		res, err := client.Do(req)
+		// Do not retry on success and permanent/fatal errors
 		if err != nil || !shouldRetry(res) {
 			return res, err
 		}
@@ -105,15 +106,18 @@ func shouldRetry(res *http.Response) bool {
 }
 
 func getWaitPeriod(res *http.Response, attempt int) (time.Duration, error) {
+	// Check if the server told us when to retry
 	for _, header := range retryHeaders {
 		if value := res.Header[header]; len(value) > 0 {
 			return parseRetryHeader(value[0])
 		}
 	}
+	// Let's just use exponential backoff: 1s + d1, 2s + d2, 4s + d3, 8s + d4 with dx being a random value in [0ms, 500ms]
 	return time.Duration(1 << attempt) * time.Second + time.Duration(rand.Intn(500)) * time.Millisecond, nil
 }
 
 func parseRetryHeader(value string) (time.Duration, error) {
+	// Depending on the server the header value can be a number of seconds (how long to wait) or an actual date (when to retry).
 	if seconds, err := strconv.Atoi(value); err == nil {
 		return time.Second * time.Duration(seconds), nil
 	}
