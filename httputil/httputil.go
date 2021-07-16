@@ -24,7 +24,7 @@ var (
 	RetryClock = Clock(&realClock{})
 	MaxRetries = 4
 	// MaxRequestDuration defines the maximum amount of time that a request and its retries may take in total
-	MaxRequestDuration = time.Second * 10
+	MaxRequestDuration = time.Second * 30
 	retryHeaders = []string{"Retry-After", "X-RateLimit-Reset", "Rate-Limit-Reset"}
 )
 
