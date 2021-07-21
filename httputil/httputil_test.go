@@ -176,7 +176,7 @@ func TestShouldUseExponentialBackoffIfNoRetryHeader(t *testing.T) {
 	}
 
 	delta := time.Millisecond * 100
-	lower := (1 << retries) * time.Second
+	lower := (1 << uint(retries)) * time.Second
 	upper := lower + time.Duration(retries*500)*time.Millisecond
 	if total < lower-delta || upper+delta < total {
 		t.Fatalf("Expected a total sleep time between %s and %s (%d retries, exponential backoff with fuzzing), but waited %s instead", lower, upper, retries, total)
