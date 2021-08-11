@@ -168,7 +168,7 @@ func getBazelCommand(args []string) (string, error) {
 			return a, nil
 		}
 	}
-	return "", fmt.Errorf("could not find a valid Bazel command in %q. Please run `bazel help` if you need help on how to use Bazel.", strings.Join(args, " "))
+	return "", fmt.Errorf("could not find a valid Bazel command in %q. Please run `bazel help` if you need help on how to use Bazel", strings.Join(args, " "))
 }
 
 func getUserAgent() string {
@@ -229,7 +229,7 @@ func isValidWorkspace(path string) bool {
 	if err != nil {
 		return false
 	}
-	
+
 	return !info.IsDir()
 }
 
