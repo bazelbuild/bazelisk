@@ -146,6 +146,10 @@ To install the Go version, type:
 ```shell
 go get github.com/bazelbuild/bazelisk
 ```
+With Go 1.17 or later, the recommended way to install it is:
+```shell
+go install github.com/bazelbuild/bazelisk@latest
+```
 
 To add it to your PATH:
 
