@@ -18,10 +18,13 @@ import (
 var (
 	// DefaultTransport specifies the http.RoundTripper that is used for any network traffic, and may be replaced with a dummy implementation for unit testing.
 	DefaultTransport = http.DefaultTransport
+	// UserAgent is passed to every HTTP request as part of the 'User-Agent' header.
 	UserAgent = "Bazelisk"
 	linkPattern = regexp.MustCompile(`<(.*?)>; rel="(\w+)"`)
 
+	// RetryClock is used for waiting between HTTP request retries.
 	RetryClock = Clock(&realClock{})
+	// MaxRetries specifies how often non-fatally failing HTTP requests should be retried.
 	MaxRetries = 4
 	// MaxRequestDuration defines the maximum amount of time that a request and its retries may take in total
 	MaxRequestDuration = time.Second * 30
@@ -180,6 +183,7 @@ func DownloadBinary(originURL, destDir, destFile string) (string, error) {
 	return destinationPath, nil
 }
 
+// ContentMerger is a function that merges multiple HTTP payloads into a single message.
 type ContentMerger func([][]byte) ([]byte, error)
 
 // MaybeDownload downloads a file from the given url and caches the result under bazeliskHome.
@@ -198,15 +202,15 @@ func MaybeDownload(bazeliskHome, url, filename, description, token string, merge
 	}
 
 	contents := make([][]byte, 0)
-	nextUrl := url
-	for nextUrl != "" {
+	nextURL := url
+	for nextURL != "" {
 		// We could also use go-github here, but I can't get it to build with Bazel's rules_go and it pulls in a lot of dependencies.
-		body, headers, err := ReadRemoteFile(nextUrl, token)
+		body, headers, err := ReadRemoteFile(nextURL, token)
 		if err != nil {
 			return nil, fmt.Errorf("could not download %s: %v", description, err)
 		}
 		contents = append(contents, body)
-		nextUrl = getNextUrl(headers)
+		nextURL = getNextURL(headers)
 	}
 
 	merged, err := merger(contents)
@@ -222,7 +226,7 @@ func MaybeDownload(bazeliskHome, url, filename, description, token string, merge
 	return merged, nil
 }
 
-func getNextUrl(headers http.Header) string {
+func getNextURL(headers http.Header) string {
 	links := headers["Link"]
 	if len(links) != 1 {
 		return ""
