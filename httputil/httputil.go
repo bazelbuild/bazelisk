@@ -31,6 +31,7 @@ var (
 	retryHeaders = []string{"Retry-After", "X-RateLimit-Reset", "Rate-Limit-Reset"}
 )
 
+// Clock keeps track of time. It can return the current time, as well as move forward by sleeping for a certain period.
 type Clock interface {
 	Sleep(time.Duration)
 	Now() time.Time
