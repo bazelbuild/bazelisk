@@ -118,7 +118,7 @@ func getWaitPeriod(res *http.Response, attempt int) (time.Duration, error) {
 		}
 	}
 	// Let's just use exponential backoff: 1s + d1, 2s + d2, 4s + d3, 8s + d4 with dx being a random value in [0ms, 500ms]
-	return time.Duration(1 << attempt) * time.Second + time.Duration(rand.Intn(500)) * time.Millisecond, nil
+	return time.Duration(1 << uint(attempt)) * time.Second + time.Duration(rand.Intn(500)) * time.Millisecond, nil
 }
 
 func parseRetryHeader(value string) (time.Duration, error) {
