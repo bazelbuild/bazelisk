@@ -15,9 +15,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import base64
 from contextlib import closing
 from distutils.version import LooseVersion
 import json
+import netrc
 import os
 import os.path
 import platform
@@ -29,10 +31,13 @@ import tempfile
 import time
 
 try:
-    from urllib.request import urlopen
+    from urllib.parse import urlparse
+    from urllib.request import urlopen, Request
 except ImportError:
     # Python 2.x compatibility hack.
-    from urllib2 import urlopen
+    # http://python-future.org/compatible_idioms.html?highlight=urllib#urllib-module
+    from urlparse import urlparse
+    from urllib2 import urlopen, Request
 
 ONE_HOUR = 1 * 60 * 60
 
@@ -264,7 +269,19 @@ def download_bazel_into_directory(version, is_commit, directory):
     if not os.path.exists(destination_path):
         sys.stderr.write("Downloading {}...\n".format(url))
         with tempfile.NamedTemporaryFile(prefix="bazelisk", dir=destination_dir, delete=False) as t:
-            with closing(urlopen(url)) as response:
+            # https://github.com/bazelbuild/bazelisk/issues/247
+            request = Request(url)
+            if "BAZELISK_BASE_URL" in os.environ:
+                parts = urlparse(url)
+                creds = None
+                try:
+                    creds = netrc.netrc().hosts.get(parts.netloc)
+                except:
+                    pass
+                if creds is not None:
+                    auth = base64.b64encode(('%s:%s' % (creds[0], creds[2])).encode('ascii'))
+                    request.add_header("Authorization", "Basic %s" % auth.decode('utf-8'))
+            with closing(urlopen(request)) as response:
                 shutil.copyfileobj(response, t)
             t.flush()
             os.fsync(t.fileno())
