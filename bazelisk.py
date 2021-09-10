@@ -212,7 +212,10 @@ def determine_bazel_filename(version):
     operating_system = get_operating_system()
 
     filename_suffix = determine_executable_filename_suffix()
-    return "bazel-{}-{}-{}{}".format(version, operating_system, machine, filename_suffix)
+    bazel_flavor = "bazel"
+    if os.environ.get("BAZELISK_NOJDK", "0") != "0":
+        bazel_flavor = "bazel_nojdk"
+    return "{}-{}-{}-{}{}".format(bazel_flavor, version, operating_system, machine, filename_suffix)
 
 
 def normalized_machine_arch_name():
