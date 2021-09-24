@@ -197,6 +197,7 @@ pkg_npm(
         "LICENSE",
         "README.md",
         "bazelisk.js",
+        "bazelisk.d.ts",
         "package.json",
     ],
     deps = [
