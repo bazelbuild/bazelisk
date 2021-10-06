@@ -207,10 +207,13 @@ def determine_executable_filename_suffix():
 
 def determine_bazel_filename(version):
     supported_machines = ["x86_64"]
-    major, minor = version.split('.')[:2]
-    if int(major) > 4 or major == '4' and int(minor) >= 1:
-        # Apple Sillicon was supported since 4.1: https://blog.bazel.build/2021/05/21/bazel-4-1.html
-        supported_machines.append("arm64")
+    versions = version.split('.')[:2]
+    if len(versions) == 2:
+        # released version
+        major, minor = int(versions[0]), int(versions[1])
+        if major > 4 or major == 4 and minor >= 1:
+            # Apple Sillicon was supported since 4.1: https://blog.bazel.build/2021/05/21/bazel-4-1.html
+            supported_machines.append("arm64")
     machine = normalized_machine_arch_name()
     if machine not in supported_machines:
         raise Exception(
