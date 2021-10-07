@@ -382,7 +382,7 @@ func maybeDelegateToWrapper(bazel string) string {
 
 	root := findWorkspaceRoot(wd)
 	wrapper := filepath.Join(root, wrapperPath)
-	if stat, err := os.Stat(wrapper); err != nil || stat.IsDir() || stat.Mode().Perm()&0001 == 0 {
+	if stat, err := os.Stat(wrapper); err != nil || stat.IsDir() || stat.Mode().Perm()&0111 == 0 {
 		return bazel
 	}
 
