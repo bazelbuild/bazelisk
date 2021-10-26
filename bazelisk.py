@@ -212,13 +212,16 @@ def determine_bazel_filename(version):
         # released version
         major, minor = int(versions[0]), int(versions[1])
         if major > 4 or major == 4 and minor >= 1:
-            # Apple Sillicon was supported since 4.1: https://blog.bazel.build/2021/05/21/bazel-4-1.html
+            # Apple Sillicon was supported since 4.1:
+            # https://blog.bazel.build/2021/05/21/bazel-4-1.html
             supported_machines.append("arm64")
     machine = normalized_machine_arch_name()
     if machine not in supported_machines:
         raise Exception(
-            'Unsupported machine architecture "{}". Bazel currently only supports {}.'.format(
-                machine, ", ".join(supported_machines)
+            'Unsupported machine architecture "{}". Bazel {} only supports {}.'.format(
+                machine,
+                version,
+                ", ".join(supported_machines)
             )
         )
 
