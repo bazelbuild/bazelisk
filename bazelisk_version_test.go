@@ -227,6 +227,29 @@ func TestResolveLatestRollingRelease(t *testing.T) {
 	}
 }
 
+func TestAcceptFloatingReleaseVersions(t *testing.T) {
+	s := setUp(t)
+	s.AddVersion("3.0.0", true, nil, []string{"4.0.0-pre.20210504.1"})
+	s.AddVersion("4.0.0", true, nil, nil)
+	s.AddVersion("4.1.0", true, nil, nil)
+	s.AddVersion("4.2.0", true, nil, nil)
+	s.AddVersion("4.2.1", true, []int{1, 2}, nil)
+	s.AddVersion("5.0.0", true, nil, nil)
+	s.Finish()
+
+	gcs := &repositories.GCSRepo{}
+	repos := core.CreateRepositories(gcs, nil, nil, nil, nil, false)
+	version, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, "4.x")
+
+	if err != nil {
+		t.Fatalf("Version resolution failed unexpectedly: %v", err)
+	}
+	expectedVersion := "4.2.1"
+	if version != expectedVersion {
+		t.Fatalf("Expected version %s, but got %s", expectedVersion, version)
+	}
+}
+
 type gcsSetup struct {
 	baseURL         string
 	versionPrefixes []string
