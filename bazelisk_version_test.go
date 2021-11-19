@@ -35,6 +35,42 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
+func TestResolveVersion(t *testing.T) {
+	s := setUp(t)
+	s.AddVersion("4.0.0", false, nil, nil)
+	s.Finish()
+
+	gcs := &repositories.GCSRepo{}
+	repos := core.CreateRepositories(nil, gcs, nil, nil, nil, false)
+	version, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, "4.0.0")
+
+	if err != nil {
+		t.Fatalf("Version resolution failed unexpectedly: %v", err)
+	}
+	expectedRC := "4.0.0"
+	if version != expectedRC {
+		t.Fatalf("Expected version %s, but got %s", expectedRC, version)
+	}
+}
+
+func TestResolvePatchVersion(t *testing.T) {
+	s := setUp(t)
+	s.AddVersion("4.0.0-patch1", false, nil, nil)
+	s.Finish()
+
+	gcs := &repositories.GCSRepo{}
+	repos := core.CreateRepositories(nil, gcs, nil, nil, nil, false)
+	version, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, "4.0.0-patch1")
+
+	if err != nil {
+		t.Fatalf("Version resolution failed unexpectedly: %v", err)
+	}
+	expectedRC := "4.0.0-patch1"
+	if version != expectedRC {
+		t.Fatalf("Expected version %s, but got %s", expectedRC, version)
+	}
+}
+
 func TestResolveLatestRcVersion(t *testing.T) {
 	s := setUp(t)
 	s.AddVersion("4.0.0", false, nil, nil)
