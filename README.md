@@ -76,20 +76,12 @@ You can also override the URL by setting the environment variable `$BAZELISK_BAS
 
 ## Ensuring that your developers use Bazelisk rather than Bazel
 
-Bazel installers typically provide Bazel's [shell wrapper script] as the `bazel` on the PATH.
-
-When installed this way, Bazel checks the `.bazelversion` file itself, but the failure when it mismatches with the actual version of Bazel can be quite confusing to developers.
+Bazel does check the `.bazelversion` file itself, but the failure when it mismatches with the actual version of Bazel can be quite confusing to developers.
 You may find yourself having to explain the difference between Bazel and Bazelisk (especially when you upgrade the pinned version).
 To avoid this, you can add a check in your `tools/bazel` wrapper.
 Since Bazelisk is careful to avoid calling itself in a loop, it always calls the wrapper with the environment variable `BAZELISK_SKIP_WRAPPER` set to `true'.
 You can check for the presence of that variable, and when not found, report a useful error to your users about how to install Bazelisk.
 
-Note that if users directly downloaded a Bazel binary and put it in their PATH, rather than running
-an installer, then `tools/bazel` and `.bazelversion` are not checked. You could call the
-[versions.check](https://github.com/bazelbuild/bazel-skylib/blob/1.1.1/docs/versions_doc.md#versionscheck) starlark module from the beginning of your WORKSPACE to
-require users update their bazel.
-
-[shell wrapper script]: https://github.com/bazelbuild/bazel/blob/master/scripts/packages/bazel.sh
 ## Other features
 
 The Go version of Bazelisk offers two new flags.
