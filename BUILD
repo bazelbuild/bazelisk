@@ -51,10 +51,7 @@ go_library(
 
 go_test(
     name = "go_default_test",
-    srcs = [
-        "bazelisk_test.go",
-        "bazelisk_version_test.go",
-    ],
+    srcs = ["bazelisk_version_test.go"],
     data = [
         "sample-issues-migration.json",
     ],
@@ -64,7 +61,6 @@ go_test(
         "//core:go_default_library",
         "//httputil:go_default_library",
         "//repositories:go_default_library",
-        "//runfiles:go_default_library",
         "//versions:go_default_library",
     ],
 )
@@ -76,7 +72,7 @@ go_binary(
 )
 
 go_binary(
-    name = "bazelisk-darwin",
+    name = "bazelisk-darwin-amd64",
     out = "bazelisk-darwin_amd64",
     embed = [":go_default_library"],
     gc_linkopts = [
@@ -90,7 +86,35 @@ go_binary(
 )
 
 go_binary(
-    name = "bazelisk-linux",
+    name = "bazelisk-darwin-arm64",
+    out = "bazelisk-darwin_arm64",
+    embed = [":go_default_library"],
+    gc_linkopts = [
+        "-s",
+        "-w",
+    ],
+    goarch = "arm64",
+    goos = "darwin",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
+genrule(
+    name = "bazelisk-darwin-universal",
+    srcs = [
+        ":bazelisk-darwin_amd64",
+        ":bazelisk-darwin_arm64",
+    ],
+    outs = ["bazelisk-darwin_universal"],
+    cmd = "lipo -create -output \"$@\" $(SRCS)",
+    output_to_bindir = 1,
+    target_compatible_with = [
+        "@platforms//os:macos",
+    ],
+)
+
+go_binary(
+    name = "bazelisk-linux-amd64",
     out = "bazelisk-linux_amd64",
     embed = [":go_default_library"],
     gc_linkopts = [
@@ -118,7 +142,7 @@ go_binary(
 )
 
 go_binary(
-    name = "bazelisk-windows",
+    name = "bazelisk-windows-amd64",
     out = "bazelisk-windows_amd64.exe",
     embed = [":go_default_library"],
     goarch = "amd64",
@@ -128,18 +152,26 @@ go_binary(
 )
 
 genrule(
-    name = "bazelisk-darwin-for-npm",
-    srcs = [":bazelisk-darwin"],
+    name = "bazelisk-darwin-amd64-for-npm",
+    srcs = [":bazelisk-darwin-amd64"],
     outs = ["bazelisk-darwin_amd64"],
-    cmd = "cp $(location :bazelisk-darwin) \"$@\"",
+    cmd = "cp $(location :bazelisk-darwin-amd64) \"$@\"",
     output_to_bindir = 1,
 )
 
 genrule(
-    name = "bazelisk-linux-for-npm",
-    srcs = [":bazelisk-linux"],
+    name = "bazelisk-darwin-arm64-for-npm",
+    srcs = [":bazelisk-darwin-arm64"],
+    outs = ["bazelisk-darwin_arm64"],
+    cmd = "cp $(location :bazelisk-darwin-arm64) \"$@\"",
+    output_to_bindir = 1,
+)
+
+genrule(
+    name = "bazelisk-linux-amd64-for-npm",
+    srcs = [":bazelisk-linux-amd64"],
     outs = ["bazelisk-linux_amd64"],
-    cmd = "cp $(location :bazelisk-linux) \"$@\"",
+    cmd = "cp $(location :bazelisk-linux-amd64) \"$@\"",
     output_to_bindir = 1,
 )
 
@@ -152,10 +184,10 @@ genrule(
 )
 
 genrule(
-    name = "bazelisk-windows-for-npm",
-    srcs = [":bazelisk-windows"],
+    name = "bazelisk-windows-amd64-for-npm",
+    srcs = [":bazelisk-windows-amd64"],
     outs = ["bazelisk-windows_amd64.exe"],
-    cmd = "cp $(location :bazelisk-windows) \"$@\"",
+    cmd = "cp $(location :bazelisk-windows-amd64) \"$@\"",
     output_to_bindir = 1,
 )
 
@@ -165,12 +197,14 @@ pkg_npm(
         "LICENSE",
         "README.md",
         "bazelisk.js",
+        "bazelisk.d.ts",
         "package.json",
     ],
     deps = [
-        ":bazelisk-darwin-for-npm",
-        ":bazelisk-linux-for-npm",
+        ":bazelisk-darwin-amd64-for-npm",
+        ":bazelisk-darwin-arm64-for-npm",
+        ":bazelisk-linux-amd64-for-npm",
         ":bazelisk-linux-arm64-for-npm",
-        ":bazelisk-windows-for-npm",
+        ":bazelisk-windows-amd64-for-npm",
     ],
 )

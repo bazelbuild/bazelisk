@@ -5,7 +5,6 @@ package core
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -43,6 +42,8 @@ var (
 
 // RunBazelisk runs the main Bazelisk logic for the given arguments and Bazel repositories.
 func RunBazelisk(args []string, repos *Repositories) (int, error) {
+	httputil.UserAgent = getUserAgent()
+
 	bazeliskHome := GetEnvOrConfig("BAZELISK_HOME")
 	if len(bazeliskHome) == 0 {
 		userCacheDir, err := os.UserCacheDir()
@@ -107,7 +108,7 @@ func RunBazelisk(args []string, repos *Repositories) (int, error) {
 	// --print_env must be the first argument.
 	if len(args) > 0 && args[0] == "--print_env" {
 		// print environment variables for sub-processes
-		cmd := makeBazelCmd(bazelPath, args)
+		cmd := makeBazelCmd(bazelPath, args, nil)
 		for _, val := range cmd.Env {
 			fmt.Println(val)
 		}
@@ -116,18 +117,21 @@ func RunBazelisk(args []string, repos *Repositories) (int, error) {
 
 	// --strict and --migrate must be the first argument.
 	if len(args) > 0 && (args[0] == "--strict" || args[0] == "--migrate") {
-		cmd := args[0]
-		newFlags, err := getIncompatibleFlags(bazeliskHome, resolvedBazelVersion)
+		cmd, err := getBazelCommand(args)
+		if err != nil {
+			return -1, err
+		}
+		newFlags, err := getIncompatibleFlags(bazelPath, cmd)
 		if err != nil {
 			return -1, fmt.Errorf("could not get the list of incompatible flags: %v", err)
 		}
 
-		if cmd == "--migrate" {
+		if args[0] == "--migrate" {
 			migrate(bazelPath, args[1:], newFlags)
 		} else {
 			// When --strict is present, it expands to the list of --incompatible_ flags
 			// that should be enabled for the given Bazel version.
-			args = insertArgs(args[1:], getSortedKeys(newFlags))
+			args = insertArgs(args[1:], newFlags)
 		}
 	}
 
@@ -151,11 +155,28 @@ func RunBazelisk(args []string, repos *Repositories) (int, error) {
 		}
 	}
 
-	exitCode, err := runBazel(bazelPath, args)
+	exitCode, err := runBazel(bazelPath, args, nil)
 	if err != nil {
 		return -1, fmt.Errorf("could not run Bazel: %v", err)
 	}
 	return exitCode, nil
+}
+
+func getBazelCommand(args []string) (string, error) {
+	for _, a := range args {
+		if !strings.HasPrefix(a, "-") {
+			return a, nil
+		}
+	}
+	return "", fmt.Errorf("could not find a valid Bazel command in %q. Please run `bazel help` if you need help on how to use Bazel", strings.Join(args, " "))
+}
+
+func getUserAgent() string {
+	agent := GetEnvOrConfig("BAZELISK_USER_AGENT")
+	if len(agent) > 0 {
+		return agent
+	}
+	return fmt.Sprintf("Bazelisk/%s", BazeliskVersion)
 }
 
 // GetEnvOrConfig reads a configuration value from the environment, but fall back to reading it from .bazeliskrc in the workspace root.
@@ -200,12 +221,24 @@ func GetEnvOrConfig(name string) string {
 	return fileConfig[name]
 }
 
+// isValidWorkspace returns true iff the supplied path is the workspace root, defined by the presence of
+// a file named WORKSPACE or WORKSPACE.bazel
+// see https://github.com/bazelbuild/bazel/blob/8346ea4cfdd9fbd170d51a528fee26f912dad2d5/src/main/cpp/workspace_layout.cc#L37
+func isValidWorkspace(path string) bool {
+	info, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+
+	return !info.IsDir()
+}
+
 func findWorkspaceRoot(root string) string {
-	if _, err := os.Stat(filepath.Join(root, "WORKSPACE")); err == nil {
+	if isValidWorkspace(filepath.Join(root, "WORKSPACE")) {
 		return root
 	}
 
-	if _, err := os.Stat(filepath.Join(root, "WORKSPACE.bazel")); err == nil {
+	if isValidWorkspace(filepath.Join(root, "WORKSPACE.bazel")) {
 		return root
 	}
 
@@ -375,7 +408,7 @@ func prependDirToPathList(cmd *exec.Cmd, dir string) {
 	}
 }
 
-func makeBazelCmd(bazel string, args []string) *exec.Cmd {
+func makeBazelCmd(bazel string, args []string, out io.Writer) *exec.Cmd {
 	execPath := maybeDelegateToWrapper(bazel)
 
 	cmd := exec.Command(execPath, args...)
@@ -385,13 +418,17 @@ func makeBazelCmd(bazel string, args []string) *exec.Cmd {
 	}
 	prependDirToPathList(cmd, filepath.Dir(execPath))
 	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
+	if out == nil {
+		cmd.Stdout = os.Stdout
+	} else {
+		cmd.Stdout = out
+	}
 	cmd.Stderr = os.Stderr
 	return cmd
 }
 
-func runBazel(bazel string, args []string) (int, error) {
-	cmd := makeBazelCmd(bazel, args)
+func runBazel(bazel string, args []string, out io.Writer) (int, error) {
+	cmd := makeBazelCmd(bazel, args, out)
 	err := cmd.Start()
 	if err != nil {
 		return 1, fmt.Errorf("could not start Bazel: %v", err)
@@ -419,84 +456,20 @@ func runBazel(bazel string, args []string) (int, error) {
 	return 0, nil
 }
 
-type label struct {
-	Name string `json:"name"`
-}
-
-type issue struct {
-	Title  string  `json:"title"`
-	URL    string  `json:"html_url"`
-	Labels []label `json:"labels"`
-}
-
-type issueList struct {
-	Items []issue `json:"items"`
-}
-
-// FlagDetails represents an incompatible flag that should be flipped later. It's currently exported for testing purposes.
-type FlagDetails struct {
-	Name          string
-	ReleaseToFlip string
-	IssueURL      string
-}
-
-func (f *FlagDetails) String() string {
-	return fmt.Sprintf("%s (Bazel %s: %s)", f.Name, f.ReleaseToFlip, f.IssueURL)
-}
-
-func getIncompatibleFlags(bazeliskHome, resolvedBazelVersion string) (map[string]*FlagDetails, error) {
-	// GitHub labels use only major and minor version, we ignore the patch number (and any other suffix).
-	re := regexp.MustCompile(`^\d+\.\d+`)
-	version := re.FindString(resolvedBazelVersion)
-	if len(version) == 0 {
-		return nil, fmt.Errorf("invalid version %v", resolvedBazelVersion)
-	}
-	url := "https://api.github.com/search/issues?per_page=100&q=repo:bazelbuild/bazel+label:migration-" + version
-	issuesJSON, err := httputil.MaybeDownload(bazeliskHome, url, "flags-"+version, "list of flags from GitHub", GetEnvOrConfig("BAZELISK_GITHUB_TOKEN"))
-	if err != nil {
-		return nil, fmt.Errorf("could not get issues from GitHub: %v", err)
+// getIncompatibleFlags returns all incompatible flags for the current Bazel command in alphabetical order.
+func getIncompatibleFlags(bazelPath, cmd string) ([]string, error) {
+	out := strings.Builder{}
+	if _, err := runBazel(bazelPath, []string{"help", cmd, "--short"}, &out); err != nil {
+		return nil, fmt.Errorf("unable to determine incompatible flags with binary %s: %v", bazelPath, err)
 	}
 
-	result, err := ScanIssuesForIncompatibleFlags(issuesJSON)
-	return result, err
-}
-
-// ScanIssuesForIncompatibleFlags is visible for testing.
-// TODO: move this function and its test into a dedicated package.
-func ScanIssuesForIncompatibleFlags(issuesJSON []byte) (map[string]*FlagDetails, error) {
-	result := make(map[string]*FlagDetails)
-	var issueList issueList
-	if err := json.Unmarshal(issuesJSON, &issueList); err != nil {
-		return nil, fmt.Errorf("could not parse JSON into list of issues: %v", err)
+	re := regexp.MustCompile(`(?m)^\s*--\[no\](incompatible_\w+)$`)
+	flags := make([]string, 0)
+	for _, m := range re.FindAllStringSubmatch(out.String(), -1) {
+		flags = append(flags, fmt.Sprintf("--%s", m[1]))
 	}
-
-	re := regexp.MustCompile(`^incompatible_\w+`)
-	sRe := regexp.MustCompile(`^//.*[^/]:incompatible_\w+`)
-	for _, issue := range issueList.Items {
-		flag := re.FindString(issue.Title)
-		if len(flag) <= 0 {
-			flag = sRe.FindString(issue.Title)
-		}
-		if len(flag) > 0 {
-			name := "--" + flag
-			result[name] = &FlagDetails{
-				Name:          name,
-				ReleaseToFlip: getBreakingRelease(issue.Labels),
-				IssueURL:      issue.URL,
-			}
-		}
-	}
-
-	return result, nil
-}
-
-func getBreakingRelease(labels []label) string {
-	for _, l := range labels {
-		if release := strings.TrimPrefix(l.Name, "breaking-change-"); release != l.Name {
-			return release
-		}
-	}
-	return "TBD"
+	sort.Strings(flags)
+	return flags, nil
 }
 
 // insertArgs will insert newArgs in baseArgs. If baseArgs contains the
@@ -526,7 +499,7 @@ func shutdownIfNeeded(bazelPath string) {
 	}
 
 	fmt.Printf("bazel shutdown\n")
-	exitCode, err := runBazel(bazelPath, []string{"shutdown"})
+	exitCode, err := runBazel(bazelPath, []string{"shutdown"}, nil)
 	fmt.Printf("\n")
 	if err != nil {
 		log.Fatalf("failed to run bazel shutdown: %v", err)
@@ -544,7 +517,7 @@ func cleanIfNeeded(bazelPath string) {
 	}
 
 	fmt.Printf("bazel clean --expunge\n")
-	exitCode, err := runBazel(bazelPath, []string{"clean", "--expunge"})
+	exitCode, err := runBazel(bazelPath, []string{"clean", "--expunge"}, nil)
 	fmt.Printf("\n")
 	if err != nil {
 		log.Fatalf("failed to run clean: %v", err)
@@ -555,16 +528,15 @@ func cleanIfNeeded(bazelPath string) {
 	}
 }
 
-// migrate will run Bazel with each newArgs separately and report which ones are failing.
-func migrate(bazelPath string, baseArgs []string, flags map[string]*FlagDetails) {
-	newArgs := getSortedKeys(flags)
+// migrate will run Bazel with each flag separately and report which ones are failing.
+func migrate(bazelPath string, baseArgs []string, flags []string) {
 	// 1. Try with all the flags.
-	args := insertArgs(baseArgs, newArgs)
+	args := insertArgs(baseArgs, flags)
 	fmt.Printf("\n\n--- Running Bazel with all incompatible flags\n\n")
 	shutdownIfNeeded(bazelPath)
 	cleanIfNeeded(bazelPath)
 	fmt.Printf("bazel %s\n", strings.Join(args, " "))
-	exitCode, err := runBazel(bazelPath, args)
+	exitCode, err := runBazel(bazelPath, args, nil)
 	if err != nil {
 		log.Fatalf("could not run Bazel: %v", err)
 	}
@@ -579,7 +551,7 @@ func migrate(bazelPath string, baseArgs []string, flags map[string]*FlagDetails)
 	shutdownIfNeeded(bazelPath)
 	cleanIfNeeded(bazelPath)
 	fmt.Printf("bazel %s\n", strings.Join(args, " "))
-	exitCode, err = runBazel(bazelPath, args)
+	exitCode, err = runBazel(bazelPath, args, nil)
 	if err != nil {
 		log.Fatalf("could not run Bazel: %v", err)
 	}
@@ -591,13 +563,13 @@ func migrate(bazelPath string, baseArgs []string, flags map[string]*FlagDetails)
 	// 3. Try with each flag separately.
 	var passList []string
 	var failList []string
-	for _, arg := range newArgs {
+	for _, arg := range flags {
 		args = insertArgs(baseArgs, []string{arg})
 		fmt.Printf("\n\n--- Running Bazel with %s\n\n", arg)
 		shutdownIfNeeded(bazelPath)
 		cleanIfNeeded(bazelPath)
 		fmt.Printf("bazel %s\n", strings.Join(args, " "))
-		exitCode, err = runBazel(bazelPath, args)
+		exitCode, err = runBazel(bazelPath, args, nil)
 		if err != nil {
 			log.Fatalf("could not run Bazel: %v", err)
 		}
@@ -610,7 +582,7 @@ func migrate(bazelPath string, baseArgs []string, flags map[string]*FlagDetails)
 
 	print := func(l []string) {
 		for _, arg := range l {
-			fmt.Printf("  %s\n", flags[arg])
+			fmt.Printf("  %s\n", arg)
 		}
 	}
 
@@ -623,15 +595,6 @@ func migrate(bazelPath string, baseArgs []string, flags map[string]*FlagDetails)
 	print(failList)
 
 	os.Exit(1)
-}
-
-func getSortedKeys(data map[string]*FlagDetails) []string {
-	result := make([]string, 0)
-	for key := range data {
-		result = append(result, key)
-	}
-	sort.Strings(result)
-	return result
 }
 
 func dirForURL(url string) string {

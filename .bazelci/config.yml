@@ -1,6 +1,6 @@
 ---
 platforms:
-  ubuntu1604:
+  ubuntu1804:
     build_targets:
       - //...
     test_targets:
@@ -8,7 +8,7 @@ platforms:
     test_flags:
       - --flaky_test_attempts=1
       - --test_output=streamed
-  ubuntu1804:
+  ubuntu2004:
     build_targets:
       - //...
     test_targets:

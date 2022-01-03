@@ -2,73 +2,37 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 http_archive(
     name = "io_bazel_rules_go",
-    sha256 = "b725e6497741d7fc2d55fcc29a276627d10e43fa5d0bb692692890ae30d98d00",
+    sha256 = "69de5c704a05ff37862f7e0f5534d4f479418afc21806c887db544a316f3cb6b",
     urls = [
-        "https://mirror.bazel.build/github.com/bazelbuild/rules_go/releases/download/v0.24.3/rules_go-v0.24.3.tar.gz",
-        "https://github.com/bazelbuild/rules_go/releases/download/v0.24.3/rules_go-v0.24.3.tar.gz",
+        "https://mirror.bazel.build/github.com/bazelbuild/rules_go/releases/download/v0.27.0/rules_go-v0.27.0.tar.gz",
+        "https://github.com/bazelbuild/rules_go/releases/download/v0.27.0/rules_go-v0.27.0.tar.gz",
+    ],
+)
+
+http_archive(
+    name = "bazel_gazelle",
+    sha256 = "62ca106be173579c0a167deb23358fdfe71ffa1e4cfdddf5582af26520f1c66f",
+    urls = [
+        "https://mirror.bazel.build/github.com/bazelbuild/bazel-gazelle/releases/download/v0.23.0/bazel-gazelle-v0.23.0.tar.gz",
+        "https://github.com/bazelbuild/bazel-gazelle/releases/download/v0.23.0/bazel-gazelle-v0.23.0.tar.gz",
     ],
 )
 
 load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_dependencies")
-
-go_rules_dependencies()
-
-go_register_toolchains()
-
-http_archive(
-    name = "bazel_gazelle",
-    sha256 = "72d339ff874a382f819aaea80669be049069f502d6c726a07759fdca99653c48",
-    urls = [
-        "https://mirror.bazel.build/github.com/bazelbuild/bazel-gazelle/releases/download/v0.22.1/bazel-gazelle-v0.22.1.tar.gz",
-        "https://github.com/bazelbuild/bazel-gazelle/releases/download/v0.22.1/bazel-gazelle-v0.22.1.tar.gz",
-    ],
-)
-
-# Load and call Gazelle dependencies
 load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies", "go_repository")
 
 go_repository(
     name = "com_github_bazelbuild_rules_go",
     importpath = "github.com/bazelbuild/rules_go",
-    sum = "h1:BKNgfYF+WS0pBpmMy2w9k6TqMpxuzL3JI0oWmhZ4JRU=",
-    version = "v0.24.3",
+    sum = "h1:KViqR7qKXwz+LrNdIauCDU21kneCk+4DnYjpvlJwH50=",
+    version = "v0.27.0",
 )
-
-go_repository(
-    name = "org_golang_x_crypto",
-    importpath = "golang.org/x/crypto",
-    sum = "h1:pLI5jrR7OSLijeIDcmRxNmw2api+jEfxLoykJVice/E=",
-    version = "v0.0.0-20201016220609-9e8e0b390897",
-)
-
-go_repository(
-    name = "org_golang_x_net",
-    importpath = "golang.org/x/net",
-    sum = "h1:0GoQqolDA55aaLxZyTzK/Y2ePZzZTUrRacwib7cNsYQ=",
-    version = "v0.0.0-20190404232315-eb5bcb51f2a3",
-)
-
-go_repository(
-    name = "org_golang_x_sys",
-    importpath = "golang.org/x/sys",
-    sum = "h1:+R4KGOnez64A81RvjARKc4UT5/tI9ujCIVX+P5KiHuI=",
-    version = "v0.0.0-20190412213103-97732733099d",
-)
-
-go_repository(
-    name = "org_golang_x_text",
-    importpath = "golang.org/x/text",
-    sum = "h1:g61tztE5qeGQ89tm6NTjjM9VPIm088od1l6aSorWRWg=",
-    version = "v0.3.0",
-)
-
-gazelle_dependencies()
 
 go_repository(
     name = "com_github_hashicorp_go_version",
     importpath = "github.com/hashicorp/go-version",
-    sum = "h1:zEfKbn2+PDgroKdiOzqiE8rsmLqU2uwi5PB5pBJ3TkI=",
-    version = "v1.2.1",
+    sum = "h1:McDWVJIU/y+u1BRV06dPaLfLCaT7fUTJLp5r04x7iNw=",
+    version = "v1.3.0",
 )
 
 go_repository(
@@ -77,6 +41,40 @@ go_repository(
     sum = "h1:lukF9ziXFxDFPkA1vsr5zpc1XuPDn/wFntq5mG+4E0Y=",
     version = "v1.1.0",
 )
+
+go_repository(
+    name = "org_golang_x_crypto",
+    importpath = "golang.org/x/crypto",
+    sum = "h1:0es+/5331RGQPcXlMfP+WrnIIS6dNnNRe0WB02W0F4M=",
+    version = "v0.0.0-20211215153901-e495a2d5b3d3",
+)
+
+go_repository(
+    name = "org_golang_x_net",
+    importpath = "golang.org/x/net",
+    sum = "h1:CIJ76btIcR3eFI5EgSo6k1qKw9KJexJuRLI9G7Hp5wE=",
+    version = "v0.0.0-20211112202133-69e39bad7dc2",
+)
+
+go_repository(
+    name = "org_golang_x_sys",
+    importpath = "golang.org/x/sys",
+    sum = "h1:SrN+KX8Art/Sf4HNj6Zcz06G7VEz+7w9tdXTPOZ7+l4=",
+    version = "v0.0.0-20210615035016-665e8c7367d1",
+)
+
+go_repository(
+    name = "org_golang_x_term",
+    importpath = "golang.org/x/term",
+    sum = "h1:v+OssWQX+hTHEmOBgwxdZxK4zHq3yOs8F9J7mk0PY8E=",
+    version = "v0.0.0-20201126162022-7de9c90e9dd1",
+)
+
+go_rules_dependencies()
+
+go_register_toolchains(version = "1.16.4")
+
+gazelle_dependencies()
 
 # We don't use any nodejs but this includes a rule for publishing releases to npm
 http_archive(
@@ -88,3 +86,14 @@ http_archive(
 load("@build_bazel_rules_nodejs//:index.bzl", "node_repositories")
 
 node_repositories()
+
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+http_archive(
+    name = "platforms",
+    sha256 = "079945598e4b6cc075846f7fd6a9d0857c33a7afc0de868c2ccb96405225135d",
+    urls = [
+        "https://mirror.bazel.build/github.com/bazelbuild/platforms/releases/download/0.0.4/platforms-0.0.4.tar.gz",
+        "https://github.com/bazelbuild/platforms/releases/download/0.0.4/platforms-0.0.4.tar.gz",
+    ],
+)

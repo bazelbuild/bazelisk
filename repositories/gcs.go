@@ -117,27 +117,45 @@ func getVersionHistoryFromGCS() ([]string, error) {
 }
 
 func listDirectoriesInReleaseBucket(prefix string) ([]string, bool, error) {
-	url := "https://www.googleapis.com/storage/v1/b/bazel/o?delimiter=/"
+	baseURL := "https://www.googleapis.com/storage/v1/b/bazel/o?delimiter=/"
 	if prefix != "" {
-		url = fmt.Sprintf("%s&prefix=%s", url, prefix)
-	}
-	content, err := httputil.ReadRemoteFile(url, "")
-	if err != nil {
-		return nil, false, fmt.Errorf("could not list GCS objects at %s: %v", url, err)
+		baseURL = fmt.Sprintf("%s&prefix=%s", baseURL, prefix)
 	}
 
-	var response GcsListResponse
-	if err := json.Unmarshal(content, &response); err != nil {
-		return nil, false, fmt.Errorf("could not parse GCS index JSON: %v", err)
+	var prefixes []string
+	var isRelease = false
+	var nextPageToken = ""
+	for {
+		var url = baseURL
+		if nextPageToken != "" {
+			url = fmt.Sprintf("%s&pageToken=%s", baseURL, nextPageToken)
+		}
+		content, _, err := httputil.ReadRemoteFile(url, "")
+		if err != nil {
+			return nil, false, fmt.Errorf("could not list GCS objects at %s: %v", url, err)
+		}
+
+		var response GcsListResponse
+		if err := json.Unmarshal(content, &response); err != nil {
+			return nil, false, fmt.Errorf("could not parse GCS index JSON: %v", err)
+		}
+
+		prefixes = append(prefixes, response.Prefixes...)
+		isRelease = isRelease || len(response.Items) > 0
+
+		if response.NextPageToken == "" {
+			break
+		}
+		nextPageToken = response.NextPageToken
 	}
-	return response.Prefixes, len(response.Items) > 0, nil
+	return prefixes, isRelease, nil
 }
 
 func getVersionsFromGCSPrefixes(versions []string) []string {
 	result := make([]string, len(versions))
 	for i, v := range versions {
 		noSlashes := strings.Replace(v, "/", "", -1)
-		result[i] =  strings.TrimSuffix(noSlashes, "release")
+		result[i] = strings.TrimSuffix(noSlashes, "release")
 	}
 	return result
 }
@@ -150,6 +168,9 @@ type GcsListResponse struct {
 
 	// Items contains the names of available objects in the current GCS bucket.
 	Items []interface{} `json:"items"`
+
+	// Optional token when the result is paginated.
+	NextPageToken string `json:"nextPageToken"`
 }
 
 // DownloadRelease downloads the given Bazel release into the specified location and returns the absolute path.
@@ -210,22 +231,28 @@ func (gcs *GCSRepo) GetCandidateVersions(bazeliskHome string) ([]string, error) 
 		return []string{}, errors.New("could not find any Bazel versions")
 	}
 
-	latestVersion := history[len(history)-1]
+	// Find most recent directory that contains any release candidates.
+	// Typically it should be the last or second-to-last, depending on whether there are new rolling releases.
+	for pos := len(history) - 1; pos >= 0; pos-- {
+		// Append slash to match directories
+		bucket := fmt.Sprintf("%s/", history[pos])
+		rcPrefixes, _, err := listDirectoriesInReleaseBucket(bucket)
+		if err != nil {
+			return []string{}, fmt.Errorf("could not list release candidates for latest release: %v", err)
+		}
 
-	// Append slash to match directories
-	rcPrefixes, _, err := listDirectoriesInReleaseBucket(latestVersion + "/")
-	if err != nil {
-		return []string{}, fmt.Errorf("could not list release candidates for latest release: %v", err)
-	}
-
-	rcs := make([]string, 0)
-	for _, v := range getVersionsFromGCSPrefixes(rcPrefixes) {
-		// Remove full releases
-		if strings.Contains(v, "rc") {
-			rcs = append(rcs, v)
+		rcs := make([]string, 0)
+		for _, v := range getVersionsFromGCSPrefixes(rcPrefixes) {
+			// Remove full and rolling releases
+			if strings.Contains(v, "rc") {
+				rcs = append(rcs, v)
+			}
+		}
+		if len(rcs) > 0 {
+			return rcs, nil
 		}
 	}
-	return rcs, nil
+	return nil, nil
 }
 
 // DownloadCandidate downloads the given release candidate into the specified location and returns the absolute path.
@@ -253,7 +280,7 @@ func (gcs *GCSRepo) DownloadCandidate(version, destDir, destFile string) (string
 // it's https://buildkite.com/bazel/bazel-bazel
 func (gcs *GCSRepo) GetLastGreenCommit(bazeliskHome string, downstreamGreen bool) (string, error) {
 	pathSuffix := lastGreenCommitPathSuffixes[downstreamGreen]
-	content, err := httputil.ReadRemoteFile(lastGreenBaseURL+pathSuffix, "")
+	content, _, err := httputil.ReadRemoteFile(lastGreenBaseURL+pathSuffix, "")
 	if err != nil {
 		return "", fmt.Errorf("could not determine last green commit: %v", err)
 	}
