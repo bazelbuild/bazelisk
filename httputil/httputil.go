@@ -139,7 +139,7 @@ func parseRetryHeader(value string) (time.Duration, error) {
 }
 
 // Attempt to open ~/.netrc file and find login/password for given machine (Host).
-func TryFindNetrcFileCreds(machine string) (string, error) {
+func tryFindNetrcFileCreds(machine string) (string, error) {
 	dir, err := homedir.Dir()
 	if err != nil {
 		return "", err
