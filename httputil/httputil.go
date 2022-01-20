@@ -192,7 +192,7 @@ func DownloadBinary(originURL, destDir, destFile string) (string, error) {
 		log.Printf("Downloading %s...", originURL)
 
 		var auth string = ""
-		t, err := TryFindNetrcFileCreds(u.Host)
+		t, err := tryFindNetrcFileCreds(u.Host)
 		if err == nil {
 			// successfully parsed netrc for given host
 			auth = t

@@ -42,6 +42,12 @@ go_repository(
     version = "v1.1.0",
 )
 
+go_repository(
+    name = "com_github_jdxcode_netrc",
+    importpath = "github.com/jdxcode/netrc",
+    commit = "926c7f70242abe00179235c2b06bb647c0c53a12",
+)
+
 go_rules_dependencies()
 
 go_register_toolchains(version = "1.16.4")
@@ -58,8 +64,6 @@ http_archive(
 load("@build_bazel_rules_nodejs//:index.bzl", "node_repositories")
 
 node_repositories()
-
-load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 http_archive(
     name = "platforms",
