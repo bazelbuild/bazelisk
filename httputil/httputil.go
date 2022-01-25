@@ -138,8 +138,8 @@ func parseRetryHeader(value string) (time.Duration, error) {
 	return time.Until(t), nil
 }
 
-// Attempt to open ~/.netrc file and find login/password for given machine (Host).
-func tryFindNetrcFileCreds(machine string) (string, error) {
+// tryFindNetrcFileCreds returns base64-encoded login:password found in ~/.netrc file for a given `host`
+func tryFindNetrcFileCreds(host string) (string, error) {
 	dir, err := homedir.Dir()
 	if err != nil {
 		return "", err
@@ -152,9 +152,12 @@ func tryFindNetrcFileCreds(machine string) (string, error) {
 		return "", err
 	}
 
-	m := n.Machine(machine)
+	m := n.Machine(host)
 	if m == nil {
-		return "", fmt.Errorf("could not find creds for %s in netrc %s", machine, file)
+		// if host is not found, we should proceed without providing any Authorization header,
+		// because remote host may not have auth at all.
+		log.Printf("Skipping basic authentication for %s because no credentials found in %s", machine, file)
+		return "", fmt.Errorf("could not find creds for %s in netrc %s", host, file)
 	}
 
 	login := m.Get("login")
@@ -186,7 +189,7 @@ func DownloadBinary(originURL, destDir, destFile string) (string, error) {
 		u, err := url.Parse(originURL)
 		if err != nil {
 			// originURL supposed to be valid
-			panic(err)
+			return "", err
 		}
 
 		log.Printf("Downloading %s...", originURL)
