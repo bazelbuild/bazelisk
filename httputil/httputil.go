@@ -156,9 +156,11 @@ func tryFindNetrcFileCreds(host string) (string, error) {
 	if m == nil {
 		// if host is not found, we should proceed without providing any Authorization header,
 		// because remote host may not have auth at all.
-		log.Printf("Skipping basic authentication for %s because no credentials found in %s", machine, file)
+		log.Printf("Skipping basic authentication for %s because no credentials found in %s", host, file)
 		return "", fmt.Errorf("could not find creds for %s in netrc %s", host, file)
 	}
+
+	log.Printf("Using basic authentication credentials for host %s from %s", host, file)
 
 	login := m.Get("login")
 	pwd := m.Get("password")
