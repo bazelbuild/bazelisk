@@ -10,6 +10,10 @@ go_library(
         "fake.go",
         "httputil.go",
     ],
+    deps = [
+        "@com_github_mitchellh_go_homedir//:go_default_library",
+        "@com_github_jdxcode_netrc//:go_default_library"
+    ],
     importpath = "github.com/bazelbuild/bazelisk/httputil",
     visibility = ["//visibility:public"],
 )
