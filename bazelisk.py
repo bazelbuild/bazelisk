@@ -243,9 +243,7 @@ def determine_url(version, is_commit, bazel_filename):
     (version, rc) = re.match(r"(\d*\.\d*(?:\.\d*)?)(rc\d+)?", version).groups()
 
     if "BAZELISK_BASE_URL" in os.environ:
-        return "{}/{}/{}".format(
-            os.environ["BAZELISK_BASE_URL"], version, bazel_filename
-        )
+        return "{}/{}/{}".format(os.environ["BAZELISK_BASE_URL"], version, bazel_filename)
     else:
         return "https://releases.bazel.build/{}/{}/{}".format(
             version, rc if rc else "release", bazel_filename
@@ -254,7 +252,7 @@ def determine_url(version, is_commit, bazel_filename):
 
 def trim_suffix(string, suffix):
     if string.endswith(suffix):
-        return string[:len(string) - len(suffix)]
+        return string[: len(string) - len(suffix)]
     else:
         return string
 
@@ -282,8 +280,8 @@ def download_bazel_into_directory(version, is_commit, directory):
                 except:
                     pass
                 if creds is not None:
-                    auth = base64.b64encode(('%s:%s' % (creds[0], creds[2])).encode('ascii'))
-                    request.add_header("Authorization", "Basic %s" % auth.decode('utf-8'))
+                    auth = base64.b64encode(("%s:%s" % (creds[0], creds[2])).encode("ascii"))
+                    request.add_header("Authorization", "Basic %s" % auth.decode("utf-8"))
             with closing(urlopen(request)) as response:
                 shutil.copyfileobj(response, t)
             t.flush()
@@ -327,8 +325,8 @@ def get_bazelisk_directory():
 
 def maybe_makedirs(path):
     """
-  Creates a directory and its parents if necessary.
-  """
+    Creates a directory and its parents if necessary.
+    """
     try:
         os.makedirs(path)
     except OSError as e:
@@ -376,9 +374,9 @@ def make_bazel_cmd(bazel_path, argv):
     directory = os.path.dirname(bazel_path)
     prepend_directory_to_path(env, directory)
     return {
-        'exec': bazel_path,
-        'args': argv,
-        'env': env,
+        "exec": bazel_path,
+        "args": argv,
+        "env": env,
     }
 
 
@@ -386,7 +384,7 @@ def execute_bazel(bazel_path, argv):
     cmd = make_bazel_cmd(bazel_path, argv)
 
     # We cannot use close_fds on Windows, so disable it there.
-    p = subprocess.Popen([cmd['exec']] + cmd['args'], close_fds=os.name != "nt", env=cmd['env'])
+    p = subprocess.Popen([cmd["exec"]] + cmd["args"], close_fds=os.name != "nt", env=cmd["env"])
     while True:
         try:
             return p.wait()
@@ -420,9 +418,9 @@ def main(argv=None):
 
     if argv and argv[0] == "--print_env":
         cmd = make_bazel_cmd(bazel_path, argv)
-        env = cmd['env']
+        env = cmd["env"]
         for key in env:
-            print('{}={}'.format(key, env[key]))
+            print("{}={}".format(key, env[key]))
         return 0
 
     return execute_bazel(bazel_path, argv)
