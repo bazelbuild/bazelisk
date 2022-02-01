@@ -208,23 +208,31 @@ def determine_executable_filename_suffix():
 def determine_bazel_filename(version):
     operating_system = get_operating_system()
     supported_machines = ["x86_64"]
-    versions = version.split('.')[:2]
+    versions = version.split(".")[:2]
     if len(versions) == 2:
         # released version
         major, minor = int(versions[0]), int(versions[1])
-        if operating_system == "darwin" and (major > 4 or major == 4 and minor >= 1) or \
-            operating_system == "linux" and (major > 3 or major == 3 and minor >= 4):
+        if (
+            operating_system == "darwin"
+            and (major > 4 or major == 4 and minor >= 1)
+            or operating_system == "linux"
+            and (major > 3 or major == 3 and minor >= 4)
+        ):
             # Linux arm64 was supported since 3.4.0.
             # Darwin arm64 was supported since 4.1.0.
             supported_machines.append("arm64")
+    elif operating_system in ("darwin", "linux"):
+        # This is needed to run bazelisk_test.sh on Linux and Darwin arm64 machines, which are
+        # becoming more and more popular.
+        # It works becasue all recent commits of Bazel supports arm64 on Darwin and Linux.
+        # However, this would add arm64 by mistake if the commit is too old, which should be
+        # a rare scenario.
+        supported_machines.append("arm64")
     machine = normalized_machine_arch_name()
     if machine not in supported_machines:
         raise Exception(
             'Unsupported machine architecture "{}". Bazel {} only supports {} on {}.'.format(
-                machine,
-                version,
-                ", ".join(supported_machines),
-                operating_system.capitalize()
+                machine, version, ", ".join(supported_machines), operating_system.capitalize()
             )
         )
 
