@@ -7,3 +7,4 @@
 
 # Binary created by 'go build'
 /bazelisk
+/bazelisk.exe

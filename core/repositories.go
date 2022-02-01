@@ -3,6 +3,7 @@ package core
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/bazelbuild/bazelisk/httputil"
 	"github.com/bazelbuild/bazelisk/platforms"
@@ -116,7 +117,13 @@ func (r *Repositories) resolveFork(bazeliskHome string, vi *versions.Info) (stri
 
 func (r *Repositories) resolveRelease(bazeliskHome string, vi *versions.Info) (string, DownloadFunc, error) {
 	lister := func(bazeliskHome string) ([]string, error) {
-		return r.Releases.GetReleaseVersions(bazeliskHome, vi.LatestOffset+1)
+		var lastN int
+		// Optimization: only fetch last (x+1) releases if the version is "latest-x".
+		// This does not work if the version is "4.x", i.e. if TrackRestriction is set.
+		if vi.TrackRestriction == 0 {
+			lastN = vi.LatestOffset + 1
+		}
+		return r.Releases.GetReleaseVersions(bazeliskHome, lastN)
 	}
 	version, err := resolvePotentiallyRelativeVersion(bazeliskHome, lister, vi)
 	if err != nil {
@@ -179,12 +186,28 @@ func resolvePotentiallyRelativeVersion(bazeliskHome string, lister listVersionsF
 	if err != nil {
 		return "", fmt.Errorf("unable to determine latest version: %v", err)
 	}
+
+	if vi.TrackRestriction > 0 {
+		available = restrictToTrack(available, vi.TrackRestriction)
+	}
+
 	index := len(available) - 1 - vi.LatestOffset
 	if index < 0 {
 		return "", fmt.Errorf("cannot resolve version \"%s\": There are only %d Bazel versions", vi.Value, len(available))
 	}
 	sorted := versions.GetInAscendingOrder(available)
 	return sorted[index], nil
+}
+
+func restrictToTrack(versions []string, track int) []string {
+	filtered := make([]string, 0)
+	prefix := fmt.Sprintf("%d.", track)
+	for _, v := range versions {
+		if strings.HasPrefix(v, prefix) {
+			filtered = append(filtered, v)
+		}
+	}
+	return filtered
 }
 
 // DownloadFromBaseURL can download Bazel binaries from a specific URL while ignoring the predefined repositories.

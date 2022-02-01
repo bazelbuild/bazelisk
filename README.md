@@ -53,6 +53,7 @@ Bazelisk currently understands the following formats for version labels:
   Previous releases can be specified via `latest-1`, `latest-2` etc.
 - A version number like `0.17.2` means that exact version of Bazel.
   It can also be a release candidate version like `0.20.0rc3`, or a rolling release version like `5.0.0-pre.20210317.1`.
+- A floating version identifier like `4.x` that returns the latest release from the LTS series started by Bazel 4.0.0.
 - The hash of a Git commit. Please note that Bazel binaries are only available for commits that passed [Bazel CI](https://buildkite.com/bazel/bazel-bazel).
 
 Additionally, a few special version names are supported for our official releases only (these formats do not work when using a fork):
@@ -72,16 +73,24 @@ As mentioned in the previous section, the `<FORK>/<VERSION>` version format allo
 If you want to create a fork with your own releases, you have to follow the naming conventions that we use in `bazelbuild/bazel` for the binary file names.
 The URL format looks like `https://github.com/<FORK>/bazel/releases/download/<VERSION>/<FILENAME>`.
 
-You can also override the URL by setting the environment variable `$BAZELISK_BASE_URL`. Bazelisk will then append `/<VERSION>/<FILENAME>` to the base URL instead of using the official release server.
+You can also override the URL by setting the environment variable `$BAZELISK_BASE_URL`. Bazelisk will then append `/<VERSION>/<FILENAME>` to the base URL instead of using the official release server. Bazelisk will read file [`~/.netrc`](https://everything.curl.dev/usingcurl/netrc) for credentials for Basic authentication.
 
 ## Ensuring that your developers use Bazelisk rather than Bazel
 
-Bazel does check the `.bazelversion` file itself, but the failure when it mismatches with the actual version of Bazel can be quite confusing to developers.
+Bazel installers typically provide Bazel's [shell wrapper script] as the `bazel` on the PATH.
+
+When installed this way, Bazel checks the `.bazelversion` file itself, but the failure when it mismatches with the actual version of Bazel can be quite confusing to developers.
 You may find yourself having to explain the difference between Bazel and Bazelisk (especially when you upgrade the pinned version).
 To avoid this, you can add a check in your `tools/bazel` wrapper.
 Since Bazelisk is careful to avoid calling itself in a loop, it always calls the wrapper with the environment variable `BAZELISK_SKIP_WRAPPER` set to `true'.
 You can check for the presence of that variable, and when not found, report a useful error to your users about how to install Bazelisk.
 
+Note that if users directly downloaded a Bazel binary and put it in their PATH, rather than running
+an installer, then `tools/bazel` and `.bazelversion` are not checked. You could call the
+[versions.check](https://github.com/bazelbuild/bazel-skylib/blob/1.1.1/docs/versions_doc.md#versionscheck) starlark module from the beginning of your WORKSPACE to
+require users update their bazel.
+
+[shell wrapper script]: https://github.com/bazelbuild/bazel/blob/master/scripts/packages/bazel.sh
 ## Other features
 
 The Go version of Bazelisk offers two new flags.

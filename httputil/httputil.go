@@ -2,24 +2,29 @@
 package httputil
 
 import (
+	b64 "encoding/base64"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"math/rand"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"time"
+
+	netrc "github.com/jdxcode/netrc"
+	homedir "github.com/mitchellh/go-homedir"
 )
 
 var (
 	// DefaultTransport specifies the http.RoundTripper that is used for any network traffic, and may be replaced with a dummy implementation for unit testing.
 	DefaultTransport = http.DefaultTransport
 	// UserAgent is passed to every HTTP request as part of the 'User-Agent' header.
-	UserAgent = "Bazelisk"
+	UserAgent   = "Bazelisk"
 	linkPattern = regexp.MustCompile(`<(.*?)>; rel="(\w+)"`)
 
 	// RetryClock is used for waiting between HTTP request retries.
@@ -28,7 +33,7 @@ var (
 	MaxRetries = 4
 	// MaxRequestDuration defines the maximum amount of time that a request and its retries may take in total
 	MaxRequestDuration = time.Second * 30
-	retryHeaders = []string{"Retry-After", "X-RateLimit-Reset", "Rate-Limit-Reset"}
+	retryHeaders       = []string{"Retry-After", "X-RateLimit-Reset", "Rate-Limit-Reset"}
 )
 
 // Clock keeps track of time. It can return the current time, as well as move forward by sleeping for a certain period.
@@ -37,7 +42,7 @@ type Clock interface {
 	Now() time.Time
 }
 
-type realClock struct {}
+type realClock struct{}
 
 func (*realClock) Sleep(d time.Duration) {
 	time.Sleep(d)
@@ -47,12 +52,12 @@ func (*realClock) Now() time.Time {
 	return time.Now()
 }
 
-// ReadRemoteFile returns the contents of the given file, using the supplied Authorization token, if set. It also returns the HTTP headers.
+// ReadRemoteFile returns the contents of the given file, using the supplied Authorization header value, if set. It also returns the HTTP headers.
 // If the request fails with a transient error it will retry the request for at most MaxRetries times.
 // It obeys HTTP headers such as "Retry-After" when calculating the start time of the next attempt.
 // If no such header is present, it uses an exponential backoff strategy.
-func ReadRemoteFile(url string, token string) ([]byte, http.Header, error) {
-	res, err := get(url, token)
+func ReadRemoteFile(url string, auth string) ([]byte, http.Header, error) {
+	res, err := get(url, auth)
 	if err != nil {
 		return nil, nil, fmt.Errorf("could not fetch %s: %v", url, err)
 	}
@@ -69,15 +74,15 @@ func ReadRemoteFile(url string, token string) ([]byte, http.Header, error) {
 	return body, res.Header, nil
 }
 
-func get(url, token string) (*http.Response, error) {
+func get(url, auth string) (*http.Response, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("could not create request: %v", err)
 	}
 
 	req.Header.Set("User-Agent", UserAgent)
-	if token != "" {
-		req.Header.Set("Authorization", "token "+token)
+	if auth != "" {
+		req.Header.Set("Authorization", auth)
 	}
 	client := &http.Client{Transport: DefaultTransport}
 	deadline := RetryClock.Now().Add(MaxRequestDuration)
@@ -118,7 +123,7 @@ func getWaitPeriod(res *http.Response, attempt int) (time.Duration, error) {
 		}
 	}
 	// Let's just use exponential backoff: 1s + d1, 2s + d2, 4s + d3, 8s + d4 with dx being a random value in [0ms, 500ms]
-	return time.Duration(1 << uint(attempt)) * time.Second + time.Duration(rand.Intn(500)) * time.Millisecond, nil
+	return time.Duration(1<<uint(attempt))*time.Second + time.Duration(rand.Intn(500))*time.Millisecond, nil
 }
 
 func parseRetryHeader(value string) (time.Duration, error) {
@@ -131,6 +136,36 @@ func parseRetryHeader(value string) (time.Duration, error) {
 		return 0, err
 	}
 	return time.Until(t), nil
+}
+
+// tryFindNetrcFileCreds returns base64-encoded login:password found in ~/.netrc file for a given `host`
+func tryFindNetrcFileCreds(host string) (string, error) {
+	dir, err := homedir.Dir()
+	if err != nil {
+		return "", err
+	}
+
+	var file = filepath.Join(dir, ".netrc")
+	n, err := netrc.Parse(file)
+	if err != nil {
+		// netrc does not exist or we can't read it
+		return "", err
+	}
+
+	m := n.Machine(host)
+	if m == nil {
+		// if host is not found, we should proceed without providing any Authorization header,
+		// because remote host may not have auth at all.
+		log.Printf("Skipping basic authentication for %s because no credentials found in %s", host, file)
+		return "", fmt.Errorf("could not find creds for %s in netrc %s", host, file)
+	}
+
+	log.Printf("Using basic authentication credentials for host %s from %s", host, file)
+
+	login := m.Get("login")
+	pwd := m.Get("password")
+	token := b64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", login, pwd)))
+	return fmt.Sprintf("Basic %s", token), nil
 }
 
 // DownloadBinary downloads a file from the given URL into the specified location, marks it executable and returns its full path.
@@ -153,8 +188,22 @@ func DownloadBinary(originURL, destDir, destFile string) (string, error) {
 			}
 		}()
 
+		u, err := url.Parse(originURL)
+		if err != nil {
+			// originURL supposed to be valid
+			return "", err
+		}
+
 		log.Printf("Downloading %s...", originURL)
-		resp, err := get(originURL, "")
+
+		var auth string = ""
+		t, err := tryFindNetrcFileCreds(u.Host)
+		if err == nil {
+			// successfully parsed netrc for given host
+			auth = t
+		}
+
+		resp, err := get(originURL, auth)
 		if err != nil {
 			return "", fmt.Errorf("HTTP GET %s failed: %v", originURL, err)
 		}
@@ -190,7 +239,8 @@ type ContentMerger func([][]byte) ([]byte, error)
 // MaybeDownload downloads a file from the given url and caches the result under bazeliskHome.
 // It skips the download if the file already exists and is not outdated.
 // Parameter ´description´ is only used to provide better error messages.
-func MaybeDownload(bazeliskHome, url, filename, description, token string, merger ContentMerger) ([]byte, error) {
+// Parameter `auth` is a value of "Authorization" HTTP header.
+func MaybeDownload(bazeliskHome, url, filename, description, auth string, merger ContentMerger) ([]byte, error) {
 	cachePath := filepath.Join(bazeliskHome, filename)
 	if cacheStat, err := os.Stat(cachePath); err == nil {
 		if time.Since(cacheStat.ModTime()).Hours() < 1 {
@@ -206,7 +256,7 @@ func MaybeDownload(bazeliskHome, url, filename, description, token string, merge
 	nextURL := url
 	for nextURL != "" {
 		// We could also use go-github here, but I can't get it to build with Bazel's rules_go and it pulls in a lot of dependencies.
-		body, headers, err := ReadRemoteFile(nextURL, token)
+		body, headers, err := ReadRemoteFile(nextURL, auth)
 		if err != nil {
 			return nil, fmt.Errorf("could not download %s: %v", description, err)
 		}
@@ -236,6 +286,6 @@ func getNextURL(headers http.Header) string {
 		if m[2] == "next" {
 			return m[1]
 		}
-	}	
+	}
 	return ""
 }

@@ -35,6 +35,42 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
+func TestResolveVersion(t *testing.T) {
+	s := setUp(t)
+	s.AddVersion("4.0.0", false, nil, nil)
+	s.Finish()
+
+	gcs := &repositories.GCSRepo{}
+	repos := core.CreateRepositories(nil, gcs, nil, nil, nil, false)
+	version, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, "4.0.0")
+
+	if err != nil {
+		t.Fatalf("Version resolution failed unexpectedly: %v", err)
+	}
+	expectedRC := "4.0.0"
+	if version != expectedRC {
+		t.Fatalf("Expected version %s, but got %s", expectedRC, version)
+	}
+}
+
+func TestResolvePatchVersion(t *testing.T) {
+	s := setUp(t)
+	s.AddVersion("4.0.0-patch1", false, nil, nil)
+	s.Finish()
+
+	gcs := &repositories.GCSRepo{}
+	repos := core.CreateRepositories(nil, gcs, nil, nil, nil, false)
+	version, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, "4.0.0-patch1")
+
+	if err != nil {
+		t.Fatalf("Version resolution failed unexpectedly: %v", err)
+	}
+	expectedRC := "4.0.0-patch1"
+	if version != expectedRC {
+		t.Fatalf("Expected version %s, but got %s", expectedRC, version)
+	}
+}
+
 func TestResolveLatestRcVersion(t *testing.T) {
 	s := setUp(t)
 	s.AddVersion("4.0.0", false, nil, nil)
@@ -224,6 +260,29 @@ func TestResolveLatestRollingRelease(t *testing.T) {
 	want := "5.0.0-pre.20210322.4"
 	if version != want {
 		t.Fatalf("ResolveVersion(%q, \"\", %q) = %v, but expected %v", tmpDir, rollingReleaseIdentifier, version, want)
+	}
+}
+
+func TestAcceptFloatingReleaseVersions(t *testing.T) {
+	s := setUp(t)
+	s.AddVersion("3.0.0", true, nil, []string{"4.0.0-pre.20210504.1"})
+	s.AddVersion("4.0.0", true, nil, nil)
+	s.AddVersion("4.1.0", true, nil, nil)
+	s.AddVersion("4.2.0", true, nil, nil)
+	s.AddVersion("4.2.1", true, []int{1, 2}, nil)
+	s.AddVersion("5.0.0", true, nil, nil)
+	s.Finish()
+
+	gcs := &repositories.GCSRepo{}
+	repos := core.CreateRepositories(gcs, nil, nil, nil, nil, false)
+	version, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, "4.x")
+
+	if err != nil {
+		t.Fatalf("Version resolution failed unexpectedly: %v", err)
+	}
+	expectedVersion := "4.2.1"
+	if version != expectedVersion {
+		t.Fatalf("Expected version %s, but got %s", expectedVersion, version)
 	}
 }
 
