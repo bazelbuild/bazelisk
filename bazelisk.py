@@ -206,26 +206,27 @@ def determine_executable_filename_suffix():
 
 
 def determine_bazel_filename(version):
+    operating_system = get_operating_system()
     supported_machines = ["x86_64"]
     versions = version.split('.')[:2]
     if len(versions) == 2:
         # released version
         major, minor = int(versions[0]), int(versions[1])
-        if major > 4 or major == 4 and minor >= 1:
-            # Apple Sillicon was supported since 4.1:
-            # https://blog.bazel.build/2021/05/21/bazel-4-1.html
+        if operating_system == "darwin" and (major > 4 or major == 4 and minor >= 1) or \
+            operating_system == "linux" and (major > 3 or major == 3 and minor >= 4):
+            # Linux arm64 was supported since 3.4.0.
+            # Darwin arm64 was supported since 4.1.0.
             supported_machines.append("arm64")
     machine = normalized_machine_arch_name()
     if machine not in supported_machines:
         raise Exception(
-            'Unsupported machine architecture "{}". Bazel {} only supports {}.'.format(
+            'Unsupported machine architecture "{}". Bazel {} only supports {} on {}.'.format(
                 machine,
                 version,
-                ", ".join(supported_machines)
+                ", ".join(supported_machines),
+                operating_system.capitalize()
             )
         )
-
-    operating_system = get_operating_system()
 
     filename_suffix = determine_executable_filename_suffix()
     bazel_flavor = "bazel"
