@@ -45,10 +45,7 @@ func DetermineBazelFilename(version string, includeSuffix bool) (string, error) 
 	}
 
 	if osName == "darwin" {
-		var err error
-		if machineName, err = DarwinFallback(machineName, version); err != nil {
-			return "", err
-		}
+		machineName = DarwinFallback(machineName, version)
 	}
 
 	var filenameSuffix string
@@ -60,19 +57,16 @@ func DetermineBazelFilename(version string, includeSuffix bool) (string, error) 
 }
 
 // DarwinFallback Darwin arm64 was supported since 4.1.0, before 4.1.0, fall back to x86_64
-func DarwinFallback(machineName string, version string) (alterMachineName string, err error) {
+func DarwinFallback(machineName string, version string) (alterMachineName string) {
 	v, err := sem_ver.NewVersion(version)
 	if err != nil {
-		return "", err
+		return machineName
 	}
 
-	armSupportVer, err := sem_ver.NewVersion("4.1.0")
-	if err != nil {
-		return "", err
-	}
+	armSupportVer, _ := sem_ver.NewVersion("4.1.0")
 
 	if machineName == "arm64" && v.LessThan(armSupportVer) {
-		return "x86_64", nil
+		return "x86_64"
 	}
-	return machineName, nil
+	return machineName
 }
