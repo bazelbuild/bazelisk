@@ -5,4 +5,7 @@ go_library(
     srcs = ["platforms.go"],
     importpath = "github.com/bazelbuild/bazelisk/platforms",
     visibility = ["//visibility:public"],
+    deps = [
+        "@com_github_hashicorp_go_version//:go_default_library",
+    ],
 )
