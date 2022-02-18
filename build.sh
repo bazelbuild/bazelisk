@@ -28,7 +28,7 @@ go build
     //:bazelisk-linux-amd64 \
     //:bazelisk-linux-arm64 \
     //:bazelisk-windows-amd64 \
-    //:bazelisk-windows-amd64
+    //:bazelisk-windows-arm64
 
 echo
 
