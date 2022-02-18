@@ -207,9 +207,9 @@ def determine_executable_filename_suffix():
 
 def determine_bazel_filename(version):
     machine = normalized_machine_arch_name()
-    if machine != "x86_64":
+    if machine not in ["x86_64", "arm64"]:
         raise Exception(
-            'Unsupported machine architecture "{}". Bazel currently only supports x86_64.'.format(
+            'Unsupported machine architecture "{}". Bazel currently only supports x86_64 and arm64.'.format(
                 machine
             )
         )
@@ -227,6 +227,8 @@ def normalized_machine_arch_name():
     machine = platform.machine().lower()
     if machine == "amd64":
         machine = "x86_64"
+    elif machine == "ARM64":
+        machine = "arm64"
     return machine
 
 
