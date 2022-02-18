@@ -151,6 +151,16 @@ go_binary(
     visibility = ["//visibility:public"],
 )
 
+go_binary(
+    name = "bazelisk-windows-arm64",
+    out = "bazelisk-windows_arm64.exe",
+    embed = [":go_default_library"],
+    goarch = "arm64",
+    goos = "windows",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
 genrule(
     name = "bazelisk-darwin-amd64-for-npm",
     srcs = [":bazelisk-darwin-amd64"],
@@ -188,6 +198,14 @@ genrule(
     srcs = [":bazelisk-windows-amd64"],
     outs = ["bazelisk-windows_amd64.exe"],
     cmd = "cp $(location :bazelisk-windows-amd64) \"$@\"",
+    output_to_bindir = 1,
+)
+
+genrule(
+    name = "bazelisk-windows-arm64-for-npm",
+    srcs = [":bazelisk-windows-arm64"],
+    outs = ["bazelisk-windows_arm64.exe"],
+    cmd = "cp $(location :bazelisk-windows-arm64) \"$@\"",
     output_to_bindir = 1,
 )
 
