@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"runtime"
 	"strings"
 
 	"github.com/bazelbuild/bazelisk/httputil"
@@ -237,11 +236,6 @@ func (gcs *GCSRepo) GetLastGreenCommit(bazeliskHome string, downstreamGreen bool
 // DownloadAtCommit downloads a Bazel binary built at the given commit into the specified location and returns the absolute path.
 func (gcs *GCSRepo) DownloadAtCommit(commit, destDir, destFile string) (string, error) {
 	log.Printf("Using unreleased version at commit %s", commit)
-	platform := platforms.GetPlatform()
-	arch := runtime.GOARCH
-	if platform == "macos" && arch == "arm64" {
-		platform = "macos_arm64"
-	}
-	url := fmt.Sprintf("%s/%s/%s/bazel", nonCandidateBaseURL, platform, commit)
+	url := fmt.Sprintf("%s/%s/%s/bazel", nonCandidateBaseURL, platforms.GetPlatform(), commit)
 	return httputil.DownloadBinary(url, destDir, destFile)
 }

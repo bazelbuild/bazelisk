@@ -13,7 +13,12 @@ var platforms = map[string]string{"darwin": "macos", "linux": "ubuntu1404", "win
 // GetPlatform returns a Bazel CI-compatible platform identifier for the current operating system.
 // TODO(fweikert): raise an error for unsupported platforms
 func GetPlatform() string {
-	return platforms[runtime.GOOS]
+	platform := platforms[runtime.GOOS]
+	arch := runtime.GOARCH
+	if platform == "macos" && arch == "arm64" {
+		platform = "macos_arm64"
+	}
+	return platform
 }
 
 // DetermineExecutableFilenameSuffix returns the extension for binaries on the current operating system.
