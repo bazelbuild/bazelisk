@@ -207,6 +207,23 @@ def determine_executable_filename_suffix():
 
 def determine_bazel_filename(version):
     operating_system = get_operating_system()
+    supported_machines = get_supported_machine_archs(version, operating_system)
+    machine = normalized_machine_arch_name()
+    if machine not in supported_machines:
+        raise Exception(
+            'Unsupported machine architecture "{}". Bazel {} only supports {} on {}.'.format(
+                machine, version, ", ".join(supported_machines), operating_system.capitalize()
+            )
+        )
+
+    filename_suffix = determine_executable_filename_suffix()
+    bazel_flavor = "bazel"
+    if os.environ.get("BAZELISK_NOJDK", "0") != "0":
+        bazel_flavor = "bazel_nojdk"
+    return "{}-{}-{}-{}{}".format(bazel_flavor, version, operating_system, machine, filename_suffix)
+
+
+def get_supported_machine_archs(version, operating_system):
     supported_machines = ["x86_64"]
     versions = version.split(".")[:2]
     if len(versions) == 2:
@@ -224,23 +241,11 @@ def determine_bazel_filename(version):
     elif operating_system in ("darwin", "linux"):
         # This is needed to run bazelisk_test.sh on Linux and Darwin arm64 machines, which are
         # becoming more and more popular.
-        # It works becasue all recent commits of Bazel supports arm64 on Darwin and Linux.
+        # It works because all recent commits of Bazel support arm64 on Darwin and Linux.
         # However, this would add arm64 by mistake if the commit is too old, which should be
         # a rare scenario.
         supported_machines.append("arm64")
-    machine = normalized_machine_arch_name()
-    if machine not in supported_machines:
-        raise Exception(
-            'Unsupported machine architecture "{}". Bazel {} only supports {} on {}.'.format(
-                machine, version, ", ".join(supported_machines), operating_system.capitalize()
-            )
-        )
-
-    filename_suffix = determine_executable_filename_suffix()
-    bazel_flavor = "bazel"
-    if os.environ.get("BAZELISK_NOJDK", "0") != "0":
-        bazel_flavor = "bazel_nojdk"
-    return "{}-{}-{}-{}{}".format(bazel_flavor, version, operating_system, machine, filename_suffix)
+    return supported_machines
 
 
 def normalized_machine_arch_name():
