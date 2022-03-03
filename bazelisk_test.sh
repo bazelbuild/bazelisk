@@ -108,12 +108,12 @@ function test_bazel_version_go() {
 function test_bazel_version_from_environment() {
   setup
 
-  USE_BAZEL_VERSION="0.20.0" \
+  USE_BAZEL_VERSION="5.0.0" \
       BAZELISK_HOME="$BAZELISK_HOME" \
       bazelisk version 2>&1 | tee log
 
-  grep "Build label: 0.20.0" log || \
-      (echo "FAIL: Expected to find 'Build label: 0.20.0' in the output of 'bazelisk version'"; exit 1)
+  grep "Build label: 5.0.0" log || \
+      (echo "FAIL: Expected to find 'Build label: 5.0.0' in the output of 'bazelisk version'"; exit 1)
 }
 
 function test_bazel_version_prefer_environment_to_bazeliskrc() {
@@ -157,13 +157,13 @@ function test_bazel_version_prefer_bazeliskrc_to_bazelversion_file() {
 function test_bazel_version_from_file() {
   setup
 
-  echo "0.19.0" > .bazelversion
+  echo "5.0.0" > .bazelversion
 
   BAZELISK_HOME="$BAZELISK_HOME" \
       bazelisk version 2>&1 | tee log
 
-  grep "Build label: 0.19.0" log || \
-      (echo "FAIL: Expected to find 'Build label: 0.19.0' in the output of 'bazelisk version'"; exit 1)
+  grep "Build label: 5.0.0" log || \
+      (echo "FAIL: Expected to find 'Build label: 5.0.0' in the output of 'bazelisk version'"; exit 1)
 }
 
 function test_bazel_version_from_url() {
