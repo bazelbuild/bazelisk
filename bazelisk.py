@@ -329,7 +329,7 @@ def download_bazel_into_directory(version, is_commit, directory):
         )
         # Exiting with a special exit code not used by Bazel, so the calling process may retry based on that.
         # https://docs.bazel.build/versions/0.21.0/guide.html#what-exit-code-will-i-get
-        sys.exit(45)
+        sys.exit(22)
     return destination_path
 
 
