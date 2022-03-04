@@ -18,6 +18,7 @@ limitations under the License.
 import base64
 from contextlib import closing
 from distutils.version import LooseVersion
+import hashlib
 import json
 import netrc
 import os
@@ -33,11 +34,14 @@ import time
 try:
     from urllib.parse import urlparse
     from urllib.request import urlopen, Request
+    from urllib.error import HTTPError
 except ImportError:
     # Python 2.x compatibility hack.
     # http://python-future.org/compatible_idioms.html?highlight=urllib#urllib-module
     from urlparse import urlparse
-    from urllib2 import urlopen, Request
+    from urllib2 import urlopen, Request, HTTPError
+
+    FileNotFoundError = IOError
 
 ONE_HOUR = 1 * 60 * 60
 
@@ -284,7 +288,7 @@ def trim_suffix(string, suffix):
 
 def download_bazel_into_directory(version, is_commit, directory):
     bazel_filename = determine_bazel_filename(version)
-    url = determine_url(version, is_commit, bazel_filename)
+    bazel_url = determine_url(version, is_commit, bazel_filename)
 
     filename_suffix = determine_executable_filename_suffix()
     bazel_directory_name = trim_suffix(bazel_filename, filename_suffix)
@@ -293,28 +297,57 @@ def download_bazel_into_directory(version, is_commit, directory):
 
     destination_path = os.path.join(destination_dir, "bazel" + filename_suffix)
     if not os.path.exists(destination_path):
-        sys.stderr.write("Downloading {}...\n".format(url))
-        with tempfile.NamedTemporaryFile(prefix="bazelisk", dir=destination_dir, delete=False) as t:
-            # https://github.com/bazelbuild/bazelisk/issues/247
-            request = Request(url)
-            if "BAZELISK_BASE_URL" in os.environ:
-                parts = urlparse(url)
-                creds = None
-                try:
-                    creds = netrc.netrc().hosts.get(parts.netloc)
-                except:
-                    pass
-                if creds is not None:
-                    auth = base64.b64encode(("%s:%s" % (creds[0], creds[2])).encode("ascii"))
-                    request.add_header("Authorization", "Basic %s" % auth.decode("utf-8"))
-            with closing(urlopen(request)) as response:
-                shutil.copyfileobj(response, t)
-            t.flush()
-            os.fsync(t.fileno())
-        os.rename(t.name, destination_path)
+        download(bazel_url, destination_path)
         os.chmod(destination_path, 0o755)
 
+    sha256_path = destination_path + ".sha256"
+    expected_hash = ""
+    if not os.path.exists(sha256_path):
+        try:
+            download(bazel_url + ".sha256", sha256_path)
+        except HTTPError as e:
+            if e.code == 404:
+                sys.stderr.write(
+                    "The Bazel mirror does not have a checksum file; skipping checksum verification."
+                )
+                return destination_path
+            raise e
+    with open(sha256_path, "r") as sha_file:
+        expected_hash = sha_file.read().split()[0]
+    sha256_hash = hashlib.sha256()
+    with open(destination_path, "rb") as bazel_file:
+        for byte_block in iter(lambda: bazel_file.read(4096), b""):
+            sha256_hash.update(byte_block)
+    actual_hash = sha256_hash.hexdigest()
+    if actual_hash != expected_hash:
+        os.remove(destination_path)
+        os.remove(sha256_path)
+        print(
+            "The downloaded Bazel binary is corrupted. Expected SHA-256 {}, got {}. Please try again.".format(
+                expected_hash, actual_hash
+            )
+        )
+        # Exiting with a special exit code not used by Bazel, so the calling process may retry based on that.
+        # https://docs.bazel.build/versions/0.21.0/guide.html#what-exit-code-will-i-get
+        sys.exit(22)
     return destination_path
+
+
+def download(url, destination_path):
+    sys.stderr.write("Downloading {}...\n".format(url))
+    request = Request(url)
+    if "BAZELISK_BASE_URL" in os.environ:
+        parts = urlparse(url)
+        creds = None
+        try:
+            creds = netrc.netrc().hosts.get(parts.netloc)
+        except Exception:
+            pass
+        if creds is not None:
+            auth = base64.b64encode(("%s:%s" % (creds[0], creds[2])).encode("ascii"))
+            request.add_header("Authorization", "Basic %s" % auth.decode("utf-8"))
+    with closing(urlopen(request)) as response, open(destination_path, "wb") as file:
+        shutil.copyfileobj(response, file)
 
 
 def get_bazelisk_directory():
