@@ -67,7 +67,7 @@ func DarwinFallback(machineName string, version string) (alterMachineName string
 	armSupportVer, _ := semver.NewVersion("4.1.0")
 
 	if machineName == "arm64" && v.LessThan(armSupportVer) {
-		log.Printf("Fallback to x86_64 because arm64 is not supported on Apple Silicon until 4.1.0")
+		log.Printf("WARN: Fallback to x86_64 because arm64 is not supported on Apple Silicon until 4.1.0")
 		return "x86_64"
 	}
 	return machineName
