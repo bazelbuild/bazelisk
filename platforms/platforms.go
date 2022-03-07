@@ -3,7 +3,8 @@ package platforms
 
 import (
 	"fmt"
-	sem_ver "github.com/hashicorp/go-version"
+	semver "github.com/hashicorp/go-version"
+	"log"
 	"runtime"
 )
 
@@ -58,14 +59,15 @@ func DetermineBazelFilename(version string, includeSuffix bool) (string, error) 
 
 // DarwinFallback Darwin arm64 was supported since 4.1.0, before 4.1.0, fall back to x86_64
 func DarwinFallback(machineName string, version string) (alterMachineName string) {
-	v, err := sem_ver.NewVersion(version)
+	v, err := semver.NewVersion(version)
 	if err != nil {
 		return machineName
 	}
 
-	armSupportVer, _ := sem_ver.NewVersion("4.1.0")
+	armSupportVer, _ := semver.NewVersion("4.1.0")
 
 	if machineName == "arm64" && v.LessThan(armSupportVer) {
+		log.Printf("Fallback to x86_64 because arm64 is not supported on Apple Silicon until 4.1.0")
 		return "x86_64"
 	}
 	return machineName
