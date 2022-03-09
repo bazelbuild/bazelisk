@@ -3,6 +3,8 @@ package platforms
 
 import (
 	"fmt"
+	semver "github.com/hashicorp/go-version"
+	"log"
 	"runtime"
 )
 
@@ -43,10 +45,30 @@ func DetermineBazelFilename(version string, includeSuffix bool) (string, error) 
 		return "", fmt.Errorf("unsupported operating system \"%s\", must be Linux, macOS or Windows", runtime.GOOS)
 	}
 
+	if osName == "darwin" {
+		machineName = DarwinFallback(machineName, version)
+	}
+
 	var filenameSuffix string
 	if includeSuffix {
 		filenameSuffix = DetermineExecutableFilenameSuffix()
 	}
 
 	return fmt.Sprintf("bazel-%s-%s-%s%s", version, osName, machineName, filenameSuffix), nil
+}
+
+// DarwinFallback Darwin arm64 was supported since 4.1.0, before 4.1.0, fall back to x86_64
+func DarwinFallback(machineName string, version string) (alterMachineName string) {
+	v, err := semver.NewVersion(version)
+	if err != nil {
+		return machineName
+	}
+
+	armSupportVer, _ := semver.NewVersion("4.1.0")
+
+	if machineName == "arm64" && v.LessThan(armSupportVer) {
+		log.Printf("WARN: Fallback to x86_64 because arm64 is not supported on Apple Silicon until 4.1.0")
+		return "x86_64"
+	}
+	return machineName
 }
