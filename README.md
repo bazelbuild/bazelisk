@@ -10,9 +10,13 @@ You can call it just like you would call Bazel.
 
 ## Installation
 
-On MacOS, you can `brew install bazelisk`. This adds both `bazelisk` and `bazel` to the `PATH`.
+On macOS: `brew install bazelisk`.
 
-Binary and source releases are provided on our [Releases](https://github.com/bazelbuild/bazelisk/releases) page.
+On Windows: `choco install bazelisk`.
+
+Each adds bazelisk to the `PATH` as both `bazelisk` and `bazel`.
+
+Binary and source releases are also provided on our [Releases](https://github.com/bazelbuild/bazelisk/releases) page.
 You can download one of these and add it to your `PATH` manually.
 
 Bazelisk is also published to npm.
