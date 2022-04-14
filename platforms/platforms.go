@@ -3,9 +3,11 @@ package platforms
 
 import (
 	"fmt"
-	semver "github.com/hashicorp/go-version"
 	"log"
+	"os"
 	"runtime"
+
+	semver "github.com/hashicorp/go-version"
 )
 
 var platforms = map[string]string{"darwin": "macos", "linux": "ubuntu1404", "windows": "windows"}
@@ -59,7 +61,11 @@ func DetermineBazelFilename(version string, includeSuffix bool) (string, error) 
 		filenameSuffix = DetermineExecutableFilenameSuffix()
 	}
 
-	return fmt.Sprintf("bazel-%s-%s-%s%s", version, osName, machineName, filenameSuffix), nil
+	bazelFlavor := "bazel"
+	if val, ok := os.LookupEnv("BAZELISK_NOJDK"); ok && (val != "0") {
+		bazelFlavor = "bazel_nojdk"
+	}
+	return fmt.Sprintf("%s-%s-%s-%s%s", bazelFlavor, version, osName, machineName, filenameSuffix), nil
 }
 
 // DarwinFallback Darwin arm64 was supported since 4.1.0, before 4.1.0, fall back to x86_64
