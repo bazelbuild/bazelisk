@@ -15,8 +15,8 @@ var platforms = map[string]string{"darwin": "macos", "linux": "ubuntu1404", "win
 func GetPlatform() string {
 	platform := platforms[runtime.GOOS]
 	arch := runtime.GOARCH
-	if platform == "macos" && arch == "arm64" {
-		platform = "macos_arm64"
+	if arch == "arm64" {
+		platform = platform + "_arm64"
 	}
 	return platform
 }
