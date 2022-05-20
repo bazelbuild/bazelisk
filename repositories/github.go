@@ -6,7 +6,6 @@ import (
 
 	"github.com/bazelbuild/bazelisk/httputil"
 	"github.com/bazelbuild/bazelisk/platforms"
-	"github.com/bazelbuild/bazelisk/versions"
 )
 
 const (
@@ -88,15 +87,4 @@ func (gh *GitHubRepo) DownloadVersion(fork, version, destDir, destFile string) (
 	}
 	url := fmt.Sprintf(urlPattern, fork, version, filename)
 	return httputil.DownloadBinary(url, destDir, destFile)
-}
-
-// GetRollingVersions returns a list of all available rolling release versions.
-func (gh *GitHubRepo) GetRollingVersions(bazeliskHome string) ([]string, error) {
-	// Release candidates are uploaded to GCS only, which means that all prerelease binaries on GitHub belong to rolling releases.
-	return gh.getFilteredVersions(bazeliskHome, versions.BazelUpstream, true)
-}
-
-// DownloadRolling downloads the given Bazel version into the specified location and returns the absolute path.
-func (gh *GitHubRepo) DownloadRolling(version, destDir, destFile string) (string, error) {
-	return gh.DownloadVersion(versions.BazelUpstream, version, destDir, destFile)
 }

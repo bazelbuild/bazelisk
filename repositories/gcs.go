@@ -239,3 +239,40 @@ func (gcs *GCSRepo) DownloadAtCommit(commit, destDir, destFile string) (string, 
 	url := fmt.Sprintf("%s/%s/%s/bazel", nonCandidateBaseURL, platforms.GetPlatform(), commit)
 	return httputil.DownloadBinary(url, destDir, destFile)
 }
+
+// RollingRepo
+
+// GetRollingVersions returns a list of all available rolling release versions for the newest release.
+func (gcs *GCSRepo) GetRollingVersions(bazeliskHome string) ([]string, error) {
+	history, err := getVersionHistoryFromGCS()
+	if err != nil {
+		return []string{}, err
+	}
+
+	newest := history[len(history)-1]
+	versions, _, err := listDirectoriesInReleaseBucket(newest + "/rolling/")
+	if err != nil {
+		return []string{}, err
+	}
+
+	releases := make([]string, 0)
+	for _, v := range versions {
+		if !strings.Contains(v, "rc") {
+			releases = append(releases, strings.Split(v, "/")[2])
+		}
+	}
+
+	return releases, nil
+}
+
+// DownloadRolling downloads the given Bazel version into the specified location and returns the absolute path.
+func (gcs *GCSRepo) DownloadRolling(version, destDir, destFile string) (string, error) {
+	srcFile, err := platforms.DetermineBazelFilename(version, true)
+	if err != nil {
+		return "", err
+	}
+
+	release_version := strings.Split(version, "-")[0]
+	url := fmt.Sprintf("%s/%s/rolling/%s/%s", candidateBaseURL, release_version, version, srcFile)
+	return httputil.DownloadBinary(url, destDir, destFile)
+}
