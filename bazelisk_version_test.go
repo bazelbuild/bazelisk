@@ -208,8 +208,8 @@ func TestResolveLatestVersion_GitHubIsDown(t *testing.T) {
 }
 
 func TestAcceptRollingReleaseName(t *testing.T) {
-	gh := repositories.CreateGitHubRepo("test_token")
-	repos := core.CreateRepositories(nil, nil, nil, nil, gh, false)
+	gcs := &repositories.GCSRepo{}
+	repos := core.CreateRepositories(nil, nil, nil, nil, gcs, false)
 
 	for _, version := range []string{"10.0.0-pre.20201103.4", "10.0.0-pre.20201103.4.2"} {
 		resolvedVersion, _, err := repos.ResolveVersion(tmpDir, "", version)
@@ -225,31 +225,13 @@ func TestAcceptRollingReleaseName(t *testing.T) {
 }
 
 func TestResolveLatestRollingRelease(t *testing.T) {
-	text := `
-	[
-	  {
-		"tag_name": "4.0.0",
-		"prerelease": false
-	  },
-	  {
-		"tag_name": "5.0.0-pre.20210319.1",
-		"prerelease": true
-	  },
-	  {
-		"tag_name": "5.0.0-pre.20210322.4",
-		"prerelease": true
-	  },
-	  {
-		"tag_name": "5.0.0",
-		"prerelease": false
-	  }
-	]
-	`
-	transport := installTransport()
-	transport.AddResponse("https://api.github.com/repos/bazelbuild/bazel/releases", 200, text, nil)
+	s := setUp(t)
+	s.AddVersion("11.0.0", false, nil, []string{"11.0.0/rolling/11.0.0-pre.20210503.1"})
+	s.AddVersion("12.0.0", false, nil, []string{"12.0.0/rolling/12.0.0-pre.20210504.1"})
+	s.Finish()
 
-	gh := repositories.CreateGitHubRepo("test_token")
-	repos := core.CreateRepositories(nil, nil, nil, nil, gh, false)
+	gcs := &repositories.GCSRepo{}
+	repos := core.CreateRepositories(nil, nil, nil, nil, gcs, false)
 
 	version, _, err := repos.ResolveVersion(tmpDir, "", rollingReleaseIdentifier)
 
@@ -257,7 +239,7 @@ func TestResolveLatestRollingRelease(t *testing.T) {
 		t.Fatalf("ResolveVersion(%q, \"\", %q): expected no error, but got %v", tmpDir, rollingReleaseIdentifier, err)
 	}
 
-	want := "5.0.0-pre.20210322.4"
+	want := "12.0.0-pre.20210504.1"
 	if version != want {
 		t.Fatalf("ResolveVersion(%q, \"\", %q) = %v, but expected %v", tmpDir, rollingReleaseIdentifier, version, want)
 	}
@@ -308,9 +290,7 @@ func (g *gcsSetup) AddVersion(version string, hasRelease bool, rcs []int, rollin
 		register(fmt.Sprintf("rc%d", rc))
 	}
 
-	for _, r := range rolling {
-		register(r)
-	}
+	g.addURL(fmt.Sprintf("%s/rolling/", version), false, rolling...)
 
 	// The /release/ URLs have to exist, even if there is no release. In this case GCS returns no items, though.
 	releasePrefix := fmt.Sprintf("%s/release/", version)
