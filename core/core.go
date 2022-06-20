@@ -14,7 +14,6 @@ import (
 	"os/signal"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -438,9 +437,9 @@ func runBazel(bazel string, args []string, out io.Writer) (int, error) {
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		s := <-c
-		if runtime.GOOS != "windows" {
-			cmd.Process.Signal(s)
-		} else {
+
+		// Only forward SIGTERM to our child process.
+		if s != os.Interrupt {
 			cmd.Process.Kill()
 		}
 	}()
