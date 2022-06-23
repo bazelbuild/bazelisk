@@ -45,6 +45,7 @@ go_library(
     visibility = ["//visibility:private"],
     deps = [
         "//core:go_default_library",
+        "//core/configs:go_default_library",
         "//repositories:go_default_library",
     ],
 )
@@ -196,8 +197,8 @@ pkg_npm(
     srcs = [
         "LICENSE",
         "README.md",
-        "bazelisk.js",
         "bazelisk.d.ts",
+        "bazelisk.js",
         "package.json",
     ],
     deps = [

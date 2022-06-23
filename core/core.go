@@ -7,7 +7,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -19,6 +18,8 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/bazelbuild/bazelisk/core/configs"
+	"github.com/bazelbuild/bazelisk/core/path"
 	"github.com/bazelbuild/bazelisk/httputil"
 	"github.com/bazelbuild/bazelisk/platforms"
 	"github.com/bazelbuild/bazelisk/versions"
@@ -43,7 +44,7 @@ var (
 func RunBazelisk(args []string, repos *Repositories) (int, error) {
 	httputil.UserAgent = getUserAgent()
 
-	bazeliskHome := GetEnvOrConfig("BAZELISK_HOME")
+	bazeliskHome := configs.GetEnvOrConfig("BAZELISK_HOME")
 	if len(bazeliskHome) == 0 {
 		userCacheDir, err := os.UserCacheDir()
 		if err != nil {
@@ -86,7 +87,7 @@ func RunBazelisk(args []string, repos *Repositories) (int, error) {
 			return -1, fmt.Errorf("could not resolve the version '%s' to an actual version number: %v", bazelVersion, err)
 		}
 
-		bazelForkOrURL := dirForURL(GetEnvOrConfig(BaseURLEnv))
+		bazelForkOrURL := dirForURL(configs.GetEnvOrConfig(BaseURLEnv))
 		if len(bazelForkOrURL) == 0 {
 			bazelForkOrURL = bazelFork
 		}
@@ -171,82 +172,11 @@ func getBazelCommand(args []string) (string, error) {
 }
 
 func getUserAgent() string {
-	agent := GetEnvOrConfig("BAZELISK_USER_AGENT")
+	agent := configs.GetEnvOrConfig("BAZELISK_USER_AGENT")
 	if len(agent) > 0 {
 		return agent
 	}
 	return fmt.Sprintf("Bazelisk/%s", BazeliskVersion)
-}
-
-// GetEnvOrConfig reads a configuration value from the environment, but fall back to reading it from .bazeliskrc in the workspace root.
-func GetEnvOrConfig(name string) string {
-	if val := os.Getenv(name); val != "" {
-		return val
-	}
-
-	// Parse .bazeliskrc in the workspace root, once, if it can be found.
-	fileConfigOnce.Do(func() {
-		workingDirectory, err := os.Getwd()
-		if err != nil {
-			return
-		}
-		workspaceRoot := findWorkspaceRoot(workingDirectory)
-		if workspaceRoot == "" {
-			return
-		}
-		rcFilePath := filepath.Join(workspaceRoot, ".bazeliskrc")
-		contents, err := ioutil.ReadFile(rcFilePath)
-		if err != nil {
-			if os.IsNotExist(err) {
-				return
-			}
-			log.Fatal(err)
-		}
-		fileConfig = make(map[string]string)
-		for _, line := range strings.Split(string(contents), "\n") {
-			if strings.HasPrefix(line, "#") {
-				// comments
-				continue
-			}
-			parts := strings.SplitN(line, "=", 2)
-			if len(parts) < 2 {
-				continue
-			}
-			key := strings.TrimSpace(parts[0])
-			fileConfig[key] = strings.TrimSpace(parts[1])
-		}
-	})
-
-	return fileConfig[name]
-}
-
-// isValidWorkspace returns true iff the supplied path is the workspace root, defined by the presence of
-// a file named WORKSPACE or WORKSPACE.bazel
-// see https://github.com/bazelbuild/bazel/blob/8346ea4cfdd9fbd170d51a528fee26f912dad2d5/src/main/cpp/workspace_layout.cc#L37
-func isValidWorkspace(path string) bool {
-	info, err := os.Stat(path)
-	if err != nil {
-		return false
-	}
-
-	return !info.IsDir()
-}
-
-func findWorkspaceRoot(root string) string {
-	if isValidWorkspace(filepath.Join(root, "WORKSPACE")) {
-		return root
-	}
-
-	if isValidWorkspace(filepath.Join(root, "WORKSPACE.bazel")) {
-		return root
-	}
-
-	parentDirectory := filepath.Dir(root)
-	if parentDirectory == root {
-		return ""
-	}
-
-	return findWorkspaceRoot(parentDirectory)
 }
 
 func getBazelVersion() (string, error) {
@@ -262,7 +192,7 @@ func getBazelVersion() (string, error) {
 	// - workspace_root/.bazelversion exists -> read contents, that version.
 	// - workspace_root/WORKSPACE contains a version -> that version. (TODO)
 	// - fallback: latest release
-	bazelVersion := GetEnvOrConfig("USE_BAZEL_VERSION")
+	bazelVersion := configs.GetEnvOrConfig("USE_BAZEL_VERSION")
 	if len(bazelVersion) != 0 {
 		return bazelVersion, nil
 	}
@@ -272,7 +202,7 @@ func getBazelVersion() (string, error) {
 		return "", fmt.Errorf("could not get working directory: %v", err)
 	}
 
-	workspaceRoot := findWorkspaceRoot(workingDirectory)
+	workspaceRoot := path.FindWorkspaceRoot(workingDirectory)
 	if len(workspaceRoot) != 0 {
 		bazelVersionPath := filepath.Join(workspaceRoot, ".bazelversion")
 		if _, err := os.Stat(bazelVersionPath); err == nil {
@@ -323,7 +253,7 @@ func downloadBazel(fork string, version string, baseDirectory string, repos *Rep
 	destFile := "bazel" + platforms.DetermineExecutableFilenameSuffix()
 	destinationDir := filepath.Join(baseDirectory, pathSegment, "bin")
 
-	if url := GetEnvOrConfig(BaseURLEnv); url != "" {
+	if url := configs.GetEnvOrConfig(BaseURLEnv); url != "" {
 		return repos.DownloadFromBaseURL(url, version, destinationDir, destFile)
 	}
 
@@ -370,7 +300,7 @@ func linkLocalBazel(baseDirectory string, bazelPath string) (string, error) {
 }
 
 func maybeDelegateToWrapper(bazel string) string {
-	if GetEnvOrConfig(skipWrapperEnv) != "" {
+	if configs.GetEnvOrConfig(skipWrapperEnv) != "" {
 		return bazel
 	}
 
@@ -379,7 +309,7 @@ func maybeDelegateToWrapper(bazel string) string {
 		return bazel
 	}
 
-	root := findWorkspaceRoot(wd)
+	root := path.FindWorkspaceRoot(wd)
 	wrapper := filepath.Join(root, wrapperPath)
 	if stat, err := os.Stat(wrapper); err != nil || stat.IsDir() || stat.Mode().Perm()&0001 == 0 {
 		return bazel
@@ -492,7 +422,7 @@ func insertArgs(baseArgs []string, newArgs []string) []string {
 }
 
 func shutdownIfNeeded(bazelPath string) {
-	bazeliskClean := GetEnvOrConfig("BAZELISK_SHUTDOWN")
+	bazeliskClean := configs.GetEnvOrConfig("BAZELISK_SHUTDOWN")
 	if len(bazeliskClean) == 0 {
 		return
 	}
@@ -510,7 +440,7 @@ func shutdownIfNeeded(bazelPath string) {
 }
 
 func cleanIfNeeded(bazelPath string) {
-	bazeliskClean := GetEnvOrConfig("BAZELISK_CLEAN")
+	bazeliskClean := configs.GetEnvOrConfig("BAZELISK_CLEAN")
 	if len(bazeliskClean) == 0 {
 		return
 	}

@@ -4,8 +4,9 @@ package platforms
 import (
 	"fmt"
 	"log"
-	"os"
 	"runtime"
+
+	"github.com/bazelbuild/bazelisk/core/configs"
 
 	semver "github.com/hashicorp/go-version"
 )
@@ -62,7 +63,7 @@ func DetermineBazelFilename(version string, includeSuffix bool) (string, error) 
 	}
 
 	bazelFlavor := "bazel"
-	if val, ok := os.LookupEnv("BAZELISK_NOJDK"); ok && (val != "0") {
+	if configs.GetEnvOrConfig("BAZELISK_NOJDK") != "0" && configs.GetEnvOrConfig("BAZELISK_NOJDK") != "" {
 		bazelFlavor = "bazel_nojdk"
 	}
 	return fmt.Sprintf("%s-%s-%s-%s%s", bazelFlavor, version, osName, machineName, filenameSuffix), nil
