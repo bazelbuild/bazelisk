@@ -56,7 +56,7 @@ Bazelisk currently understands the following formats for version labels:
 - `latest` means the latest stable (LTS) version of Bazel as released on GitHub.
   Previous releases can be specified via `latest-1`, `latest-2` etc.
 - A version number like `0.17.2` means that exact version of Bazel.
-  It can also be a release candidate version like `0.20.0rc3`, or a rolling release version like `5.0.0-pre.20210317.1`.
+  It can also be a release candidate version like `5.2.0rc3`, or a rolling release version like `5.0.0-pre.20210317.1`.
 - A floating version identifier like `4.x` that returns the latest release from the LTS series started by Bazel 4.0.0.
 - The hash of a Git commit. Please note that Bazel binaries are only available for commits that passed [Bazel CI](https://buildkite.com/bazel/bazel-bazel).
 

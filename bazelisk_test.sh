@@ -91,7 +91,7 @@ function test_bazel_version_py() {
   BAZELISK_HOME="$BAZELISK_HOME" \
       bazelisk version 2>&1 | tee log
 
-  grep "Build label: 0.21.0" log || \
+  grep "Build label: 5.2.0" log || \
       (echo "FAIL: Expected to find 'Build label' in the output of 'bazelisk version'"; exit 1)
 }
 
@@ -121,12 +121,12 @@ function test_bazel_version_prefer_environment_to_bazeliskrc() {
 
   echo "USE_BAZEL_VERSION=0.19.0" > .bazeliskrc
 
-  USE_BAZEL_VERSION="0.20.0" \
+  USE_BAZEL_VERSION="5.2.0" \
       BAZELISK_HOME="$BAZELISK_HOME" \
       bazelisk version 2>&1 | tee log
 
-  grep "Build label: 0.20.0" log || \
-      (echo "FAIL: Expected to find 'Build label: 0.20.0' in the output of 'bazelisk version'"; exit 1)
+  grep "Build label: 5.2.0" log || \
+      (echo "FAIL: Expected to find 'Build label: 5.2.0' in the output of 'bazelisk version'"; exit 1)
 }
 
 function test_bazel_version_from_bazeliskrc() {
@@ -144,14 +144,14 @@ function test_bazel_version_from_bazeliskrc() {
 function test_bazel_version_prefer_bazeliskrc_to_bazelversion_file() {
   setup
 
-  echo "USE_BAZEL_VERSION=0.20.0" > .bazeliskrc
+  echo "USE_BAZEL_VERSION=5.2.0" > .bazeliskrc
   echo "0.19.0" > .bazelversion
 
   BAZELISK_HOME="$BAZELISK_HOME" \
       bazelisk version 2>&1 | tee log
 
-  grep "Build label: 0.20.0" log || \
-      (echo "FAIL: Expected to find 'Build label: 0.20.0' in the output of 'bazelisk version'"; exit 1)
+  grep "Build label: 5.2.0" log || \
+      (echo "FAIL: Expected to find 'Build label: 5.2.0' in the output of 'bazelisk version'"; exit 1)
 }
 
 function test_bazel_version_from_file() {
@@ -186,7 +186,7 @@ function test_bazel_latest_minus_3_py() {
       BAZELISK_HOME="$BAZELISK_HOME" \
       bazelisk version 2>&1 | tee log
 
-  grep "Build label: 0.19.1" log || \
+  grep "Build label: 5.2.0" log || \
       (echo "FAIL: Expected to find 'Build label' in the output of 'bazelisk version'"; exit 1)
 }
 
@@ -297,7 +297,7 @@ function test_bazel_download_path_py() {
 
   find "$BAZELISK_HOME/downloads/bazelbuild" 2>&1 | tee log
 
-  grep "^$BAZELISK_HOME/downloads/bazelbuild/bazel-0.21.0-[a-z0-9_-]*/bin/bazel\(.exe\)\?$" log || \
+  grep "^$BAZELISK_HOME/downloads/bazelbuild/bazel-5.2.0-[a-z0-9_-]*/bin/bazel\(.exe\)\?$" log || \
       (echo "FAIL: Expected to download bazel binary into specific path."; exit 1)
 }
 
@@ -318,7 +318,7 @@ function test_bazel_prepend_binary_directory_to_path_py() {
   BAZELISK_HOME="$BAZELISK_HOME" \
       bazelisk --print_env 2>&1 | tee log
 
-  PATTERN=$(echo "^PATH=$BAZELISK_HOME/downloads/bazelbuild/bazel-0.21.0-[a-z0-9_-]*/bin[:;]" | sed -e 's/\//\[\/\\\\\]/g')
+  PATTERN=$(echo "^PATH=$BAZELISK_HOME/downloads/bazelbuild/bazel-5.2.0-[a-z0-9_-]*/bin[:;]" | sed -e 's/\//\[\/\\\\\]/g')
   grep "$PATTERN" log || \
       (echo "FAIL: Expected PATH to contains bazel binary directory."; exit 1)
 }
