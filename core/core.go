@@ -249,19 +249,30 @@ func findWorkspaceRoot(root string) string {
 	return findWorkspaceRoot(parentDirectory)
 }
 
+// TODO(go 1.18): remove backport of strings.Cut
+func cutString(s, sep string) (before, after string, found bool) {
+	if i := strings.Index(s, sep); i >= 0 {
+		return s[:i], s[i+len(sep):], true
+	}
+	return s, "", false
+}
+
 func getBazelVersion() (string, error) {
 	// Check in this order:
 	// - env var "USE_BAZEL_VERSION" is set to a specific version.
+	// - workspace_root/.bazeliskrc exists -> read contents, in contents:
+	//   var "USE_BAZEL_VERSION" is set to a specific version.
 	// - env var "USE_NIGHTLY_BAZEL" or "USE_BAZEL_NIGHTLY" is set -> latest
 	//   nightly. (TODO)
 	// - env var "USE_CANARY_BAZEL" or "USE_BAZEL_CANARY" is set -> latest
 	//   rc. (TODO)
 	// - the file workspace_root/tools/bazel exists -> that version. (TODO)
-	// - workspace_root/.bazeliskrc exists and contains a 'USE_BAZEL_VERSION'
-	//   variable -> read contents, that version.
 	// - workspace_root/.bazelversion exists -> read contents, that version.
 	// - workspace_root/WORKSPACE contains a version -> that version. (TODO)
-	// - fallback: latest release
+	// - env var "USE_BAZEL_FALLBACK_VERSION" is set to a fallback version format.
+	// - workspace_root/.bazeliskrc exists -> read contents, in contents:
+	//   var "USE_BAZEL_FALLBACK_VERSION" is set to a fallback version format.
+	// - fallback version format "silent:latest"
 	bazelVersion := GetEnvOrConfig("USE_BAZEL_VERSION")
 	if len(bazelVersion) != 0 {
 		return bazelVersion, nil
@@ -295,7 +306,25 @@ func getBazelVersion() (string, error) {
 		}
 	}
 
-	return "latest", nil
+	fallbackVersionFormat := GetEnvOrConfig("USE_BAZEL_FALLBACK_VERSION")
+	fallbackVersionMode, fallbackVersion, hasFallbackVersionMode := cutString(fallbackVersionFormat, ":")
+	if !hasFallbackVersionMode {
+		fallbackVersionMode, fallbackVersion, hasFallbackVersionMode = "silent", fallbackVersionMode, true
+	}
+	if len(fallbackVersion) == 0 {
+		fallbackVersion = "latest"
+	}
+	if fallbackVersionMode == "error" {
+		return "", fmt.Errorf("not allowed to use fallback version %q", fallbackVersion)
+	}
+	if fallbackVersionMode == "warn" {
+		log.Printf("Warning: used fallback version %q\n", fallbackVersion)
+		return fallbackVersion, nil
+	}
+	if fallbackVersionMode == "silent" {
+		return fallbackVersion, nil
+	}
+	return "", fmt.Errorf("invalid fallback version format %q (effectively %q)", fallbackVersionFormat, fmt.Sprintf("%s:%s", fallbackVersionMode, fallbackVersion))
 }
 
 func parseBazelForkAndVersion(bazelForkAndVersion string) (string, string, error) {
