@@ -3,22 +3,41 @@ package platforms
 
 import (
 	"fmt"
-	semver "github.com/hashicorp/go-version"
 	"log"
 	"runtime"
+
+	semver "github.com/hashicorp/go-version"
 )
 
-var platforms = map[string]string{"darwin": "macos", "linux": "ubuntu1404", "windows": "windows"}
+type platform struct {
+	Name           string
+	HasArm64Binary bool
+}
+
+var supportedPlatforms = map[string]*platform{
+	"darwin": {
+		Name:           "macos",
+		HasArm64Binary: true,
+	},
+	"linux": {
+		Name:           "ubuntu1804",
+		HasArm64Binary: false,
+	},
+	"windows": {
+		Name:           "windows",
+		HasArm64Binary: true,
+	},
+}
 
 // GetPlatform returns a Bazel CI-compatible platform identifier for the current operating system.
 // TODO(fweikert): raise an error for unsupported platforms
 func GetPlatform() string {
-	platform := platforms[runtime.GOOS]
+	platform := supportedPlatforms[runtime.GOOS]
 	arch := runtime.GOARCH
-	if arch == "arm64" {
-		platform = platform + "_arm64"
+	if arch == "arm64" && platform.HasArm64Binary {
+		return platform.Name + "_arm64"
 	}
-	return platform
+	return platform.Name
 }
 
 // DetermineExecutableFilenameSuffix returns the extension for binaries on the current operating system.
