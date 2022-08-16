@@ -124,7 +124,7 @@ def resolve_version_label_to_number_or_commit(bazelisk_directory, version):
         if not match:
             raise Exception(
                 'Invalid version "{}". In addition to using a version '
-                'number such as "0.20.0", you can use values such as '
+                'number such as "5.2.0", you can use values such as '
                 '"latest" and "latest-N", with N being a non-negative '
                 "integer.".format(version)
             )
@@ -268,7 +268,7 @@ def determine_url(version, is_commit, bazel_filename):
         )
 
     # Split version into base version and optional additional identifier.
-    # Example: '0.19.1' -> ('0.19.1', None), '0.20.0rc1' -> ('0.20.0', 'rc1')
+    # Example: '5.2.0' -> ('5.2.0', None), '5.2.0rc1' -> ('5.2.0', 'rc1')
     (version, rc) = re.match(r"(\d*\.\d*(?:\.\d*)?)(rc\d+)?", version).groups()
 
     if "BAZELISK_BASE_URL" in os.environ:
@@ -328,7 +328,7 @@ def download_bazel_into_directory(version, is_commit, directory):
             )
         )
         # Exiting with a special exit code not used by Bazel, so the calling process may retry based on that.
-        # https://docs.bazel.build/versions/0.21.0/guide.html#what-exit-code-will-i-get
+        # https://docs.bazel.build/versions/5.2.0/guide.html#what-exit-code-will-i-get
         sys.exit(22)
     return destination_path
 

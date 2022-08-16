@@ -3,12 +3,12 @@
     "url": "https://api.github.com/repos/bazelbuild/bazel/releases/14615912",
     "assets_url": "https://api.github.com/repos/bazelbuild/bazel/releases/14615912/assets",
     "upload_url": "https://uploads.github.com/repos/bazelbuild/bazel/releases/14615912/assets{?name,label}",
-    "html_url": "https://github.com/bazelbuild/bazel/releases/tag/0.21.0",
+    "html_url": "https://github.com/bazelbuild/bazel/releases/tag/5.2.0",
     "id": 14615912,
     "node_id": "MDc6UmVsZWFzZTE0NjE1OTEy",
-    "tag_name": "0.21.0",
+    "tag_name": "5.2.0",
     "target_commitish": "master",
-    "name": "0.21.0",
+    "name": "5.2.0",
     "draft": false,
     "author": {
       "login": "bazel-io",
@@ -38,7 +38,7 @@
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/10225169",
         "id": 10225169,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDEwMjI1MTY5",
-        "name": "bazel-0.21.0-darwin-x86_64",
+        "name": "bazel-5.2.0-darwin-x86_64",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -66,13 +66,13 @@
         "download_count": 2924,
         "created_at": "2018-12-19T13:58:56Z",
         "updated_at": "2018-12-19T13:59:04Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.21.0/bazel-0.21.0-darwin-x86_64"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-darwin-x86_64"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/10225172",
         "id": 10225172,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDEwMjI1MTcy",
-        "name": "bazel-0.21.0-darwin-x86_64.sha256",
+        "name": "bazel-5.2.0-darwin-x86_64.sha256",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -100,13 +100,13 @@
         "download_count": 73,
         "created_at": "2018-12-19T13:59:04Z",
         "updated_at": "2018-12-19T13:59:06Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.21.0/bazel-0.21.0-darwin-x86_64.sha256"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-darwin-x86_64.sha256"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/10225173",
         "id": 10225173,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDEwMjI1MTcz",
-        "name": "bazel-0.21.0-darwin-x86_64.sig",
+        "name": "bazel-5.2.0-darwin-x86_64.sig",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -134,13 +134,13 @@
         "download_count": 41,
         "created_at": "2018-12-19T13:59:06Z",
         "updated_at": "2018-12-19T13:59:06Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.21.0/bazel-0.21.0-darwin-x86_64.sig"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-darwin-x86_64.sig"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/10225174",
         "id": 10225174,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDEwMjI1MTc0",
-        "name": "bazel-0.21.0-dist.zip",
+        "name": "bazel-5.2.0-dist.zip",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -168,13 +168,13 @@
         "download_count": 2811,
         "created_at": "2018-12-19T13:59:06Z",
         "updated_at": "2018-12-19T13:59:11Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.21.0/bazel-0.21.0-dist.zip"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-dist.zip"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/10225175",
         "id": 10225175,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDEwMjI1MTc1",
-        "name": "bazel-0.21.0-dist.zip.sha256",
+        "name": "bazel-5.2.0-dist.zip.sha256",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -202,13 +202,13 @@
         "download_count": 53,
         "created_at": "2018-12-19T13:59:11Z",
         "updated_at": "2018-12-19T13:59:11Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.21.0/bazel-0.21.0-dist.zip.sha256"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-dist.zip.sha256"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/10225176",
         "id": 10225176,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDEwMjI1MTc2",
-        "name": "bazel-0.21.0-dist.zip.sig",
+        "name": "bazel-5.2.0-dist.zip.sig",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -236,13 +236,13 @@
         "download_count": 63,
         "created_at": "2018-12-19T13:59:11Z",
         "updated_at": "2018-12-19T13:59:11Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.21.0/bazel-0.21.0-dist.zip.sig"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-dist.zip.sig"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/10225177",
         "id": 10225177,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDEwMjI1MTc3",
-        "name": "bazel-0.21.0-installer-darwin-x86_64.sh",
+        "name": "bazel-5.2.0-installer-darwin-x86_64.sh",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -270,13 +270,13 @@
         "download_count": 2977,
         "created_at": "2018-12-19T13:59:12Z",
         "updated_at": "2018-12-19T13:59:19Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.21.0/bazel-0.21.0-installer-darwin-x86_64.sh"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-installer-darwin-x86_64.sh"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/10225178",
         "id": 10225178,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDEwMjI1MTc4",
-        "name": "bazel-0.21.0-installer-darwin-x86_64.sh.sha256",
+        "name": "bazel-5.2.0-installer-darwin-x86_64.sh.sha256",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -304,13 +304,13 @@
         "download_count": 53,
         "created_at": "2018-12-19T13:59:19Z",
         "updated_at": "2018-12-19T13:59:20Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.21.0/bazel-0.21.0-installer-darwin-x86_64.sh.sha256"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-installer-darwin-x86_64.sh.sha256"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/10225179",
         "id": 10225179,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDEwMjI1MTc5",
-        "name": "bazel-0.21.0-installer-darwin-x86_64.sh.sig",
+        "name": "bazel-5.2.0-installer-darwin-x86_64.sh.sig",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -338,13 +338,13 @@
         "download_count": 48,
         "created_at": "2018-12-19T13:59:20Z",
         "updated_at": "2018-12-19T13:59:20Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.21.0/bazel-0.21.0-installer-darwin-x86_64.sh.sig"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-installer-darwin-x86_64.sh.sig"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/10225180",
         "id": 10225180,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDEwMjI1MTgw",
-        "name": "bazel-0.21.0-installer-linux-x86_64.sh",
+        "name": "bazel-5.2.0-installer-linux-x86_64.sh",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -372,13 +372,13 @@
         "download_count": 15917,
         "created_at": "2018-12-19T13:59:20Z",
         "updated_at": "2018-12-19T13:59:28Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.21.0/bazel-0.21.0-installer-linux-x86_64.sh"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-installer-linux-x86_64.sh"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/10225183",
         "id": 10225183,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDEwMjI1MTgz",
-        "name": "bazel-0.21.0-installer-linux-x86_64.sh.sha256",
+        "name": "bazel-5.2.0-installer-linux-x86_64.sh.sha256",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -406,13 +406,13 @@
         "download_count": 176,
         "created_at": "2018-12-19T13:59:28Z",
         "updated_at": "2018-12-19T13:59:28Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.21.0/bazel-0.21.0-installer-linux-x86_64.sh.sha256"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-installer-linux-x86_64.sh.sha256"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/10225184",
         "id": 10225184,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDEwMjI1MTg0",
-        "name": "bazel-0.21.0-installer-linux-x86_64.sh.sig",
+        "name": "bazel-5.2.0-installer-linux-x86_64.sh.sig",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -440,13 +440,13 @@
         "download_count": 129,
         "created_at": "2018-12-19T13:59:29Z",
         "updated_at": "2018-12-19T13:59:29Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.21.0/bazel-0.21.0-installer-linux-x86_64.sh.sig"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-installer-linux-x86_64.sh.sig"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/10225185",
         "id": 10225185,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDEwMjI1MTg1",
-        "name": "bazel-0.21.0-linux-x86_64",
+        "name": "bazel-5.2.0-linux-x86_64",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -474,13 +474,13 @@
         "download_count": 16804,
         "created_at": "2018-12-19T13:59:29Z",
         "updated_at": "2018-12-19T13:59:37Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.21.0/bazel-0.21.0-linux-x86_64"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-linux-x86_64"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/10225189",
         "id": 10225189,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDEwMjI1MTg5",
-        "name": "bazel-0.21.0-linux-x86_64.sha256",
+        "name": "bazel-5.2.0-linux-x86_64.sha256",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -508,13 +508,13 @@
         "download_count": 70,
         "created_at": "2018-12-19T13:59:37Z",
         "updated_at": "2018-12-19T13:59:37Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.21.0/bazel-0.21.0-linux-x86_64.sha256"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-linux-x86_64.sha256"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/10225190",
         "id": 10225190,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDEwMjI1MTkw",
-        "name": "bazel-0.21.0-linux-x86_64.sig",
+        "name": "bazel-5.2.0-linux-x86_64.sig",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -542,13 +542,13 @@
         "download_count": 51,
         "created_at": "2018-12-19T13:59:38Z",
         "updated_at": "2018-12-19T13:59:38Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.21.0/bazel-0.21.0-linux-x86_64.sig"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-linux-x86_64.sig"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/10225191",
         "id": 10225191,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDEwMjI1MTkx",
-        "name": "bazel-0.21.0-windows-x86_64.exe",
+        "name": "bazel-5.2.0-windows-x86_64.exe",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -576,13 +576,13 @@
         "download_count": 7181,
         "created_at": "2018-12-19T13:59:38Z",
         "updated_at": "2018-12-19T13:59:45Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.21.0/bazel-0.21.0-windows-x86_64.exe"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-windows-x86_64.exe"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/10225195",
         "id": 10225195,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDEwMjI1MTk1",
-        "name": "bazel-0.21.0-windows-x86_64.exe.sha256",
+        "name": "bazel-5.2.0-windows-x86_64.exe.sha256",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -610,13 +610,13 @@
         "download_count": 95,
         "created_at": "2018-12-19T13:59:46Z",
         "updated_at": "2018-12-19T13:59:46Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.21.0/bazel-0.21.0-windows-x86_64.exe.sha256"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-windows-x86_64.exe.sha256"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/10225196",
         "id": 10225196,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDEwMjI1MTk2",
-        "name": "bazel-0.21.0-windows-x86_64.exe.sig",
+        "name": "bazel-5.2.0-windows-x86_64.exe.sig",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -644,13 +644,13 @@
         "download_count": 70,
         "created_at": "2018-12-19T13:59:46Z",
         "updated_at": "2018-12-19T13:59:46Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.21.0/bazel-0.21.0-windows-x86_64.exe.sig"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-windows-x86_64.exe.sig"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/10225198",
         "id": 10225198,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDEwMjI1MTk4",
-        "name": "bazel-0.21.0-windows-x86_64.zip",
+        "name": "bazel-5.2.0-windows-x86_64.zip",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -678,13 +678,13 @@
         "download_count": 4699,
         "created_at": "2018-12-19T13:59:47Z",
         "updated_at": "2018-12-19T13:59:57Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.21.0/bazel-0.21.0-windows-x86_64.zip"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-windows-x86_64.zip"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/10596375",
         "id": 10596375,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDEwNTk2Mzc1",
-        "name": "bazel-0.21.0-windows-x86_64.zip.sha256",
+        "name": "bazel-5.2.0-windows-x86_64.zip.sha256",
         "label": null,
         "uploader": {
           "login": "philwo",
@@ -712,13 +712,13 @@
         "download_count": 3,
         "created_at": "2019-01-16T09:19:31Z",
         "updated_at": "2019-01-16T09:19:32Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.21.0/bazel-0.21.0-windows-x86_64.zip.sha256"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-windows-x86_64.zip.sha256"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/10225204",
         "id": 10225204,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDEwMjI1MjA0",
-        "name": "bazel-0.21.0-windows-x86_64.zip.sig",
+        "name": "bazel-5.2.0-windows-x86_64.zip.sig",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -746,13 +746,13 @@
         "download_count": 43,
         "created_at": "2018-12-19T14:00:03Z",
         "updated_at": "2018-12-19T14:00:03Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.21.0/bazel-0.21.0-windows-x86_64.zip.sig"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-windows-x86_64.zip.sig"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/10225205",
         "id": 10225205,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDEwMjI1MjA1",
-        "name": "bazel_0.21.0-linux-x86_64.deb",
+        "name": "bazel_5.2.0-linux-x86_64.deb",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -780,13 +780,13 @@
         "download_count": 2479,
         "created_at": "2018-12-19T14:00:05Z",
         "updated_at": "2018-12-19T14:00:16Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.21.0/bazel_0.21.0-linux-x86_64.deb"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel_5.2.0-linux-x86_64.deb"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/10225210",
         "id": 10225210,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDEwMjI1MjEw",
-        "name": "bazel_0.21.0-linux-x86_64.deb.sha256",
+        "name": "bazel_5.2.0-linux-x86_64.deb.sha256",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -814,13 +814,13 @@
         "download_count": 46,
         "created_at": "2018-12-19T14:00:16Z",
         "updated_at": "2018-12-19T14:00:17Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.21.0/bazel_0.21.0-linux-x86_64.deb.sha256"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel_5.2.0-linux-x86_64.deb.sha256"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/10225212",
         "id": 10225212,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDEwMjI1MjEy",
-        "name": "bazel_0.21.0-linux-x86_64.deb.sig",
+        "name": "bazel_5.2.0-linux-x86_64.deb.sig",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -848,23 +848,23 @@
         "download_count": 29,
         "created_at": "2018-12-19T14:00:18Z",
         "updated_at": "2018-12-19T14:00:18Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.21.0/bazel_0.21.0-linux-x86_64.deb.sig"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel_5.2.0-linux-x86_64.deb.sig"
       }
     ],
-    "tarball_url": "https://api.github.com/repos/bazelbuild/bazel/tarball/0.21.0",
-    "zipball_url": "https://api.github.com/repos/bazelbuild/bazel/zipball/0.21.0",
-    "body": "# Release 0.21.0 (2018-12-19)\r\n\r\nBaseline: cb9b2afbba3f8d3a1db8bf68e65d06f1b36902f5\r\n\r\nCherry picks:\r\n\r\n   + 12b96466ee0d6ab83f7d4cd24be110bb5021281d:\r\n     Windows, test wrapper: rename the associated flag\r\n   + 7fc967c4d6435de2bb4e34aac00ca2e499f55fca:\r\n     Use a fixed thread pool in ByteStreamBuildEventArtifactUploader\r\n   + 798b9a989aa793655d29504edb5fb85f3143db84:\r\n     Add --build_event_upload_max_threads option\r\n   + dbe05df23ccf4c919379e0294e0701fd3f66739c:\r\n     Update the version of  skylib bundled in the distfile\r\n\r\nRelease notes:\r\n  https://blog.bazel.build/2018/12/19/bazel-0.21.html\r\n\r\n\r\n_Notice_: Bazel installers contain binaries licensed under the GPLv2 with\r\nClasspath exception. Those installers should always be redistributed along with\r\nthe source code.\r\n\r\nSome versions of Bazel contain a bundled version of OpenJDK. The license of the\r\nbundled OpenJDK and other open-source components can be displayed by running\r\nthe command `bazel license`. The vendor and version information of the bundled\r\nOpenJDK can be displayed by running the command `bazel info java-runtime`.\r\nThe binaries and source-code of the bundled OpenJDK can be\r\n[downloaded from our mirror server](https://mirror.bazel.build/openjdk/index.html).\r\n\r\n_Security_: All our binaries are signed with our\r\n[public key](https://bazel.build/bazel-release.pub.gpg) 48457EE0."
+    "tarball_url": "https://api.github.com/repos/bazelbuild/bazel/tarball/5.2.0",
+    "zipball_url": "https://api.github.com/repos/bazelbuild/bazel/zipball/5.2.0",
+    "body": "# Release 5.2.0 (2018-12-19)\r\n\r\nBaseline: cb9b2afbba3f8d3a1db8bf68e65d06f1b36902f5\r\n\r\nCherry picks:\r\n\r\n   + 12b96466ee0d6ab83f7d4cd24be110bb5021281d:\r\n     Windows, test wrapper: rename the associated flag\r\n   + 7fc967c4d6435de2bb4e34aac00ca2e499f55fca:\r\n     Use a fixed thread pool in ByteStreamBuildEventArtifactUploader\r\n   + 798b9a989aa793655d29504edb5fb85f3143db84:\r\n     Add --build_event_upload_max_threads option\r\n   + dbe05df23ccf4c919379e0294e0701fd3f66739c:\r\n     Update the version of  skylib bundled in the distfile\r\n\r\nRelease notes:\r\n  https://blog.bazel.build/2018/12/19/bazel-0.21.html\r\n\r\n\r\n_Notice_: Bazel installers contain binaries licensed under the GPLv2 with\r\nClasspath exception. Those installers should always be redistributed along with\r\nthe source code.\r\n\r\nSome versions of Bazel contain a bundled version of OpenJDK. The license of the\r\nbundled OpenJDK and other open-source components can be displayed by running\r\nthe command `bazel license`. The vendor and version information of the bundled\r\nOpenJDK can be displayed by running the command `bazel info java-runtime`.\r\nThe binaries and source-code of the bundled OpenJDK can be\r\n[downloaded from our mirror server](https://mirror.bazel.build/openjdk/index.html).\r\n\r\n_Security_: All our binaries are signed with our\r\n[public key](https://bazel.build/bazel-release.pub.gpg) 48457EE0."
   },
   {
     "url": "https://api.github.com/repos/bazelbuild/bazel/releases/14282958",
     "assets_url": "https://api.github.com/repos/bazelbuild/bazel/releases/14282958/assets",
     "upload_url": "https://uploads.github.com/repos/bazelbuild/bazel/releases/14282958/assets{?name,label}",
-    "html_url": "https://github.com/bazelbuild/bazel/releases/tag/0.20.0",
+    "html_url": "https://github.com/bazelbuild/bazel/releases/tag/5.2.0",
     "id": 14282958,
     "node_id": "MDc6UmVsZWFzZTE0MjgyOTU4",
-    "tag_name": "0.20.0",
+    "tag_name": "5.2.0",
     "target_commitish": "master",
-    "name": "0.20.0",
+    "name": "5.2.0",
     "draft": false,
     "author": {
       "login": "bazel-io",
@@ -894,7 +894,7 @@
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9932917",
         "id": 9932917,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk5MzI5MTc=",
-        "name": "bazel-0.20.0-darwin-x86_64",
+        "name": "bazel-5.2.0-darwin-x86_64",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -922,13 +922,13 @@
         "download_count": 3036,
         "created_at": "2018-11-30T14:53:08Z",
         "updated_at": "2018-11-30T14:53:17Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.20.0/bazel-0.20.0-darwin-x86_64"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-darwin-x86_64"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9932924",
         "id": 9932924,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk5MzI5MjQ=",
-        "name": "bazel-0.20.0-darwin-x86_64.sha256",
+        "name": "bazel-5.2.0-darwin-x86_64.sha256",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -956,13 +956,13 @@
         "download_count": 74,
         "created_at": "2018-11-30T14:53:17Z",
         "updated_at": "2018-11-30T14:53:17Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.20.0/bazel-0.20.0-darwin-x86_64.sha256"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-darwin-x86_64.sha256"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9932925",
         "id": 9932925,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk5MzI5MjU=",
-        "name": "bazel-0.20.0-darwin-x86_64.sig",
+        "name": "bazel-5.2.0-darwin-x86_64.sig",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -990,13 +990,13 @@
         "download_count": 37,
         "created_at": "2018-11-30T14:53:17Z",
         "updated_at": "2018-11-30T14:53:18Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.20.0/bazel-0.20.0-darwin-x86_64.sig"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-darwin-x86_64.sig"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9932926",
         "id": 9932926,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk5MzI5MjY=",
-        "name": "bazel-0.20.0-dist.zip",
+        "name": "bazel-5.2.0-dist.zip",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -1024,13 +1024,13 @@
         "download_count": 2532,
         "created_at": "2018-11-30T14:53:18Z",
         "updated_at": "2018-11-30T14:53:22Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.20.0/bazel-0.20.0-dist.zip"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-dist.zip"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9932928",
         "id": 9932928,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk5MzI5Mjg=",
-        "name": "bazel-0.20.0-dist.zip.sha256",
+        "name": "bazel-5.2.0-dist.zip.sha256",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -1058,13 +1058,13 @@
         "download_count": 77,
         "created_at": "2018-11-30T14:53:23Z",
         "updated_at": "2018-11-30T14:53:23Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.20.0/bazel-0.20.0-dist.zip.sha256"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-dist.zip.sha256"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9932929",
         "id": 9932929,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk5MzI5Mjk=",
-        "name": "bazel-0.20.0-dist.zip.sig",
+        "name": "bazel-5.2.0-dist.zip.sig",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -1092,13 +1092,13 @@
         "download_count": 36,
         "created_at": "2018-11-30T14:53:23Z",
         "updated_at": "2018-11-30T14:53:23Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.20.0/bazel-0.20.0-dist.zip.sig"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-dist.zip.sig"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9932930",
         "id": 9932930,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk5MzI5MzA=",
-        "name": "bazel-0.20.0-installer-darwin-x86_64.sh",
+        "name": "bazel-5.2.0-installer-darwin-x86_64.sh",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -1126,13 +1126,13 @@
         "download_count": 6371,
         "created_at": "2018-11-30T14:53:23Z",
         "updated_at": "2018-11-30T14:53:32Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.20.0/bazel-0.20.0-installer-darwin-x86_64.sh"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-installer-darwin-x86_64.sh"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9932931",
         "id": 9932931,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk5MzI5MzE=",
-        "name": "bazel-0.20.0-installer-darwin-x86_64.sh.sha256",
+        "name": "bazel-5.2.0-installer-darwin-x86_64.sh.sha256",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -1160,13 +1160,13 @@
         "download_count": 57,
         "created_at": "2018-11-30T14:53:32Z",
         "updated_at": "2018-11-30T14:53:32Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.20.0/bazel-0.20.0-installer-darwin-x86_64.sh.sha256"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-installer-darwin-x86_64.sh.sha256"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9932932",
         "id": 9932932,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk5MzI5MzI=",
-        "name": "bazel-0.20.0-installer-darwin-x86_64.sh.sig",
+        "name": "bazel-5.2.0-installer-darwin-x86_64.sh.sig",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -1194,13 +1194,13 @@
         "download_count": 34,
         "created_at": "2018-11-30T14:53:32Z",
         "updated_at": "2018-11-30T14:53:32Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.20.0/bazel-0.20.0-installer-darwin-x86_64.sh.sig"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-installer-darwin-x86_64.sh.sig"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9932933",
         "id": 9932933,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk5MzI5MzM=",
-        "name": "bazel-0.20.0-installer-linux-x86_64.sh",
+        "name": "bazel-5.2.0-installer-linux-x86_64.sh",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -1228,13 +1228,13 @@
         "download_count": 44167,
         "created_at": "2018-11-30T14:53:33Z",
         "updated_at": "2018-11-30T14:53:41Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.20.0/bazel-0.20.0-installer-linux-x86_64.sh"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-installer-linux-x86_64.sh"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9932934",
         "id": 9932934,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk5MzI5MzQ=",
-        "name": "bazel-0.20.0-installer-linux-x86_64.sh.sha256",
+        "name": "bazel-5.2.0-installer-linux-x86_64.sh.sha256",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -1262,13 +1262,13 @@
         "download_count": 122,
         "created_at": "2018-11-30T14:53:41Z",
         "updated_at": "2018-11-30T14:53:41Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.20.0/bazel-0.20.0-installer-linux-x86_64.sh.sha256"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-installer-linux-x86_64.sh.sha256"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9932935",
         "id": 9932935,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk5MzI5MzU=",
-        "name": "bazel-0.20.0-installer-linux-x86_64.sh.sig",
+        "name": "bazel-5.2.0-installer-linux-x86_64.sh.sig",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -1296,13 +1296,13 @@
         "download_count": 70,
         "created_at": "2018-11-30T14:53:41Z",
         "updated_at": "2018-11-30T14:53:41Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.20.0/bazel-0.20.0-installer-linux-x86_64.sh.sig"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-installer-linux-x86_64.sh.sig"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9932936",
         "id": 9932936,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk5MzI5MzY=",
-        "name": "bazel-0.20.0-linux-x86_64",
+        "name": "bazel-5.2.0-linux-x86_64",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -1330,13 +1330,13 @@
         "download_count": 15332,
         "created_at": "2018-11-30T14:53:42Z",
         "updated_at": "2018-11-30T14:53:50Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.20.0/bazel-0.20.0-linux-x86_64"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-linux-x86_64"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9932937",
         "id": 9932937,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk5MzI5Mzc=",
-        "name": "bazel-0.20.0-linux-x86_64.sha256",
+        "name": "bazel-5.2.0-linux-x86_64.sha256",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -1364,13 +1364,13 @@
         "download_count": 54,
         "created_at": "2018-11-30T14:53:50Z",
         "updated_at": "2018-11-30T14:53:50Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.20.0/bazel-0.20.0-linux-x86_64.sha256"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-linux-x86_64.sha256"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9932938",
         "id": 9932938,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk5MzI5Mzg=",
-        "name": "bazel-0.20.0-linux-x86_64.sig",
+        "name": "bazel-5.2.0-linux-x86_64.sig",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -1398,13 +1398,13 @@
         "download_count": 43,
         "created_at": "2018-11-30T14:53:51Z",
         "updated_at": "2018-11-30T14:53:51Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.20.0/bazel-0.20.0-linux-x86_64.sig"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-linux-x86_64.sig"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9932939",
         "id": 9932939,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk5MzI5Mzk=",
-        "name": "bazel-0.20.0-windows-x86_64.exe",
+        "name": "bazel-5.2.0-windows-x86_64.exe",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -1432,13 +1432,13 @@
         "download_count": 12943,
         "created_at": "2018-11-30T14:53:51Z",
         "updated_at": "2018-11-30T14:54:00Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.20.0/bazel-0.20.0-windows-x86_64.exe"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-windows-x86_64.exe"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9932941",
         "id": 9932941,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk5MzI5NDE=",
-        "name": "bazel-0.20.0-windows-x86_64.exe.sha256",
+        "name": "bazel-5.2.0-windows-x86_64.exe.sha256",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -1466,13 +1466,13 @@
         "download_count": 137,
         "created_at": "2018-11-30T14:54:00Z",
         "updated_at": "2018-11-30T14:54:00Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.20.0/bazel-0.20.0-windows-x86_64.exe.sha256"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-windows-x86_64.exe.sha256"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9932942",
         "id": 9932942,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk5MzI5NDI=",
-        "name": "bazel-0.20.0-windows-x86_64.exe.sig",
+        "name": "bazel-5.2.0-windows-x86_64.exe.sig",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -1500,13 +1500,13 @@
         "download_count": 80,
         "created_at": "2018-11-30T14:54:00Z",
         "updated_at": "2018-11-30T14:54:00Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.20.0/bazel-0.20.0-windows-x86_64.exe.sig"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-windows-x86_64.exe.sig"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9932943",
         "id": 9932943,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk5MzI5NDM=",
-        "name": "bazel-0.20.0-windows-x86_64.zip",
+        "name": "bazel-5.2.0-windows-x86_64.zip",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -1534,13 +1534,13 @@
         "download_count": 6846,
         "created_at": "2018-11-30T14:54:01Z",
         "updated_at": "2018-11-30T14:54:12Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.20.0/bazel-0.20.0-windows-x86_64.zip"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-windows-x86_64.zip"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9932947",
         "id": 9932947,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk5MzI5NDc=",
-        "name": "bazel-0.20.0-windows-x86_64.zip.sha256",
+        "name": "bazel-5.2.0-windows-x86_64.zip.sha256",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -1568,13 +1568,13 @@
         "download_count": 35,
         "created_at": "2018-11-30T14:54:12Z",
         "updated_at": "2018-11-30T14:54:13Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.20.0/bazel-0.20.0-windows-x86_64.zip.sha256"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-windows-x86_64.zip.sha256"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9932948",
         "id": 9932948,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk5MzI5NDg=",
-        "name": "bazel-0.20.0-windows-x86_64.zip.sig",
+        "name": "bazel-5.2.0-windows-x86_64.zip.sig",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -1602,13 +1602,13 @@
         "download_count": 17,
         "created_at": "2018-11-30T14:54:13Z",
         "updated_at": "2018-11-30T14:54:13Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.20.0/bazel-0.20.0-windows-x86_64.zip.sig"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-windows-x86_64.zip.sig"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9932949",
         "id": 9932949,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk5MzI5NDk=",
-        "name": "bazel_0.20.0-linux-x86_64.deb",
+        "name": "bazel_5.2.0-linux-x86_64.deb",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -1636,13 +1636,13 @@
         "download_count": 1504,
         "created_at": "2018-11-30T14:54:13Z",
         "updated_at": "2018-11-30T14:54:22Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.20.0/bazel_0.20.0-linux-x86_64.deb"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel_5.2.0-linux-x86_64.deb"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9932951",
         "id": 9932951,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk5MzI5NTE=",
-        "name": "bazel_0.20.0-linux-x86_64.deb.sha256",
+        "name": "bazel_5.2.0-linux-x86_64.deb.sha256",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -1670,13 +1670,13 @@
         "download_count": 113,
         "created_at": "2018-11-30T14:54:22Z",
         "updated_at": "2018-11-30T14:54:22Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.20.0/bazel_0.20.0-linux-x86_64.deb.sha256"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel_5.2.0-linux-x86_64.deb.sha256"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9932952",
         "id": 9932952,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk5MzI5NTI=",
-        "name": "bazel_0.20.0-linux-x86_64.deb.sig",
+        "name": "bazel_5.2.0-linux-x86_64.deb.sig",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -1704,23 +1704,23 @@
         "download_count": 17,
         "created_at": "2018-11-30T14:54:23Z",
         "updated_at": "2018-11-30T14:54:23Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.20.0/bazel_0.20.0-linux-x86_64.deb.sig"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel_5.2.0-linux-x86_64.deb.sig"
       }
     ],
-    "tarball_url": "https://api.github.com/repos/bazelbuild/bazel/tarball/0.20.0",
-    "zipball_url": "https://api.github.com/repos/bazelbuild/bazel/zipball/0.20.0",
-    "body": "# Release 0.20.0 (2018-11-30)\n\nBaseline: 7bf7f031c332dc483257248d1c1f98ad75bbc83b\n\nCherry picks:\n\n   + fd52341505e725487c6bc6dfbe6b5e081aa037da:\n     update bazel-toolchains pin to latest release Part of changes to\n     allow bazelci to use 0.19.0 configs. RBE toolchain configs at or\n     before 0.17.0 are not compatible with bazel 0.19.0 or above.\n   + 241f28d05424db2d11ee245dc856b992258505e3:\n     Revert \"Toggle --incompatible_disable_late_bound_option_defaults\n     flag.\"\n   + f7e5aef145c33968f658eb2260e25630dc41cc67:\n     Add cc_toolchain targets for the new entries in the default\n     cc_toolchain_suite.\n   + d2920e32ec7f3f8551a693d33c17b19f1b802145:\n     Revert \"WindowsFileSystem: open files with delete-sharing\"\n\n[Breaking changes in 0.20](https://github.com/bazelbuild/bazel/issues?q=is%3Aissue+label%3Abreaking-change-0.20)\n\n  - [--incompatible_remove_native_http_archive](https://github.com/bazelbuild/bazel/issues/6570).\n  - [--incompatible_remove_native_git_repository](https://github.com/bazelbuild/bazel/issues/6569).\n  - [--incompatible_disable_cc_toolchain_label_from_crosstool_proto](https://github.com/bazelbuild/bazel/issues/6434).\n  - [--incompatible_disable_depset_in_cc_user_flags](https://github.com/bazelbuild/bazel/issues/6384).\n  - [--incompatible_disable_cc_configuration_make_variables](https://github.com/bazelbuild/bazel/issues/6381).\n  - [--incompatible_disallow_conflicting_providers](https://github.com/bazelbuild/bazel/issues/5902).\n  - [--incompatible_range_type](https://github.com/bazelbuild/bazel/issues/5264).\n\n[0.20 is a migration window for the following changes](https://github.com/bazelbuild/bazel/issues?q=is%3Aissue+label%3Amigration-0.20)\n\n  - [--incompatible_use_jdk10_as_host_javabase](https://github.com/bazelbuild/bazel/issues/6661)\n  - [--incompatible_use_remotejdk_as_host_javabase](https://github.com/bazelbuild/bazel/issues/6656)\n  - [--incompatible_disable_sysroot_from_configuration](https://github.com/bazelbuild/bazel/issues/6565)\n  - [--incompatible_provide_cc_toolchain_info_from_cc_toolchain_suite](https://github.com/bazelbuild/bazel/issues/6537)\n  - [--incompatible_disable_depset_in_cc_user_flags](https://github.com/bazelbuild/bazel/issues/6383)\n  - [--incompatible_package_name_is_a_function](https://github.com/bazelbuild/bazel/issues/5827)\n\n[Breaking changes in the next release (0.21)](https://github.com/bazelbuild/bazel/issues?q=is%3Aissue+label%3Abreaking-change-0.21)\n\n  - [--incompatible_use_jdk10_as_host_javabase](https://github.com/bazelbuild/bazel/issues/6661)\n  - [--incompatible_use_remotejdk_as_host_javabase](https://github.com/bazelbuild/bazel/issues/6656)\n  - [--incompatible_disable_sysroot_from_configuration](https://github.com/bazelbuild/bazel/issues/6565)\n  - [--incompatible_provide_cc_toolchain_info_from_cc_toolchain_suite](https://github.com/bazelbuild/bazel/issues/6537)\n  - [--incompatible_disable_depset_in_cc_user_flags](https://github.com/bazelbuild/bazel/issues/6383)\n  - [--incompatible_disallow_data_transition](https://github.com/bazelbuild/bazel/issues/6153)\n  - [--incompatible_package_name_is_a_function](https://github.com/bazelbuild/bazel/issues/5827)\n  - [--incompatible_disallow_slash_operator](https://github.com/bazelbuild/bazel/issues/5823)\n  - [--incompatible_static_name_resolution](https://github.com/bazelbuild/bazel/issues/5637)\n\nIncompatible changes:\n\n  - the --experimental_no_dotd_scanning_with_modules command line\n    argument is not supported anymore.\n  - The --prune_cpp_modules command line option is not supported\n    anymore.\n  - the --experimental_prune_cpp_input_discovery command line option\n    is not supported anymore.\n\nNew features:\n\n  - Added support for Android NDK r18.\n\nImportant changes:\n\n  - The 'default' parameter of attr.output and attr.output_list is\n    removed. This is controlled by\n    --incompatible_no_output_attr_default\n  - A number of platform-related Starlark APIs which were previously\n    marked \"experimental\" are now disabled by default, and may be\n    enabled via --experimental_platforms_api\n  - Make legacy-test-support (\"legacy_test-<api-level>\") from\n    android_sdk_repository neverlink. The legacy test support\n    libraries shouldn't be built into test binaries. To make them\n    available at runtime, developers should declare them via\n    uses-library:\n    https://developer.android.com/training/testing/set-up-project#andr\n    oid-test-base\n  - query remote server Capabilities (per REAPI v2)\n  - CppRules: All cc_toolchains depended on from\n    cc_toolchain_suite.toolchains are now analyzed when not using\n    platforms in order to select the right cc_toolchain.\n  - removed obsolete --explicit_jre_deps flag.\n  - Incompatible flag\n    --incompatible_disable_legacy_cpp_toolchain_skylark_api was\n    flipped.\n  - Improve error messaging when unsupport proguard options are\n    specified at the library level.\n  - Incompatible flag\n    --incompatible_disable_legacy_cpp_toolchain_skylark_api was\n    flipped.\n  - Incompatible flag\n    --incompatible_disable_legacy_cpp_toolchain_skylark_api was\n    flipped.\n  - The --incompatible_disable_late_bound_option_defaults flag has\n    been flipped (#6384)\n  - Incompatible flag\n    --incompatible_disable_legacy_flags_cc_toolchain_api was flipped\n    (#6434)\n  - Fixed issue where ctx.resolve_command created conflicting\n    intermediate files when resolve_command was called multiple times\n    within the same rule invocation with a long command attribute.\n  - Incompatible flag\n    --incompatible_disable_cc_configuration_make_variables was\n    flipped (#6381)\n  - If the --javabase flag is unset, it Bazel locates a JDK using\n    the JAVA_HOME environment variable and searching the PATH. If no\n    JDK is found --javabase will be empty, and builds targeting Java\n    will not\n    be supported. Previously Bazel would fall back to using the\n    embedded\n    JDK as a --javabase, but this is no longer default behaviour. A\n    JDK should\n    be explicitly installed instead to enable Java development\n  - Bazel will now shut down when idle for 5 minutes and the system\n    is low on RAM (linux only).\n  - CROSSTOOL file is now read from the package of cc_toolchain, not\n    from\n    the package of cc_toolchain_suite. This is not expected to break\n    anybody since\n    cc_toolchain_suite and cc_toolchain are commonly in the same\n    package.\n  - All overrides of Starlark's ctx.new_file function are now\n    deprecated.\n      Try the `--incompatible_new_actions_api` flag to ensure your\n    code is forward-compatible.\n  - --incompatible_disable_cc_toolchain_label_from_crosstool_proto\n    was flipped.\n  - Introduce --(no)shutdown_on_low_sys_mem startup flag to toggle\n    idle low-memory shutdown, disabled by default.\n  - --incompatible_disable_cc_toolchain_label_from_crosstool_proto\n    was flipped.\n  - --incompatible_disable_cc_toolchain_label_from_crosstool_proto\n    was flipped.\n  - CppRules: All cc_toolchains depended on from\n    cc_toolchain_suite.toolchains are now analyzed when not using\n    platforms in order to select the right cc_toolchain.\n  - The function `attr.license` is deprecated and will be removed.\n      It can be disabled now with `--incompatible_no_attr_license`.\n  - `range()` function now returns a lazy value\n    (`--incompatible_range_type` is now set by default).\n  - The code coverage report now includes the actual paths to header\n    files instead of the ugly,\n    Bazel generated, virtual includes path.\n  - `--incompatible_disallow_conflicting_providers` has been switched\n    to true\n  - Add new flag `--incompatible_disable_systool_from_configration` to\n    disable loading the systool from CppConfiguration.\n  - Add new flag `--incompatible_disable_sysroot_from_configuration`\n    to\n    disable loading the systool from CppConfiguration.\n  - Sorting remote Platform properties for remote execution. May\n    affect cache keys!\n  - Use different server log files per Bazel server process; java.log\n    is\n    now a symlink to the latest log.\n\nThis release contains contributions from many people at Google, as well as a7g4 <a7g4@a7g4.net>, Alan <alan.agius@betssongroup.com>, Asaf Flescher <asafflesch@gmail.com>, Benjamin Peterson <bp@benjamin.pe>, Ed Schouten <ed.schouten@prodrive-technologies.com>, George Gensure <ggensure@uber.com>, George Kalpakas <kalpakas.g@gmail.com>, Greg <gregestren@users.noreply.github.com>, Irina Iancu <iirina@users.noreply.github.com>, Keith Smiley <keithbsmiley@gmail.com>, Loo Rong Jie <loorongjie@gmail.com>, Mark Zeren <mzeren@vmware.com>, Petros Eskinder <petroseskinder@users.noreply.github.com>, rachcatch <rachelcatchpoole@hotmail.com>, Robert Brown <robert.brown@gmail.com>, Robert Gay <robert.gay@redfin.com>, Salty Egg <2281521+zhouhao@users.noreply.github.com>.\n\n_Notice_: Bazel installers contain binaries licensed under the GPLv2 with\nClasspath exception. Those installers should always be redistributed along with\nthe source code.\n\nSome versions of Bazel contain a bundled version of OpenJDK. The license of the\nbundled OpenJDK and other open-source components can be displayed by running\nthe command `bazel license`. The vendor and version information of the bundled\nOpenJDK can be displayed by running the command `bazel info java-runtime`.\nThe binaries and source-code of the bundled OpenJDK can be\n[downloaded from our mirror server](https://mirror.bazel.build/openjdk/index.html).\n\n_Security_: All our binaries are signed with our\n[public key](https://bazel.build/bazel-release.pub.gpg) 48457EE0."
+    "tarball_url": "https://api.github.com/repos/bazelbuild/bazel/tarball/5.2.0",
+    "zipball_url": "https://api.github.com/repos/bazelbuild/bazel/zipball/5.2.0",
+    "body": "# Release 5.2.0 (2018-11-30)\n\nBaseline: 7bf7f031c332dc483257248d1c1f98ad75bbc83b\n\nCherry picks:\n\n   + fd52341505e725487c6bc6dfbe6b5e081aa037da:\n     update bazel-toolchains pin to latest release Part of changes to\n     allow bazelci to use 0.19.0 configs. RBE toolchain configs at or\n     before 0.17.0 are not compatible with bazel 0.19.0 or above.\n   + 241f28d05424db2d11ee245dc856b992258505e3:\n     Revert \"Toggle --incompatible_disable_late_bound_option_defaults\n     flag.\"\n   + f7e5aef145c33968f658eb2260e25630dc41cc67:\n     Add cc_toolchain targets for the new entries in the default\n     cc_toolchain_suite.\n   + d2920e32ec7f3f8551a693d33c17b19f1b802145:\n     Revert \"WindowsFileSystem: open files with delete-sharing\"\n\n[Breaking changes in 0.20](https://github.com/bazelbuild/bazel/issues?q=is%3Aissue+label%3Abreaking-change-0.20)\n\n  - [--incompatible_remove_native_http_archive](https://github.com/bazelbuild/bazel/issues/6570).\n  - [--incompatible_remove_native_git_repository](https://github.com/bazelbuild/bazel/issues/6569).\n  - [--incompatible_disable_cc_toolchain_label_from_crosstool_proto](https://github.com/bazelbuild/bazel/issues/6434).\n  - [--incompatible_disable_depset_in_cc_user_flags](https://github.com/bazelbuild/bazel/issues/6384).\n  - [--incompatible_disable_cc_configuration_make_variables](https://github.com/bazelbuild/bazel/issues/6381).\n  - [--incompatible_disallow_conflicting_providers](https://github.com/bazelbuild/bazel/issues/5902).\n  - [--incompatible_range_type](https://github.com/bazelbuild/bazel/issues/5264).\n\n[0.20 is a migration window for the following changes](https://github.com/bazelbuild/bazel/issues?q=is%3Aissue+label%3Amigration-0.20)\n\n  - [--incompatible_use_jdk10_as_host_javabase](https://github.com/bazelbuild/bazel/issues/6661)\n  - [--incompatible_use_remotejdk_as_host_javabase](https://github.com/bazelbuild/bazel/issues/6656)\n  - [--incompatible_disable_sysroot_from_configuration](https://github.com/bazelbuild/bazel/issues/6565)\n  - [--incompatible_provide_cc_toolchain_info_from_cc_toolchain_suite](https://github.com/bazelbuild/bazel/issues/6537)\n  - [--incompatible_disable_depset_in_cc_user_flags](https://github.com/bazelbuild/bazel/issues/6383)\n  - [--incompatible_package_name_is_a_function](https://github.com/bazelbuild/bazel/issues/5827)\n\n[Breaking changes in the next release (0.21)](https://github.com/bazelbuild/bazel/issues?q=is%3Aissue+label%3Abreaking-change-0.21)\n\n  - [--incompatible_use_jdk10_as_host_javabase](https://github.com/bazelbuild/bazel/issues/6661)\n  - [--incompatible_use_remotejdk_as_host_javabase](https://github.com/bazelbuild/bazel/issues/6656)\n  - [--incompatible_disable_sysroot_from_configuration](https://github.com/bazelbuild/bazel/issues/6565)\n  - [--incompatible_provide_cc_toolchain_info_from_cc_toolchain_suite](https://github.com/bazelbuild/bazel/issues/6537)\n  - [--incompatible_disable_depset_in_cc_user_flags](https://github.com/bazelbuild/bazel/issues/6383)\n  - [--incompatible_disallow_data_transition](https://github.com/bazelbuild/bazel/issues/6153)\n  - [--incompatible_package_name_is_a_function](https://github.com/bazelbuild/bazel/issues/5827)\n  - [--incompatible_disallow_slash_operator](https://github.com/bazelbuild/bazel/issues/5823)\n  - [--incompatible_static_name_resolution](https://github.com/bazelbuild/bazel/issues/5637)\n\nIncompatible changes:\n\n  - the --experimental_no_dotd_scanning_with_modules command line\n    argument is not supported anymore.\n  - The --prune_cpp_modules command line option is not supported\n    anymore.\n  - the --experimental_prune_cpp_input_discovery command line option\n    is not supported anymore.\n\nNew features:\n\n  - Added support for Android NDK r18.\n\nImportant changes:\n\n  - The 'default' parameter of attr.output and attr.output_list is\n    removed. This is controlled by\n    --incompatible_no_output_attr_default\n  - A number of platform-related Starlark APIs which were previously\n    marked \"experimental\" are now disabled by default, and may be\n    enabled via --experimental_platforms_api\n  - Make legacy-test-support (\"legacy_test-<api-level>\") from\n    android_sdk_repository neverlink. The legacy test support\n    libraries shouldn't be built into test binaries. To make them\n    available at runtime, developers should declare them via\n    uses-library:\n    https://developer.android.com/training/testing/set-up-project#andr\n    oid-test-base\n  - query remote server Capabilities (per REAPI v2)\n  - CppRules: All cc_toolchains depended on from\n    cc_toolchain_suite.toolchains are now analyzed when not using\n    platforms in order to select the right cc_toolchain.\n  - removed obsolete --explicit_jre_deps flag.\n  - Incompatible flag\n    --incompatible_disable_legacy_cpp_toolchain_skylark_api was\n    flipped.\n  - Improve error messaging when unsupport proguard options are\n    specified at the library level.\n  - Incompatible flag\n    --incompatible_disable_legacy_cpp_toolchain_skylark_api was\n    flipped.\n  - Incompatible flag\n    --incompatible_disable_legacy_cpp_toolchain_skylark_api was\n    flipped.\n  - The --incompatible_disable_late_bound_option_defaults flag has\n    been flipped (#6384)\n  - Incompatible flag\n    --incompatible_disable_legacy_flags_cc_toolchain_api was flipped\n    (#6434)\n  - Fixed issue where ctx.resolve_command created conflicting\n    intermediate files when resolve_command was called multiple times\n    within the same rule invocation with a long command attribute.\n  - Incompatible flag\n    --incompatible_disable_cc_configuration_make_variables was\n    flipped (#6381)\n  - If the --javabase flag is unset, it Bazel locates a JDK using\n    the JAVA_HOME environment variable and searching the PATH. If no\n    JDK is found --javabase will be empty, and builds targeting Java\n    will not\n    be supported. Previously Bazel would fall back to using the\n    embedded\n    JDK as a --javabase, but this is no longer default behaviour. A\n    JDK should\n    be explicitly installed instead to enable Java development\n  - Bazel will now shut down when idle for 5 minutes and the system\n    is low on RAM (linux only).\n  - CROSSTOOL file is now read from the package of cc_toolchain, not\n    from\n    the package of cc_toolchain_suite. This is not expected to break\n    anybody since\n    cc_toolchain_suite and cc_toolchain are commonly in the same\n    package.\n  - All overrides of Starlark's ctx.new_file function are now\n    deprecated.\n      Try the `--incompatible_new_actions_api` flag to ensure your\n    code is forward-compatible.\n  - --incompatible_disable_cc_toolchain_label_from_crosstool_proto\n    was flipped.\n  - Introduce --(no)shutdown_on_low_sys_mem startup flag to toggle\n    idle low-memory shutdown, disabled by default.\n  - --incompatible_disable_cc_toolchain_label_from_crosstool_proto\n    was flipped.\n  - --incompatible_disable_cc_toolchain_label_from_crosstool_proto\n    was flipped.\n  - CppRules: All cc_toolchains depended on from\n    cc_toolchain_suite.toolchains are now analyzed when not using\n    platforms in order to select the right cc_toolchain.\n  - The function `attr.license` is deprecated and will be removed.\n      It can be disabled now with `--incompatible_no_attr_license`.\n  - `range()` function now returns a lazy value\n    (`--incompatible_range_type` is now set by default).\n  - The code coverage report now includes the actual paths to header\n    files instead of the ugly,\n    Bazel generated, virtual includes path.\n  - `--incompatible_disallow_conflicting_providers` has been switched\n    to true\n  - Add new flag `--incompatible_disable_systool_from_configration` to\n    disable loading the systool from CppConfiguration.\n  - Add new flag `--incompatible_disable_sysroot_from_configuration`\n    to\n    disable loading the systool from CppConfiguration.\n  - Sorting remote Platform properties for remote execution. May\n    affect cache keys!\n  - Use different server log files per Bazel server process; java.log\n    is\n    now a symlink to the latest log.\n\nThis release contains contributions from many people at Google, as well as a7g4 <a7g4@a7g4.net>, Alan <alan.agius@betssongroup.com>, Asaf Flescher <asafflesch@gmail.com>, Benjamin Peterson <bp@benjamin.pe>, Ed Schouten <ed.schouten@prodrive-technologies.com>, George Gensure <ggensure@uber.com>, George Kalpakas <kalpakas.g@gmail.com>, Greg <gregestren@users.noreply.github.com>, Irina Iancu <iirina@users.noreply.github.com>, Keith Smiley <keithbsmiley@gmail.com>, Loo Rong Jie <loorongjie@gmail.com>, Mark Zeren <mzeren@vmware.com>, Petros Eskinder <petroseskinder@users.noreply.github.com>, rachcatch <rachelcatchpoole@hotmail.com>, Robert Brown <robert.brown@gmail.com>, Robert Gay <robert.gay@redfin.com>, Salty Egg <2281521+zhouhao@users.noreply.github.com>.\n\n_Notice_: Bazel installers contain binaries licensed under the GPLv2 with\nClasspath exception. Those installers should always be redistributed along with\nthe source code.\n\nSome versions of Bazel contain a bundled version of OpenJDK. The license of the\nbundled OpenJDK and other open-source components can be displayed by running\nthe command `bazel license`. The vendor and version information of the bundled\nOpenJDK can be displayed by running the command `bazel info java-runtime`.\nThe binaries and source-code of the bundled OpenJDK can be\n[downloaded from our mirror server](https://mirror.bazel.build/openjdk/index.html).\n\n_Security_: All our binaries are signed with our\n[public key](https://bazel.build/bazel-release.pub.gpg) 48457EE0."
   },
   {
     "url": "https://api.github.com/repos/bazelbuild/bazel/releases/14080835",
     "assets_url": "https://api.github.com/repos/bazelbuild/bazel/releases/14080835/assets",
     "upload_url": "https://uploads.github.com/repos/bazelbuild/bazel/releases/14080835/assets{?name,label}",
-    "html_url": "https://github.com/bazelbuild/bazel/releases/tag/0.19.2",
+    "html_url": "https://github.com/bazelbuild/bazel/releases/tag/5.2.0",
     "id": 14080835,
     "node_id": "MDc6UmVsZWFzZTE0MDgwODM1",
-    "tag_name": "0.19.2",
+    "tag_name": "5.2.0",
     "target_commitish": "master",
-    "name": "0.19.2",
+    "name": "5.2.0",
     "draft": false,
     "author": {
       "login": "bazel-io",
@@ -1750,7 +1750,7 @@
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9764925",
         "id": 9764925,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk3NjQ5MjU=",
-        "name": "bazel-0.19.2-darwin-x86_64",
+        "name": "bazel-5.2.0-darwin-x86_64",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -1778,13 +1778,13 @@
         "download_count": 1389,
         "created_at": "2018-11-19T16:32:32Z",
         "updated_at": "2018-11-19T16:32:41Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.2/bazel-0.19.2-darwin-x86_64"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-darwin-x86_64"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9764932",
         "id": 9764932,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk3NjQ5MzI=",
-        "name": "bazel-0.19.2-darwin-x86_64.sha256",
+        "name": "bazel-5.2.0-darwin-x86_64.sha256",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -1812,13 +1812,13 @@
         "download_count": 43,
         "created_at": "2018-11-19T16:32:41Z",
         "updated_at": "2018-11-19T16:32:41Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.2/bazel-0.19.2-darwin-x86_64.sha256"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-darwin-x86_64.sha256"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9764933",
         "id": 9764933,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk3NjQ5MzM=",
-        "name": "bazel-0.19.2-darwin-x86_64.sig",
+        "name": "bazel-5.2.0-darwin-x86_64.sig",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -1846,13 +1846,13 @@
         "download_count": 23,
         "created_at": "2018-11-19T16:32:41Z",
         "updated_at": "2018-11-19T16:32:41Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.2/bazel-0.19.2-darwin-x86_64.sig"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-darwin-x86_64.sig"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9764934",
         "id": 9764934,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk3NjQ5MzQ=",
-        "name": "bazel-0.19.2-dist.zip",
+        "name": "bazel-5.2.0-dist.zip",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -1880,13 +1880,13 @@
         "download_count": 1450,
         "created_at": "2018-11-19T16:32:42Z",
         "updated_at": "2018-11-19T16:32:48Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.2/bazel-0.19.2-dist.zip"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-dist.zip"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9764939",
         "id": 9764939,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk3NjQ5Mzk=",
-        "name": "bazel-0.19.2-dist.zip.sha256",
+        "name": "bazel-5.2.0-dist.zip.sha256",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -1914,13 +1914,13 @@
         "download_count": 36,
         "created_at": "2018-11-19T16:32:48Z",
         "updated_at": "2018-11-19T16:32:48Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.2/bazel-0.19.2-dist.zip.sha256"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-dist.zip.sha256"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9764940",
         "id": 9764940,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk3NjQ5NDA=",
-        "name": "bazel-0.19.2-dist.zip.sig",
+        "name": "bazel-5.2.0-dist.zip.sig",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -1948,13 +1948,13 @@
         "download_count": 40,
         "created_at": "2018-11-19T16:32:48Z",
         "updated_at": "2018-11-19T16:32:48Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.2/bazel-0.19.2-dist.zip.sig"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-dist.zip.sig"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9764941",
         "id": 9764941,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk3NjQ5NDE=",
-        "name": "bazel-0.19.2-installer-darwin-x86_64.sh",
+        "name": "bazel-5.2.0-installer-darwin-x86_64.sh",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -1982,13 +1982,13 @@
         "download_count": 8266,
         "created_at": "2018-11-19T16:32:49Z",
         "updated_at": "2018-11-19T16:32:57Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.2/bazel-0.19.2-installer-darwin-x86_64.sh"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-installer-darwin-x86_64.sh"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9764946",
         "id": 9764946,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk3NjQ5NDY=",
-        "name": "bazel-0.19.2-installer-darwin-x86_64.sh.sha256",
+        "name": "bazel-5.2.0-installer-darwin-x86_64.sh.sha256",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -2016,13 +2016,13 @@
         "download_count": 34,
         "created_at": "2018-11-19T16:32:58Z",
         "updated_at": "2018-11-19T16:32:58Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.2/bazel-0.19.2-installer-darwin-x86_64.sh.sha256"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-installer-darwin-x86_64.sh.sha256"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9764947",
         "id": 9764947,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk3NjQ5NDc=",
-        "name": "bazel-0.19.2-installer-darwin-x86_64.sh.sig",
+        "name": "bazel-5.2.0-installer-darwin-x86_64.sh.sig",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -2050,13 +2050,13 @@
         "download_count": 13,
         "created_at": "2018-11-19T16:32:58Z",
         "updated_at": "2018-11-19T16:32:58Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.2/bazel-0.19.2-installer-darwin-x86_64.sh.sig"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-installer-darwin-x86_64.sh.sig"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9764949",
         "id": 9764949,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk3NjQ5NDk=",
-        "name": "bazel-0.19.2-installer-linux-x86_64.sh",
+        "name": "bazel-5.2.0-installer-linux-x86_64.sh",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -2084,13 +2084,13 @@
         "download_count": 117361,
         "created_at": "2018-11-19T16:32:58Z",
         "updated_at": "2018-11-19T16:33:08Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.2/bazel-0.19.2-installer-linux-x86_64.sh"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-installer-linux-x86_64.sh"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9764955",
         "id": 9764955,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk3NjQ5NTU=",
-        "name": "bazel-0.19.2-installer-linux-x86_64.sh.sha256",
+        "name": "bazel-5.2.0-installer-linux-x86_64.sh.sha256",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -2118,13 +2118,13 @@
         "download_count": 115,
         "created_at": "2018-11-19T16:33:08Z",
         "updated_at": "2018-11-19T16:33:08Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.2/bazel-0.19.2-installer-linux-x86_64.sh.sha256"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-installer-linux-x86_64.sh.sha256"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9764956",
         "id": 9764956,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk3NjQ5NTY=",
-        "name": "bazel-0.19.2-installer-linux-x86_64.sh.sig",
+        "name": "bazel-5.2.0-installer-linux-x86_64.sh.sig",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -2152,13 +2152,13 @@
         "download_count": 67,
         "created_at": "2018-11-19T16:33:08Z",
         "updated_at": "2018-11-19T16:33:09Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.2/bazel-0.19.2-installer-linux-x86_64.sh.sig"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-installer-linux-x86_64.sh.sig"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9764957",
         "id": 9764957,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk3NjQ5NTc=",
-        "name": "bazel-0.19.2-linux-x86_64",
+        "name": "bazel-5.2.0-linux-x86_64",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -2186,13 +2186,13 @@
         "download_count": 1601,
         "created_at": "2018-11-19T16:33:10Z",
         "updated_at": "2018-11-19T16:33:18Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.2/bazel-0.19.2-linux-x86_64"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-linux-x86_64"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9764962",
         "id": 9764962,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk3NjQ5NjI=",
-        "name": "bazel-0.19.2-linux-x86_64.sha256",
+        "name": "bazel-5.2.0-linux-x86_64.sha256",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -2220,13 +2220,13 @@
         "download_count": 37,
         "created_at": "2018-11-19T16:33:18Z",
         "updated_at": "2018-11-19T16:33:18Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.2/bazel-0.19.2-linux-x86_64.sha256"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-linux-x86_64.sha256"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9764963",
         "id": 9764963,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk3NjQ5NjM=",
-        "name": "bazel-0.19.2-linux-x86_64.sig",
+        "name": "bazel-5.2.0-linux-x86_64.sig",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -2254,13 +2254,13 @@
         "download_count": 21,
         "created_at": "2018-11-19T16:33:18Z",
         "updated_at": "2018-11-19T16:33:19Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.2/bazel-0.19.2-linux-x86_64.sig"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-linux-x86_64.sig"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9764964",
         "id": 9764964,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk3NjQ5NjQ=",
-        "name": "bazel-0.19.2-windows-x86_64.exe",
+        "name": "bazel-5.2.0-windows-x86_64.exe",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -2288,13 +2288,13 @@
         "download_count": 4594,
         "created_at": "2018-11-19T16:33:19Z",
         "updated_at": "2018-11-19T16:33:28Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.2/bazel-0.19.2-windows-x86_64.exe"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-windows-x86_64.exe"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9764965",
         "id": 9764965,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk3NjQ5NjU=",
-        "name": "bazel-0.19.2-windows-x86_64.exe.sha256",
+        "name": "bazel-5.2.0-windows-x86_64.exe.sha256",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -2322,13 +2322,13 @@
         "download_count": 75,
         "created_at": "2018-11-19T16:33:28Z",
         "updated_at": "2018-11-19T16:33:28Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.2/bazel-0.19.2-windows-x86_64.exe.sha256"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-windows-x86_64.exe.sha256"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9765000",
         "id": 9765000,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk3NjUwMDA=",
-        "name": "bazel-0.19.2-windows-x86_64.exe.sig",
+        "name": "bazel-5.2.0-windows-x86_64.exe.sig",
         "label": null,
         "uploader": {
           "login": "katre",
@@ -2356,13 +2356,13 @@
         "download_count": 30,
         "created_at": "2018-11-19T16:34:51Z",
         "updated_at": "2018-11-19T16:34:52Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.2/bazel-0.19.2-windows-x86_64.exe.sig"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-windows-x86_64.exe.sig"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9764967",
         "id": 9764967,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk3NjQ5Njc=",
-        "name": "bazel-0.19.2-windows-x86_64.zip",
+        "name": "bazel-5.2.0-windows-x86_64.zip",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -2390,13 +2390,13 @@
         "download_count": 2990,
         "created_at": "2018-11-19T16:33:32Z",
         "updated_at": "2018-11-19T16:33:39Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.2/bazel-0.19.2-windows-x86_64.zip"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-windows-x86_64.zip"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9764974",
         "id": 9764974,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk3NjQ5NzQ=",
-        "name": "bazel-0.19.2-windows-x86_64.zip.sha256",
+        "name": "bazel-5.2.0-windows-x86_64.zip.sha256",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -2424,13 +2424,13 @@
         "download_count": 26,
         "created_at": "2018-11-19T16:33:40Z",
         "updated_at": "2018-11-19T16:33:40Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.2/bazel-0.19.2-windows-x86_64.zip.sha256"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-windows-x86_64.zip.sha256"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9764975",
         "id": 9764975,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk3NjQ5NzU=",
-        "name": "bazel-0.19.2-windows-x86_64.zip.sig",
+        "name": "bazel-5.2.0-windows-x86_64.zip.sig",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -2458,13 +2458,13 @@
         "download_count": 15,
         "created_at": "2018-11-19T16:33:40Z",
         "updated_at": "2018-11-19T16:33:40Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.2/bazel-0.19.2-windows-x86_64.zip.sig"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-windows-x86_64.zip.sig"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9764977",
         "id": 9764977,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk3NjQ5Nzc=",
-        "name": "bazel_0.19.2-linux-x86_64.deb",
+        "name": "bazel_5.2.0-linux-x86_64.deb",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -2492,13 +2492,13 @@
         "download_count": 2855,
         "created_at": "2018-11-19T16:33:40Z",
         "updated_at": "2018-11-19T16:33:49Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.2/bazel_0.19.2-linux-x86_64.deb"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel_5.2.0-linux-x86_64.deb"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9764984",
         "id": 9764984,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk3NjQ5ODQ=",
-        "name": "bazel_0.19.2-linux-x86_64.deb.sha256",
+        "name": "bazel_5.2.0-linux-x86_64.deb.sha256",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -2526,13 +2526,13 @@
         "download_count": 13,
         "created_at": "2018-11-19T16:33:49Z",
         "updated_at": "2018-11-19T16:33:49Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.2/bazel_0.19.2-linux-x86_64.deb.sha256"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel_5.2.0-linux-x86_64.deb.sha256"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9764985",
         "id": 9764985,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk3NjQ5ODU=",
-        "name": "bazel_0.19.2-linux-x86_64.deb.sig",
+        "name": "bazel_5.2.0-linux-x86_64.deb.sig",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -2560,23 +2560,23 @@
         "download_count": 5,
         "created_at": "2018-11-19T16:33:50Z",
         "updated_at": "2018-11-19T16:33:50Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.2/bazel_0.19.2-linux-x86_64.deb.sig"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel_5.2.0-linux-x86_64.deb.sig"
       }
     ],
-    "tarball_url": "https://api.github.com/repos/bazelbuild/bazel/tarball/0.19.2",
-    "zipball_url": "https://api.github.com/repos/bazelbuild/bazel/zipball/0.19.2",
-    "body": "# Release 0.19.2 (2018-11-19)\r\n\r\nBaseline: eb2af0f699350ad187048bf814a95af23f562c77\r\n \r\nCherry picks:\r\n \r\n   + f7e5aef145c33968f658eb2260e25630dc41cc67:\r\n     Add cc_toolchain targets for the new entries in the default\r\n     cc_toolchain_suite.\r\n   + 683c302129b66a8999f986be5ae7e642707e978c:\r\n     Read the CROSSTOOL from the package of the current cc_toolchain,\r\n     not from --crosstool_top\r\n \r\n- Fixes regression #6662, by fixing tools/cpp/BUILD\r\n- Fixes regression #6665, by setting the toolchain identifier.\r\n- CROSSTOOL file is now read from the package of cc_toolchain, not from the\r\n  package of cc_toolchain_suite. This is not expected to break anybody since\r\n  cc_toolchain_suite and cc_toolchain are commonly in the same package.\r\n\r\n_Notice_: Bazel installers contain binaries licensed under the GPLv2 with\r\nClasspath exception. Those installers should always be redistributed along with\r\nthe source code.\r\n\r\nSome versions of Bazel contain a bundled version of OpenJDK. The license of the\r\nbundled OpenJDK and other open-source components can be displayed by running\r\nthe command `bazel license`. The vendor and version information of the bundled\r\nOpenJDK can be displayed by running the command `bazel info java-runtime`.\r\nThe binaries and source-code of the bundled OpenJDK can be\r\n[downloaded from our mirror server](https://mirror.bazel.build/openjdk/index.html).\r\n\r\n_Security_: All our binaries are signed with our\r\n[public key](https://bazel.build/bazel-release.pub.gpg) 48457EE0."
+    "tarball_url": "https://api.github.com/repos/bazelbuild/bazel/tarball/5.2.0",
+    "zipball_url": "https://api.github.com/repos/bazelbuild/bazel/zipball/5.2.0",
+    "body": "# Release 5.2.0 (2018-11-19)\r\n\r\nBaseline: eb2af0f699350ad187048bf814a95af23f562c77\r\n \r\nCherry picks:\r\n \r\n   + f7e5aef145c33968f658eb2260e25630dc41cc67:\r\n     Add cc_toolchain targets for the new entries in the default\r\n     cc_toolchain_suite.\r\n   + 683c302129b66a8999f986be5ae7e642707e978c:\r\n     Read the CROSSTOOL from the package of the current cc_toolchain,\r\n     not from --crosstool_top\r\n \r\n- Fixes regression #6662, by fixing tools/cpp/BUILD\r\n- Fixes regression #6665, by setting the toolchain identifier.\r\n- CROSSTOOL file is now read from the package of cc_toolchain, not from the\r\n  package of cc_toolchain_suite. This is not expected to break anybody since\r\n  cc_toolchain_suite and cc_toolchain are commonly in the same package.\r\n\r\n_Notice_: Bazel installers contain binaries licensed under the GPLv2 with\r\nClasspath exception. Those installers should always be redistributed along with\r\nthe source code.\r\n\r\nSome versions of Bazel contain a bundled version of OpenJDK. The license of the\r\nbundled OpenJDK and other open-source components can be displayed by running\r\nthe command `bazel license`. The vendor and version information of the bundled\r\nOpenJDK can be displayed by running the command `bazel info java-runtime`.\r\nThe binaries and source-code of the bundled OpenJDK can be\r\n[downloaded from our mirror server](https://mirror.bazel.build/openjdk/index.html).\r\n\r\n_Security_: All our binaries are signed with our\r\n[public key](https://bazel.build/bazel-release.pub.gpg) 48457EE0."
   },
   {
     "url": "https://api.github.com/repos/bazelbuild/bazel/releases/13955156",
     "assets_url": "https://api.github.com/repos/bazelbuild/bazel/releases/13955156/assets",
     "upload_url": "https://uploads.github.com/repos/bazelbuild/bazel/releases/13955156/assets{?name,label}",
-    "html_url": "https://github.com/bazelbuild/bazel/releases/tag/0.19.1",
+    "html_url": "https://github.com/bazelbuild/bazel/releases/tag/5.2.0",
     "id": 13955156,
     "node_id": "MDc6UmVsZWFzZTEzOTU1MTU2",
-    "tag_name": "0.19.1",
+    "tag_name": "5.2.0",
     "target_commitish": "master",
-    "name": "0.19.1",
+    "name": "5.2.0",
     "draft": false,
     "author": {
       "login": "bazel-io",
@@ -2606,7 +2606,7 @@
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9657588",
         "id": 9657588,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk2NTc1ODg=",
-        "name": "bazel-0.19.1-darwin-x86_64",
+        "name": "bazel-5.2.0-darwin-x86_64",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -2634,13 +2634,13 @@
         "download_count": 857,
         "created_at": "2018-11-12T15:39:14Z",
         "updated_at": "2018-11-12T15:39:22Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.1/bazel-0.19.1-darwin-x86_64"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-darwin-x86_64"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9658112",
         "id": 9658112,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk2NTgxMTI=",
-        "name": "bazel-0.19.1-darwin-x86_64.sha256",
+        "name": "bazel-5.2.0-darwin-x86_64.sha256",
         "label": null,
         "uploader": {
           "login": "katre",
@@ -2668,13 +2668,13 @@
         "download_count": 23,
         "created_at": "2018-11-12T16:11:20Z",
         "updated_at": "2018-11-12T16:11:20Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.1/bazel-0.19.1-darwin-x86_64.sha256"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-darwin-x86_64.sha256"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9657596",
         "id": 9657596,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk2NTc1OTY=",
-        "name": "bazel-0.19.1-darwin-x86_64.sig",
+        "name": "bazel-5.2.0-darwin-x86_64.sig",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -2702,13 +2702,13 @@
         "download_count": 10,
         "created_at": "2018-11-12T15:39:28Z",
         "updated_at": "2018-11-12T15:39:28Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.1/bazel-0.19.1-darwin-x86_64.sig"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-darwin-x86_64.sig"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9657597",
         "id": 9657597,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk2NTc1OTc=",
-        "name": "bazel-0.19.1-dist.zip",
+        "name": "bazel-5.2.0-dist.zip",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -2736,13 +2736,13 @@
         "download_count": 718,
         "created_at": "2018-11-12T15:39:28Z",
         "updated_at": "2018-11-12T15:39:33Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.1/bazel-0.19.1-dist.zip"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-dist.zip"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9657600",
         "id": 9657600,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk2NTc2MDA=",
-        "name": "bazel-0.19.1-dist.zip.sha256",
+        "name": "bazel-5.2.0-dist.zip.sha256",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -2770,13 +2770,13 @@
         "download_count": 18,
         "created_at": "2018-11-12T15:39:33Z",
         "updated_at": "2018-11-12T15:39:33Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.1/bazel-0.19.1-dist.zip.sha256"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-dist.zip.sha256"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9657601",
         "id": 9657601,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk2NTc2MDE=",
-        "name": "bazel-0.19.1-dist.zip.sig",
+        "name": "bazel-5.2.0-dist.zip.sig",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -2804,13 +2804,13 @@
         "download_count": 13,
         "created_at": "2018-11-12T15:39:34Z",
         "updated_at": "2018-11-12T15:39:34Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.1/bazel-0.19.1-dist.zip.sig"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-dist.zip.sig"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9657602",
         "id": 9657602,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk2NTc2MDI=",
-        "name": "bazel-0.19.1-installer-darwin-x86_64.sh",
+        "name": "bazel-5.2.0-installer-darwin-x86_64.sh",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -2838,13 +2838,13 @@
         "download_count": 2052,
         "created_at": "2018-11-12T15:39:34Z",
         "updated_at": "2018-11-12T15:39:42Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.1/bazel-0.19.1-installer-darwin-x86_64.sh"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-installer-darwin-x86_64.sh"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9657607",
         "id": 9657607,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk2NTc2MDc=",
-        "name": "bazel-0.19.1-installer-darwin-x86_64.sh.sha256",
+        "name": "bazel-5.2.0-installer-darwin-x86_64.sh.sha256",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -2872,13 +2872,13 @@
         "download_count": 19,
         "created_at": "2018-11-12T15:39:42Z",
         "updated_at": "2018-11-12T15:39:43Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.1/bazel-0.19.1-installer-darwin-x86_64.sh.sha256"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-installer-darwin-x86_64.sh.sha256"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9657610",
         "id": 9657610,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk2NTc2MTA=",
-        "name": "bazel-0.19.1-installer-darwin-x86_64.sh.sig",
+        "name": "bazel-5.2.0-installer-darwin-x86_64.sh.sig",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -2906,13 +2906,13 @@
         "download_count": 10,
         "created_at": "2018-11-12T15:39:43Z",
         "updated_at": "2018-11-12T15:39:43Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.1/bazel-0.19.1-installer-darwin-x86_64.sh.sig"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-installer-darwin-x86_64.sh.sig"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9657611",
         "id": 9657611,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk2NTc2MTE=",
-        "name": "bazel-0.19.1-installer-linux-x86_64.sh",
+        "name": "bazel-5.2.0-installer-linux-x86_64.sh",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -2940,13 +2940,13 @@
         "download_count": 6414,
         "created_at": "2018-11-12T15:39:43Z",
         "updated_at": "2018-11-12T15:39:51Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.1/bazel-0.19.1-installer-linux-x86_64.sh"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-installer-linux-x86_64.sh"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9657615",
         "id": 9657615,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk2NTc2MTU=",
-        "name": "bazel-0.19.1-installer-linux-x86_64.sh.sha256",
+        "name": "bazel-5.2.0-installer-linux-x86_64.sh.sha256",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -2974,13 +2974,13 @@
         "download_count": 162,
         "created_at": "2018-11-12T15:39:51Z",
         "updated_at": "2018-11-12T15:39:51Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.1/bazel-0.19.1-installer-linux-x86_64.sh.sha256"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-installer-linux-x86_64.sh.sha256"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9657616",
         "id": 9657616,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk2NTc2MTY=",
-        "name": "bazel-0.19.1-installer-linux-x86_64.sh.sig",
+        "name": "bazel-5.2.0-installer-linux-x86_64.sh.sig",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -3008,13 +3008,13 @@
         "download_count": 41,
         "created_at": "2018-11-12T15:39:51Z",
         "updated_at": "2018-11-12T15:39:51Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.1/bazel-0.19.1-installer-linux-x86_64.sh.sig"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-installer-linux-x86_64.sh.sig"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9657617",
         "id": 9657617,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk2NTc2MTc=",
-        "name": "bazel-0.19.1-linux-x86_64",
+        "name": "bazel-5.2.0-linux-x86_64",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -3042,13 +3042,13 @@
         "download_count": 576,
         "created_at": "2018-11-12T15:39:52Z",
         "updated_at": "2018-11-12T15:39:59Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.1/bazel-0.19.1-linux-x86_64"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-linux-x86_64"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9657623",
         "id": 9657623,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk2NTc2MjM=",
-        "name": "bazel-0.19.1-linux-x86_64.sha256",
+        "name": "bazel-5.2.0-linux-x86_64.sha256",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -3076,13 +3076,13 @@
         "download_count": 33,
         "created_at": "2018-11-12T15:39:59Z",
         "updated_at": "2018-11-12T15:40:01Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.1/bazel-0.19.1-linux-x86_64.sha256"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-linux-x86_64.sha256"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9657624",
         "id": 9657624,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk2NTc2MjQ=",
-        "name": "bazel-0.19.1-linux-x86_64.sig",
+        "name": "bazel-5.2.0-linux-x86_64.sig",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -3110,13 +3110,13 @@
         "download_count": 17,
         "created_at": "2018-11-12T15:40:01Z",
         "updated_at": "2018-11-12T15:40:02Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.1/bazel-0.19.1-linux-x86_64.sig"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-linux-x86_64.sig"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9657625",
         "id": 9657625,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk2NTc2MjU=",
-        "name": "bazel-0.19.1-windows-x86_64.exe",
+        "name": "bazel-5.2.0-windows-x86_64.exe",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -3144,13 +3144,13 @@
         "download_count": 2131,
         "created_at": "2018-11-12T15:40:02Z",
         "updated_at": "2018-11-12T15:40:10Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.1/bazel-0.19.1-windows-x86_64.exe"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-windows-x86_64.exe"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9657630",
         "id": 9657630,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk2NTc2MzA=",
-        "name": "bazel-0.19.1-windows-x86_64.exe.sha256",
+        "name": "bazel-5.2.0-windows-x86_64.exe.sha256",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -3178,13 +3178,13 @@
         "download_count": 18,
         "created_at": "2018-11-12T15:40:11Z",
         "updated_at": "2018-11-12T15:40:11Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.1/bazel-0.19.1-windows-x86_64.exe.sha256"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-windows-x86_64.exe.sha256"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9657631",
         "id": 9657631,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk2NTc2MzE=",
-        "name": "bazel-0.19.1-windows-x86_64.exe.sig",
+        "name": "bazel-5.2.0-windows-x86_64.exe.sig",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -3212,13 +3212,13 @@
         "download_count": 27,
         "created_at": "2018-11-12T15:40:11Z",
         "updated_at": "2018-11-12T15:40:11Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.1/bazel-0.19.1-windows-x86_64.exe.sig"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-windows-x86_64.exe.sig"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9657632",
         "id": 9657632,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk2NTc2MzI=",
-        "name": "bazel-0.19.1-windows-x86_64.zip",
+        "name": "bazel-5.2.0-windows-x86_64.zip",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -3246,13 +3246,13 @@
         "download_count": 1735,
         "created_at": "2018-11-12T15:40:12Z",
         "updated_at": "2018-11-12T15:40:19Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.1/bazel-0.19.1-windows-x86_64.zip"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-windows-x86_64.zip"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9657634",
         "id": 9657634,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk2NTc2MzQ=",
-        "name": "bazel-0.19.1-windows-x86_64.zip.sha256",
+        "name": "bazel-5.2.0-windows-x86_64.zip.sha256",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -3280,13 +3280,13 @@
         "download_count": 9,
         "created_at": "2018-11-12T15:40:19Z",
         "updated_at": "2018-11-12T15:40:20Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.1/bazel-0.19.1-windows-x86_64.zip.sha256"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-windows-x86_64.zip.sha256"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9657635",
         "id": 9657635,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk2NTc2MzU=",
-        "name": "bazel-0.19.1-windows-x86_64.zip.sig",
+        "name": "bazel-5.2.0-windows-x86_64.zip.sig",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -3314,13 +3314,13 @@
         "download_count": 14,
         "created_at": "2018-11-12T15:40:21Z",
         "updated_at": "2018-11-12T15:40:21Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.1/bazel-0.19.1-windows-x86_64.zip.sig"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel-5.2.0-windows-x86_64.zip.sig"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9657636",
         "id": 9657636,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk2NTc2MzY=",
-        "name": "bazel_0.19.1-linux-x86_64.deb",
+        "name": "bazel_5.2.0-linux-x86_64.deb",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -3348,13 +3348,13 @@
         "download_count": 947,
         "created_at": "2018-11-12T15:40:21Z",
         "updated_at": "2018-11-12T15:40:29Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.1/bazel_0.19.1-linux-x86_64.deb"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel_5.2.0-linux-x86_64.deb"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9657638",
         "id": 9657638,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk2NTc2Mzg=",
-        "name": "bazel_0.19.1-linux-x86_64.deb.sha256",
+        "name": "bazel_5.2.0-linux-x86_64.deb.sha256",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -3382,13 +3382,13 @@
         "download_count": 6,
         "created_at": "2018-11-12T15:40:29Z",
         "updated_at": "2018-11-12T15:40:29Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.1/bazel_0.19.1-linux-x86_64.deb.sha256"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel_5.2.0-linux-x86_64.deb.sha256"
       },
       {
         "url": "https://api.github.com/repos/bazelbuild/bazel/releases/assets/9657639",
         "id": 9657639,
         "node_id": "MDEyOlJlbGVhc2VBc3NldDk2NTc2Mzk=",
-        "name": "bazel_0.19.1-linux-x86_64.deb.sig",
+        "name": "bazel_5.2.0-linux-x86_64.deb.sig",
         "label": "",
         "uploader": {
           "login": "bazel-io",
@@ -3416,12 +3416,12 @@
         "download_count": 5,
         "created_at": "2018-11-12T15:40:29Z",
         "updated_at": "2018-11-12T15:40:30Z",
-        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/0.19.1/bazel_0.19.1-linux-x86_64.deb.sig"
+        "browser_download_url": "https://github.com/bazelbuild/bazel/releases/download/5.2.0/bazel_5.2.0-linux-x86_64.deb.sig"
       }
     ],
-    "tarball_url": "https://api.github.com/repos/bazelbuild/bazel/tarball/0.19.1",
-    "zipball_url": "https://api.github.com/repos/bazelbuild/bazel/zipball/0.19.1",
-    "body": "# Release 0.19.1 (2018-11-12)\r\n\r\nBaseline: f0c844c77a2406518c4e75c49188390d5e281d3d\r\n \r\nCherry picks:\r\n \r\n   + 8e280838e8896a6b5eb5421fda435b96b6f8de60:\r\n     Windows Add tests for msys gcc toolchain and mingw gcc toolchain\r\n    + fd52341505e725487c6bc6dfbe6b5e081aa037da:\r\n     update bazel-toolchains pin to latest release Part of changes to\r\n     allow bazelci to use 0.19.0 configs. RBE toolchain configs at or\r\n     before 0.17.0 are not compatible with bazel 0.19.0 or above.\r\n \r\nImportant changes:\r\n- Fix regression #6610, which prevents using the MINGW compiler on Windows.\r\n\r\n_Notice_: Bazel installers contain binaries licensed under the GPLv2 with\r\nClasspath exception. Those installers should always be redistributed along with\r\nthe source code.\r\n\r\nSome versions of Bazel contain a bundled version of OpenJDK. The license of the\r\nbundled OpenJDK and other open-source components can be displayed by running\r\nthe command `bazel license`. The vendor and version information of the bundled\r\nOpenJDK can be displayed by running the command `bazel info java-runtime`.\r\nThe binaries and source-code of the bundled OpenJDK can be\r\n[downloaded from our mirror server](https://mirror.bazel.build/openjdk/index.html).\r\n\r\n_Security_: All our binaries are signed with our\r\n[public key](https://bazel.build/bazel-release.pub.gpg) 48457EE0."
+    "tarball_url": "https://api.github.com/repos/bazelbuild/bazel/tarball/5.2.0",
+    "zipball_url": "https://api.github.com/repos/bazelbuild/bazel/zipball/5.2.0",
+    "body": "# Release 5.2.0 (2018-11-12)\r\n\r\nBaseline: f0c844c77a2406518c4e75c49188390d5e281d3d\r\n \r\nCherry picks:\r\n \r\n   + 8e280838e8896a6b5eb5421fda435b96b6f8de60:\r\n     Windows Add tests for msys gcc toolchain and mingw gcc toolchain\r\n    + fd52341505e725487c6bc6dfbe6b5e081aa037da:\r\n     update bazel-toolchains pin to latest release Part of changes to\r\n     allow bazelci to use 0.19.0 configs. RBE toolchain configs at or\r\n     before 0.17.0 are not compatible with bazel 0.19.0 or above.\r\n \r\nImportant changes:\r\n- Fix regression #6610, which prevents using the MINGW compiler on Windows.\r\n\r\n_Notice_: Bazel installers contain binaries licensed under the GPLv2 with\r\nClasspath exception. Those installers should always be redistributed along with\r\nthe source code.\r\n\r\nSome versions of Bazel contain a bundled version of OpenJDK. The license of the\r\nbundled OpenJDK and other open-source components can be displayed by running\r\nthe command `bazel license`. The vendor and version information of the bundled\r\nOpenJDK can be displayed by running the command `bazel info java-runtime`.\r\nThe binaries and source-code of the bundled OpenJDK can be\r\n[downloaded from our mirror server](https://mirror.bazel.build/openjdk/index.html).\r\n\r\n_Security_: All our binaries are signed with our\r\n[public key](https://bazel.build/bazel-release.pub.gpg) 48457EE0."
   },
   {
     "url": "https://api.github.com/repos/bazelbuild/bazel/releases/13757373",
