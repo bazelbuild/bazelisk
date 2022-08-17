@@ -236,7 +236,11 @@ func (gcs *GCSRepo) GetLastGreenCommit(bazeliskHome string, downstreamGreen bool
 // DownloadAtCommit downloads a Bazel binary built at the given commit into the specified location and returns the absolute path.
 func (gcs *GCSRepo) DownloadAtCommit(commit, destDir, destFile string) (string, error) {
 	log.Printf("Using unreleased version at commit %s", commit)
-	url := fmt.Sprintf("%s/%s/%s/bazel", nonCandidateBaseURL, platforms.GetPlatform(), commit)
+	platform, err := platforms.GetPlatform()
+	if err != nil {
+		return "", err
+	}
+	url := fmt.Sprintf("%s/%s/%s/bazel", nonCandidateBaseURL, platform, commit)
 	return httputil.DownloadBinary(url, destDir, destFile)
 }
 
