@@ -193,6 +193,7 @@ genrule(
 
 pkg_npm(
     name = "npm_package",
+    package_name = "@bazel/bazelisk",
     srcs = [
         "LICENSE",
         "README.md",
