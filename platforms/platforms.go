@@ -31,13 +31,17 @@ var supportedPlatforms = map[string]*platform{
 
 // GetPlatform returns a Bazel CI-compatible platform identifier for the current operating system.
 // TODO(fweikert): raise an error for unsupported platforms
-func GetPlatform() string {
+func GetPlatform() (string, error) {
 	platform := supportedPlatforms[runtime.GOOS]
 	arch := runtime.GOARCH
-	if arch == "arm64" && platform.HasArm64Binary {
-		return platform.Name + "_arm64"
+	if arch == "arm64" {
+		if platform.HasArm64Binary {
+			return platform.Name + "_arm64", nil
+		}
+		return "", fmt.Errorf("arm64 %s is unsupported", runtime.GOOS)
 	}
-	return platform.Name
+
+	return platform.Name, nil
 }
 
 // DetermineExecutableFilenameSuffix returns the extension for binaries on the current operating system.
