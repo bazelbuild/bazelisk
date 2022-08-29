@@ -113,6 +113,8 @@ bazelisk --strict build //...
 If the code fails with `--strict`, the flag `--migrate` will run Bazel with each one of the flag separately, and print a report at the end.
 This will show you which flags can safely enabled, and which flags require a migration.
 
+You can set `BAZELISK_INCOMPATIBLE_FLAGS` to set a list of incompatible flags (separated by `,`) to be tested, otherwise Bazelisk tests all flags starting with `--incompatible_`.
+
 You can set `BAZELISK_GITHUB_TOKEN` to set a GitHub access token to use for API requests to avoid rate limiting when on shared networks.
 
 You can set `BAZELISK_SHUTDOWN` to run `shutdown` between builds when migrating if you suspect this affects your results.
@@ -144,6 +146,7 @@ The following variables can be set:
 - `BAZELISK_CLEAN`
 - `BAZELISK_GITHUB_TOKEN`
 - `BAZELISK_HOME`
+- `BAZELISK_INCOMPATIBLE_FLAGS`
 - `BAZELISK_SHUTDOWN`
 - `BAZELISK_SKIP_WRAPPER`
 - `BAZELISK_USER_AGENT`
