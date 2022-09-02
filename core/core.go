@@ -104,6 +104,12 @@ func RunBazelisk(args []string, repos *Repositories) (int, error) {
 		}
 	}
 
+	printAndExit := GetEnvOrConfig("BAZELISK_PRINT_BAZEL_PATH_AND_EXIT")
+	if len(printAndExit) != 0 {
+		fmt.Println(bazelPath)
+		return 0, nil
+	}
+
 	// --print_env must be the first argument.
 	if len(args) > 0 && args[0] == "--print_env" {
 		// print environment variables for sub-processes

@@ -121,6 +121,8 @@ You can set `BAZELISK_SHUTDOWN` to run `shutdown` between builds when migrating 
 
 You can set `BAZELISK_CLEAN` to run `clean --expunge` between builds when migrating if you suspect this affects your results.
 
+You can set `BAZELISK_PRINT_BAZEL_PATH_AND_EXIT` to any non-empty value to cause bazelisk to print the absolute path to the bazel binary it would run, then exit zero.
+
 If `tools/bazel` exists in your workspace root and is executable, Bazelisk will run this file, instead of the Bazel version it downloaded.
 It will set the environment variable `BAZEL_REAL` to the path of the downloaded Bazel binary.
 This can be useful, if you have a wrapper script that e.g. ensures that environment variables are set to known good values.
@@ -147,6 +149,7 @@ The following variables can be set:
 - `BAZELISK_GITHUB_TOKEN`
 - `BAZELISK_HOME`
 - `BAZELISK_INCOMPATIBLE_FLAGS`
+- `BAZELISK_PRINT_BAZEL_PATH_AND_EXIT`
 - `BAZELISK_SHUTDOWN`
 - `BAZELISK_SKIP_WRAPPER`
 - `BAZELISK_USER_AGENT`
