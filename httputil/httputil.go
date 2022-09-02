@@ -16,7 +16,7 @@ import (
 	"strconv"
 	"time"
 
-	netrc "github.com/jdxcode/netrc"
+	netrc "github.com/bgentry/go-netrc"
 	homedir "github.com/mitchellh/go-homedir"
 )
 
@@ -146,13 +146,13 @@ func tryFindNetrcFileCreds(host string) (string, error) {
 	}
 
 	var file = filepath.Join(dir, ".netrc")
-	n, err := netrc.Parse(file)
+	n, err := netrc.ParseFile(file)
 	if err != nil {
 		// netrc does not exist or we can't read it
 		return "", err
 	}
 
-	m := n.Machine(host)
+	m := n.FindMachine(host)
 	if m == nil {
 		// if host is not found, we should proceed without providing any Authorization header,
 		// because remote host may not have auth at all.
@@ -162,9 +162,7 @@ func tryFindNetrcFileCreds(host string) (string, error) {
 
 	log.Printf("Using basic authentication credentials for host %s from %s", host, file)
 
-	login := m.Get("login")
-	pwd := m.Get("password")
-	token := b64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", login, pwd)))
+	token := b64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", m.Login, m.Password)))
 	return fmt.Sprintf("Basic %s", token), nil
 }
 

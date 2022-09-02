@@ -43,9 +43,11 @@ go_repository(
 )
 
 go_repository(
-    name = "com_github_jdxcode_netrc",
-    importpath = "github.com/jdxcode/netrc",
-    commit = "926c7f70242abe00179235c2b06bb647c0c53a12",
+    name = "com_github_bgentry_go_netrc",
+    importpath = "github.com/bgentry/go-netrc",
+    urls=["https://github.com/bgentry/go-netrc/archive/9fd32a8.zip"],
+    type = "zip",
+    strip_prefix = "go-netrc-9fd32a8b3d3d3f9d43c341bfe098430e07609480/netrc",
 )
 
 go_rules_dependencies()
