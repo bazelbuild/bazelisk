@@ -16,7 +16,7 @@ import (
 	"strconv"
 	"time"
 
-	netrc "github.com/bgentry/go-netrc"
+	netrc "github.com/bgentry/go-netrc/netrc"
 	homedir "github.com/mitchellh/go-homedir"
 )
 
