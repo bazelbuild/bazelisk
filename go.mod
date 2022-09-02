@@ -4,7 +4,7 @@ go 1.15
 
 require (
 	github.com/bazelbuild/rules_go v0.34.0
+	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d
 	github.com/hashicorp/go-version v1.6.0
-	github.com/jdxcode/netrc v0.0.0-20210204082910-926c7f70242a
 	github.com/mitchellh/go-homedir v1.1.0
 )
