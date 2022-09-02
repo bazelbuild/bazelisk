@@ -486,9 +486,9 @@ func runBazel(bazel string, args []string, out io.Writer) (int, error) {
 
 // getIncompatibleFlags returns all incompatible flags for the current Bazel command in alphabetical order.
 func getIncompatibleFlags(bazelPath, cmd string) ([]string, error) {
-	var incompatible_flags_str = GetEnvOrConfig("BAZELISK_INCOMPATIBLE_FLAGS")
-	if len(incompatible_flags_str) > 0 {
-		return strings.Split(incompatible_flags_str, ","), nil
+	var incompatibleFlagsStr = GetEnvOrConfig("BAZELISK_INCOMPATIBLE_FLAGS")
+	if len(incompatibleFlagsStr) > 0 {
+		return strings.Split(incompatibleFlagsStr, ","), nil
 	}
 
 	out := strings.Builder{}
