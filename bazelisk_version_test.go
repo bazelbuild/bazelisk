@@ -166,7 +166,7 @@ func TestResolveLatestVersion_ShouldFailIfNotEnoughReleases(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected ResolveVersion() to fail.")
 	}
-	expectedError := "unable to determine latest version: requested 2 latest releases, but only found 1"
+	expectedError := "cannot resolve version \"latest-1\": There are not enough matching Bazel releases (1)"
 	if err.Error() != expectedError {
 		t.Fatalf("Expected error message %q, but got '%v'", expectedError, err)
 	}
