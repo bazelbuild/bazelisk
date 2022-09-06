@@ -10,6 +10,7 @@ import (
 	"log"
 	"strings"
 
+	"github.com/bazelbuild/bazelisk/core"
 	"github.com/bazelbuild/bazelisk/httputil"
 	"github.com/bazelbuild/bazelisk/platforms"
 	"github.com/bazelbuild/bazelisk/versions"
@@ -35,13 +36,13 @@ type GCSRepo struct{}
 
 // ReleaseRepo
 
-// GetReleaseVersions returns the versions of all available Bazel releases in this repository.
-func (gcs *GCSRepo) GetReleaseVersions(bazeliskHome string, lastN int) ([]string, error) {
+// GetReleaseVersions returns the versions of all available Bazel releases in this repository that match the given filter.
+func (gcs *GCSRepo) GetReleaseVersions(bazeliskHome string, filter core.ReleaseFilter) ([]string, error) {
 	history, err := getVersionHistoryFromGCS()
 	if err != nil {
 		return []string{}, err
 	}
-	releases, err := gcs.removeCandidates(history, lastN)
+	releases, err := gcs.removeCandidates(history, filter)
 	if err != nil {
 		return []string{}, err
 	}
@@ -130,17 +131,31 @@ func (gcs *GCSRepo) DownloadRelease(version, destDir, destFile string) (string, 
 	return httputil.DownloadBinary(url, destDir, destFile)
 }
 
-func (gcs *GCSRepo) removeCandidates(history []string, lastN int) ([]string, error) {
-	var resolvedLimit int
-	if lastN < 1 {
-		resolvedLimit = len(history)
-	} else {
-		resolvedLimit = lastN
-	}
-
+func (gcs *GCSRepo) removeCandidates(history []string, filter core.ReleaseFilter) ([]string, error) {
 	descendingReleases := make([]string, 0)
-	for hpos := len(history) - 1; hpos >= 0 && len(descendingReleases) < resolvedLimit; hpos-- {
+	filterPassed := false
+	// Iteration in descending order is important:
+	// - ReleaseFilter won't work correctly otherwise
+	// - It makes more sense in the "latest-n" use case 
+	for hpos := len(history) - 1; hpos >= 0; hpos-- {
 		latestVersion := history[hpos]
+		pass := filter(len(descendingReleases), latestVersion)
+		if pass {
+			filterPassed = true
+		} else {
+			// Underlying assumption: all matching versions are in a single continuous sequence.
+			// Consequently, if the filter returns false, this means:
+			if filterPassed {
+				// a) "break" if we've seen a match before (because all future version won't match either)
+				break
+			} else {
+				// b) "continue looking" if we've never seen a match before
+				continue
+			}
+		}
+		// Obviously this only works for the existing filters (lastN and track-based) and
+		// because versions in history are sorted.
+
 		_, isRelease, err := listDirectoriesInReleaseBucket(latestVersion + "/release/")
 		if err != nil {
 			return []string{}, fmt.Errorf("could not list available releases for %v: %v", latestVersion, err)
@@ -148,10 +163,6 @@ func (gcs *GCSRepo) removeCandidates(history []string, lastN int) ([]string, err
 		if isRelease {
 			descendingReleases = append(descendingReleases, latestVersion)
 		}
-	}
-
-	if lastN > 0 && len(descendingReleases) < lastN {
-		return []string{}, fmt.Errorf("requested %d latest releases, but only found %d", lastN, len(descendingReleases))
 	}
 	return reverseInPlace(descendingReleases), nil
 }
