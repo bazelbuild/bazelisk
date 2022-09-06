@@ -136,7 +136,7 @@ func (gcs *GCSRepo) removeCandidates(history []string, filter core.ReleaseFilter
 	filterPassed := false
 	// Iteration in descending order is important:
 	// - ReleaseFilter won't work correctly otherwise
-	// - It makes more sense in the "latest-n" use case 
+	// - It makes more sense in the "latest-n" use case
 	for hpos := len(history) - 1; hpos >= 0; hpos-- {
 		latestVersion := history[hpos]
 		pass := filter(len(descendingReleases), latestVersion)

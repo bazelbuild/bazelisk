@@ -18,12 +18,13 @@ const (
 // DownloadFunc downloads a specific Bazel binary to the given location and returns the absolute path.
 type DownloadFunc func(destDir, destFile string) (string, error)
 
+// ReleaseFilter filters Bazel versions based on specific criteria.
 type ReleaseFilter func(matchesSoFar int, currentVersion string) bool
 
 func lastNReleases(max int) ReleaseFilter {
 	return func(matchesSoFar int, currentVersion string) bool {
 		return max < 1 || matchesSoFar < max
-	} 
+	}
 }
 
 // filterReleasesByTrack only works reliably if iterating on Bazel versions in descending order.
