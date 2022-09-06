@@ -39,8 +39,18 @@ var (
 	fileConfigOnce sync.Once
 )
 
+// ArgsFunc is a function that receives a resolved Bazel version and returns the arguments to invoke
+// Bazel with.
+type ArgsFunc func(resolvedBazelVersion string) []string
+
 // RunBazelisk runs the main Bazelisk logic for the given arguments and Bazel repositories.
 func RunBazelisk(args []string, repos *Repositories) (int, error) {
+	return RunBazeliskWithArgsFunc(func(_ string) []string { return args }, repos)
+}
+
+// RunBazeliskWithArgsFunc runs the main Bazelisk logic for the given ArgsFunc and Bazel
+// repositories.
+func RunBazeliskWithArgsFunc(argsFunc ArgsFunc, repos *Repositories) (int, error) {
 	httputil.UserAgent = getUserAgent()
 
 	bazeliskHome := GetEnvOrConfig("BAZELISK_HOME")
@@ -103,6 +113,8 @@ func RunBazelisk(args []string, repos *Repositories) (int, error) {
 			return -1, fmt.Errorf("cound not link local Bazel: %v", err)
 		}
 	}
+
+	args := argsFunc(resolvedBazelVersion)
 
 	// --print_env must be the first argument.
 	if len(args) > 0 && args[0] == "--print_env" {
