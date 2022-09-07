@@ -20,7 +20,7 @@ var supportedPlatforms = map[string]*platform{
 		HasArm64Binary: true,
 	},
 	"linux": {
-		Name:           "ubuntu1804",
+		Name:           "centos7",
 		HasArm64Binary: false,
 	},
 	"windows": {
