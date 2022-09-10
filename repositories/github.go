@@ -54,7 +54,7 @@ func (gh *GitHubRepo) getFilteredVersions(bazeliskHome, bazelFork string, wantPr
 	url := fmt.Sprintf("https://api.github.com/repos/%s/bazel/releases", bazelFork)
 	releasesJSON, err := httputil.MaybeDownload(bazeliskHome, url, bazelFork+"-releases.json", "list of Bazel releases from github.com/"+bazelFork, fmt.Sprintf("token %s", gh.token), merger)
 	if err != nil {
-		return []string{}, fmt.Errorf("unable to dermine '%s' releases: %v", bazelFork, err)
+		return []string{}, fmt.Errorf("unable to determine '%s' releases: %v", bazelFork, err)
 	}
 
 	if len(releases) == 0 {

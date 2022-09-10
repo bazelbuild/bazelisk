@@ -110,7 +110,7 @@ func RunBazeliskWithArgsFunc(argsFunc ArgsFunc, repos *Repositories) (int, error
 		baseDirectory := filepath.Join(bazeliskHome, "local")
 		bazelPath, err = linkLocalBazel(baseDirectory, bazelPath)
 		if err != nil {
-			return -1, fmt.Errorf("cound not link local Bazel: %v", err)
+			return -1, fmt.Errorf("could not link local Bazel: %v", err)
 		}
 	}
 
@@ -403,7 +403,7 @@ func linkLocalBazel(baseDirectory string, bazelPath string) (string, error) {
 		if err != nil {
 			err = copyFile(bazelPath, destinationPath, 0755)
 			if err != nil {
-				return "", fmt.Errorf("cound not copy file from %s to %s: %v", bazelPath, destinationPath, err)
+				return "", fmt.Errorf("could not copy file from %s to %s: %v", bazelPath, destinationPath, err)
 			}
 		}
 	}
