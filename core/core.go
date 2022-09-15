@@ -564,8 +564,7 @@ func parseStartupOptions(baseArgs []string) []string {
 	}
 	// Arguments before a Bazel command are startup options.
 	for _, arg := range baseArgs {
-		_, prs := BAZEL_COMMANDS[arg]
-		if prs {
+		if _, ok := BAZEL_COMMANDS[arg]; ok {
 			return result
 		}
 		result = append(result, arg)
