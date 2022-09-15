@@ -539,35 +539,34 @@ func insertArgs(baseArgs []string, newArgs []string) []string {
 
 func parseStartupOptions(baseArgs []string) []string {
 	var result []string
-	var BAZEL_COMMANDS = []string {
-		"analyze-profile",
-		"aquery",
-		"build",
-		"canonicalize-flags",
-		"clean",
-		"coverage",
-		"cquery",
-		"dump",
-		"fetch",
-		"help",
-		"info",
-		"license",
-		"mobile-install",
-		"mod",
-		"print_action",
-		"query",
-		"run",
-		"shutdown",
-		"sync",
-		"test",
-		"version",
+	var BAZEL_COMMANDS = map[string]bool{
+		"analyze-profile": true,
+		"aquery": true,
+		"build": true,
+		"canonicalize-flags": true,
+		"clean": true,
+		"coverage": true,
+		"cquery": true,
+		"dump": true,
+		"fetch": true,
+		"help": true,
+		"info": true,
+		"license": true,
+		"mobile-install": true,
+		"mod": true,
+		"print_action": true,
+		"query": true,
+		"run": true,
+		"shutdown": true,
+		"sync": true,
+		"test": true,
+		"version": true,
 	}
 	// Arguments before a Bazel command are startup options.
 	for _, arg := range baseArgs {
-		for _, cmd := range BAZEL_COMMANDS {
-			if arg == cmd {
-				return result
-			}
+		_, prs := BAZEL_COMMANDS[arg]
+		if prs {
+			return result
 		}
 		result = append(result, arg)
 	}
@@ -599,7 +598,7 @@ func cleanIfNeeded(bazelPath string, startupOptions []string) {
 		return
 	}
 
-	args := append(startupOptions, []string{"clean", "--expunge"}...)
+	args := append(startupOptions, "clean", "--expunge")
 	fmt.Printf("bazel %s\n", strings.Join(args, " "))
 	exitCode, err := runBazel(bazelPath, args, nil)
 	fmt.Printf("\n")
