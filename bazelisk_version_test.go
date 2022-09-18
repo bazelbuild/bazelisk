@@ -201,7 +201,7 @@ func TestResolveLatestVersion_GitHubIsDown(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected resolveLatestVersion() to fail.")
 	}
-	expectedPrefix := "unable to determine latest version: unable to dermine 'some_fork' releases: could not download list of Bazel releases from github.com/some_fork"
+	expectedPrefix := "unable to determine latest version: unable to determine 'some_fork' releases: could not download list of Bazel releases from github.com/some_fork"
 	if !strings.HasPrefix(err.Error(), expectedPrefix) {
 		t.Fatalf("Expected error message that starts with %q, but got '%v'", expectedPrefix, err)
 	}

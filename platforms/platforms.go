@@ -1,4 +1,4 @@
-// Package platforms determins file names and extensions based on the current operating system.
+// Package platforms determines file names and extensions based on the current operating system.
 package platforms
 
 import (
