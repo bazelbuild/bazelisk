@@ -14,6 +14,8 @@ On macOS: `brew install bazelisk`.
 
 On Windows: `choco install bazelisk`.
 
+Each adds bazelisk to the `PATH` as both `bazelisk` and `bazel`.
+
 On Linux: You can download Bazelisk binary on our [Releases](https://github.com/bazelbuild/bazelisk/releases) page and add it to your `PATH` manually, which also works on macOS and Windows.
 
 Bazelisk is also published to npm.
