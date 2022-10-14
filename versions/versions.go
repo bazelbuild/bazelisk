@@ -105,3 +105,8 @@ func GetInAscendingOrder(versions []string) []string {
 	}
 	return sorted
 }
+
+// IsCommit returns whether the given version refers to a commit.
+func IsCommit(version string) bool {
+	return version == "last_green" || version == "last_downstream_green" || commitPattern.MatchString(version)
+}

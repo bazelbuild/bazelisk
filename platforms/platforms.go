@@ -6,6 +6,7 @@ import (
 	"log"
 	"runtime"
 
+	"github.com/bazelbuild/bazelisk/versions"
 	semver "github.com/hashicorp/go-version"
 )
 
@@ -87,6 +88,11 @@ func DetermineBazelFilename(version string, includeSuffix bool) (string, error) 
 
 // DarwinFallback Darwin arm64 was supported since 4.1.0, before 4.1.0, fall back to x86_64
 func DarwinFallback(machineName string, version string) (alterMachineName string) {
+	// Do not use fallback for commits since they are likely newer than Bazel 4.1
+	if versions.IsCommit(version) {
+		return machineName
+	}
+
 	v, err := semver.NewVersion(version)
 	if err != nil {
 		return machineName
