@@ -43,6 +43,8 @@ shift 1
 # GitHub by default, whereas the Go version GCS (without this json file)
 function setup() {
   unset USE_BAZEL_VERSION
+
+  USER_HOME="$(mktemp -d $TEST_TMPDIR/user.XXXXXX)"
   BAZELISK_HOME="$(mktemp -d $TEST_TMPDIR/home.XXXXXX)"
 
   cp "$(rlocation __main__/releases_for_tests.json)" "${BAZELISK_HOME}/bazelbuild-releases.json"
@@ -129,12 +131,39 @@ function test_bazel_version_prefer_environment_to_bazeliskrc() {
       (echo "FAIL: Expected to find 'Build label: 0.20.0' in the output of 'bazelisk version'"; exit 1)
 }
 
-function test_bazel_version_from_bazeliskrc() {
+function test_bazel_version_from_workspace_bazeliskrc() {
   setup
 
   echo "USE_BAZEL_VERSION=0.19.0" > .bazeliskrc
 
   BAZELISK_HOME="$BAZELISK_HOME" \
+      bazelisk version 2>&1 | tee log
+
+  grep "Build label: 0.19.0" log || \
+      (echo "FAIL: Expected to find 'Build label: 0.19.0' in the output of 'bazelisk version'"; exit 1)
+}
+
+function test_bazel_version_from_user_home_bazeliskrc() {
+  setup
+
+  echo "USE_BAZEL_VERSION=0.19.0" > "${USER_HOME}/.bazeliskrc"
+
+  BAZELISK_HOME="$BAZELISK_HOME" \
+      HOME="$USER_HOME" \
+      bazelisk version 2>&1 | tee log
+
+  grep "Build label: 0.19.0" log || \
+      (echo "FAIL: Expected to find 'Build label: 0.19.0' in the output of 'bazelisk version'"; exit 1)
+}
+
+function test_bazel_version_prefer_workspace_bazeliskrc_to_user_home_bazeliskrc() {
+  setup
+
+  echo "USE_BAZEL_VERSION=0.19.0" > .bazeliskrc
+  echo "USE_BAZEL_VERSION=0.20.0" > "${USER_HOME}/.bazeliskrc"
+
+  BAZELISK_HOME="$BAZELISK_HOME" \
+      HOME="$USER_HOME" \
       bazelisk version 2>&1 | tee log
 
   grep "Build label: 0.19.0" log || \
@@ -360,8 +389,16 @@ if [[ $BAZELISK_VERSION == "GO" ]]; then
   test_bazel_version_prefer_environment_to_bazeliskrc
   echo
 
-  echo "# test_bazel_version_from_bazeliskrc"
-  test_bazel_version_from_bazeliskrc
+  echo "# test_bazel_version_from_workspace_bazeliskrc"
+  test_bazel_version_from_workspace_bazeliskrc
+  echo
+
+  echo "# test_bazel_version_from_user_home_bazeliskrc"
+  test_bazel_version_from_user_home_bazeliskrc
+  echo
+
+  echo "# test_bazel_version_prefer_workspace_bazeliskrc_to_user_home_bazeliskrc"
+  test_bazel_version_prefer_workspace_bazeliskrc_to_user_home_bazeliskrc
   echo
 
   echo "# test_bazel_version_prefer_bazeliskrc_to_bazelversion_file"
