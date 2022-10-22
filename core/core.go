@@ -29,6 +29,7 @@ const (
 	bazelReal      = "BAZEL_REAL"
 	skipWrapperEnv = "BAZELISK_SKIP_WRAPPER"
 	wrapperPath    = "./tools/bazel"
+	rcFileName     = ".bazeliskrc"
 )
 
 var (
@@ -196,40 +197,85 @@ func GetEnvOrConfig(name string) string {
 		return val
 	}
 
-	// Parse .bazeliskrc in the workspace root, once, if it can be found.
-	fileConfigOnce.Do(func() {
-		workingDirectory, err := os.Getwd()
-		if err != nil {
-			return
-		}
-		workspaceRoot := findWorkspaceRoot(workingDirectory)
-		if workspaceRoot == "" {
-			return
-		}
-		rcFilePath := filepath.Join(workspaceRoot, ".bazeliskrc")
-		contents, err := ioutil.ReadFile(rcFilePath)
-		if err != nil {
-			if os.IsNotExist(err) {
-				return
-			}
-			log.Fatal(err)
-		}
-		fileConfig = make(map[string]string)
-		for _, line := range strings.Split(string(contents), "\n") {
-			if strings.HasPrefix(line, "#") {
-				// comments
-				continue
-			}
-			parts := strings.SplitN(line, "=", 2)
-			if len(parts) < 2 {
-				continue
-			}
-			key := strings.TrimSpace(parts[0])
-			fileConfig[key] = strings.TrimSpace(parts[1])
-		}
-	})
+	fileConfigOnce.Do(loadFileConfig)
 
 	return fileConfig[name]
+}
+
+// loadFileConfig locates available .bazeliskrc configuration files, parses them with a precedence order preference,
+// and updates a global configuration map with their contents. This routine should be executed exactly once.
+func loadFileConfig() {
+	var rcFilePaths []string
+
+	if userRC, err := locateUserConfigFile(); err == nil {
+		rcFilePaths = append(rcFilePaths, userRC)
+	}
+	if workspaceRC, err := locateWorkspaceConfigFile(); err == nil {
+		rcFilePaths = append(rcFilePaths, workspaceRC)
+	}
+
+	fileConfig = make(map[string]string)
+	for _, rcPath := range rcFilePaths {
+		config, err := parseFileConfig(rcPath)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		for key, value := range config {
+			fileConfig[key] = value
+		}
+	}
+}
+
+// locateWorkspaceConfigFile locates a .bazeliskrc file in the current workspace root.
+func locateWorkspaceConfigFile() (string, error) {
+	workingDirectory, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+	workspaceRoot := findWorkspaceRoot(workingDirectory)
+	if workspaceRoot == "" {
+		return "", err
+	}
+	return filepath.Join(workspaceRoot, rcFileName), nil
+}
+
+// locateUserConfigFile locates a .bazeliskrc file in the user's home directory.
+func locateUserConfigFile() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(home, rcFileName), nil
+}
+
+// parseFileConfig parses a .bazeliskrc file as a map of key-value configuration values.
+func parseFileConfig(rcFilePath string) (map[string]string, error) {
+	config := make(map[string]string)
+
+	contents, err := ioutil.ReadFile(rcFilePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			// Non-critical error.
+			return config, nil
+		}
+		return nil, err
+	}
+
+	for _, line := range strings.Split(string(contents), "\n") {
+		if strings.HasPrefix(line, "#") {
+			// comments
+			continue
+		}
+		parts := strings.SplitN(line, "=", 2)
+		if len(parts) < 2 {
+			continue
+		}
+		key := strings.TrimSpace(parts[0])
+		config[key] = strings.TrimSpace(parts[1])
+	}
+
+	return config, nil
 }
 
 // isValidWorkspace returns true iff the supplied path is the workspace root, defined by the presence of
