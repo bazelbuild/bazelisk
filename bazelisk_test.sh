@@ -150,6 +150,7 @@ function test_bazel_version_from_user_home_bazeliskrc() {
 
   BAZELISK_HOME="$BAZELISK_HOME" \
       HOME="$USER_HOME" \
+      USERPROFILE="$USER_HOME" \
       bazelisk version 2>&1 | tee log
 
   grep "Build label: 0.19.0" log || \
@@ -164,6 +165,7 @@ function test_bazel_version_prefer_workspace_bazeliskrc_to_user_home_bazeliskrc(
 
   BAZELISK_HOME="$BAZELISK_HOME" \
       HOME="$USER_HOME" \
+      USERPROFILE="$USER_HOME" \
       bazelisk version 2>&1 | tee log
 
   grep "Build label: 0.19.0" log || \
