@@ -102,8 +102,8 @@ go_binary(
 genrule(
     name = "bazelisk-darwin-universal",
     srcs = [
-        ":bazelisk-darwin_amd64",
-        ":bazelisk-darwin_arm64",
+        ":bazelisk-darwin-amd64",
+        ":bazelisk-darwin-arm64",
     ],
     outs = ["bazelisk-darwin_universal"],
     cmd = "lipo -create -output \"$@\" $(SRCS)",
@@ -151,61 +151,21 @@ go_binary(
     visibility = ["//visibility:public"],
 )
 
-genrule(
-    name = "bazelisk-darwin-amd64-for-npm",
-    srcs = [":bazelisk-darwin-amd64"],
-    outs = ["bazelisk-darwin_amd64"],
-    cmd = "cp $(location :bazelisk-darwin-amd64) \"$@\"",
-    output_to_bindir = 1,
-)
-
-genrule(
-    name = "bazelisk-darwin-arm64-for-npm",
-    srcs = [":bazelisk-darwin-arm64"],
-    outs = ["bazelisk-darwin_arm64"],
-    cmd = "cp $(location :bazelisk-darwin-arm64) \"$@\"",
-    output_to_bindir = 1,
-)
-
-genrule(
-    name = "bazelisk-linux-amd64-for-npm",
-    srcs = [":bazelisk-linux-amd64"],
-    outs = ["bazelisk-linux_amd64"],
-    cmd = "cp $(location :bazelisk-linux-amd64) \"$@\"",
-    output_to_bindir = 1,
-)
-
-genrule(
-    name = "bazelisk-linux-arm64-for-npm",
-    srcs = [":bazelisk-linux-arm64"],
-    outs = ["bazelisk-linux_arm64"],
-    cmd = "cp $(location :bazelisk-linux-arm64) \"$@\"",
-    output_to_bindir = 1,
-)
-
-genrule(
-    name = "bazelisk-windows-amd64-for-npm",
-    srcs = [":bazelisk-windows-amd64"],
-    outs = ["bazelisk-windows_amd64.exe"],
-    cmd = "cp $(location :bazelisk-windows-amd64) \"$@\"",
-    output_to_bindir = 1,
-)
-
 pkg_npm(
     name = "npm_package",
     package_name = "@bazel/bazelisk",
     srcs = [
         "LICENSE",
         "README.md",
-        "bazelisk.js",
         "bazelisk.d.ts",
+        "bazelisk.js",
         "package.json",
     ],
     deps = [
-        ":bazelisk-darwin-amd64-for-npm",
-        ":bazelisk-darwin-arm64-for-npm",
-        ":bazelisk-linux-amd64-for-npm",
-        ":bazelisk-linux-arm64-for-npm",
-        ":bazelisk-windows-amd64-for-npm",
+        ":bazelisk-darwin-amd64",
+        ":bazelisk-darwin-arm64",
+        ":bazelisk-linux-amd64",
+        ":bazelisk-linux-arm64",
+        ":bazelisk-windows-amd64",
     ],
 )
