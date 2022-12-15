@@ -103,7 +103,7 @@ func RunBazeliskWithArgsFunc(argsFunc ArgsFunc, repos *Repositories) (int, error
 		}
 
 		baseDirectory := filepath.Join(bazeliskHome, "downloads", bazelForkOrURL)
-		bazelPath, err = downloadBazel(bazelFork, resolvedBazelVersion, baseDirectory, repos, downloader)
+		bazelPath, err = downloadBazel(resolvedBazelVersion, baseDirectory, repos, downloader)
 		if err != nil {
 			return -1, fmt.Errorf("could not download Bazel: %v", err)
 		}
@@ -401,7 +401,7 @@ func parseBazelForkAndVersion(bazelForkAndVersion string) (string, string, error
 	return bazelFork, bazelVersion, nil
 }
 
-func downloadBazel(fork string, version string, baseDirectory string, repos *Repositories, downloader DownloadFunc) (string, error) {
+func downloadBazel(version string, baseDirectory string, repos *Repositories, downloader DownloadFunc) (string, error) {
 	pathSegment, err := platforms.DetermineBazelFilename(version, false)
 	if err != nil {
 		return "", fmt.Errorf("could not determine path segment to use for Bazel binary: %v", err)
