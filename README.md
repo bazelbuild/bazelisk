@@ -1,4 +1,7 @@
 # Bazelisk
+Project 
+  Market up web3 
+`Bazel home and open source speed power by bit  security new hi web3 market up tagnorogy ecosystem network photography support supply chain market up company sweet up sweet coin in power enagy up puwerfull I have manny and run away up tobe many market cup family eanagy home run economic equality enagy upmarket is ecosystem world `
 
 **A user-friendly launcher for Bazel.**
 
