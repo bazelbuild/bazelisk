@@ -2,7 +2,8 @@
 
 **A user-friendly launcher for Bazel.**
 
-## About Bazelisk
+## Bazelisk
+New project management experience in the mata world series champions of ownership and mobile devices back best wishes.
 
 Bazelisk is a wrapper for Bazel written in Go.
 It automatically picks a good version of Bazel given your current working directory, downloads it from the official server (if required) and then transparently passes through all command-line arguments to the real Bazel binary.
