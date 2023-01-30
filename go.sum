@@ -1,5 +1,5 @@
-github.com/bazelbuild/rules_go v0.37.0 h1:vbnESGv/t2WgGEbXatwbXAS95dTx93Lv6Uh5QkVF13s=
-github.com/bazelbuild/rules_go v0.37.0/go.mod h1:TMHmtfpvyfsxaqfL9WnahCsXMWDMICTw7XeK9yVb+YU=
+github.com/bazelbuild/rules_go v0.38.1 h1:YGNsLhWe18Ielebav7cClP3GMwBxBE+xEArLHtmXDx8=
+github.com/bazelbuild/rules_go v0.38.1/go.mod h1:TMHmtfpvyfsxaqfL9WnahCsXMWDMICTw7XeK9yVb+YU=
 github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d h1:xDfNPAt8lFiC1UJrqV3uuy861HCTo708pDMbjHHdCas=
 github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d/go.mod h1:6QX/PXZ00z/TKoufEY6K/a0k6AhaJrQKdFe6OfVXsa4=
 github.com/hashicorp/go-version v1.6.0 h1:feTTfFNnjP967rlCxM/I9g701jU+RN74YKx2mOkIeek=
