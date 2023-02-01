@@ -5,6 +5,7 @@ package core
 
 import (
 	"bufio"
+	"crypto/sha256"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -30,6 +31,7 @@ const (
 	skipWrapperEnv = "BAZELISK_SKIP_WRAPPER"
 	wrapperPath    = "./tools/bazel"
 	rcFileName     = ".bazeliskrc"
+	maxDirLength   = 255
 )
 
 var (
@@ -729,5 +731,12 @@ func migrate(bazelPath string, baseArgs []string, flags []string) {
 
 func dirForURL(url string) string {
 	// Replace all characters that might not be allowed in filenames with "-".
-	return regexp.MustCompile("[[:^alnum:]]").ReplaceAllString(url, "-")
+	dir := regexp.MustCompile("[[:^alnum:]]").ReplaceAllString(url, "-")
+	// Work around length limit on some systems by truncating and then appending
+	// a sha256 hash of the URL.
+	if len(dir) > maxDirLength {
+		suffix := fmt.Sprintf("...%x", sha256.Sum256([]byte(url)))
+		dir = dir[:maxDirLength-len(suffix)] + suffix
+	}
+	return dir
 }
