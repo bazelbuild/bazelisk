@@ -469,14 +469,14 @@ func maybeDelegateToWrapperFromDir(bazel string, wd string, ignoreEnv bool) stri
 	}
 
 	if runtime.GOOS == "windows" {
-		powershell_wrapper := filepath.Join(root, wrapperPath + ".ps1")
-		if stat, err := os.Stat(powershell_wrapper); err == nil && !stat.Mode().IsDir() {
-			return powershell_wrapper
+		powershellWrapper := filepath.Join(root, wrapperPath + ".ps1")
+		if stat, err := os.Stat(powershellWrapper); err == nil && !stat.Mode().IsDir() {
+			return powershellWrapper
 		}
 
-		batch_wrapper := filepath.Join(root, wrapperPath + ".bat")
-		if stat, err := os.Stat(batch_wrapper); err == nil && !stat.Mode().IsDir() {
-			return batch_wrapper
+		batchWrapper := filepath.Join(root, wrapperPath + ".bat")
+		if stat, err := os.Stat(batchWrapper); err == nil && !stat.Mode().IsDir() {
+			return batchWrapper
 		}
 	}
 
