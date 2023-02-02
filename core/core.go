@@ -15,6 +15,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -458,23 +459,39 @@ func linkLocalBazel(baseDirectory string, bazelPath string) (string, error) {
 	return destinationPath, nil
 }
 
-func maybeDelegateToWrapper(bazel string) string {
-	if GetEnvOrConfig(skipWrapperEnv) != "" {
-		return bazel
-	}
-
-	wd, err := os.Getwd()
-	if err != nil {
+func maybeDelegateToWrapperFromDir(bazel string, wd string, ignoreEnv bool) string {
+	if !ignoreEnv && GetEnvOrConfig(skipWrapperEnv) != "" {
 		return bazel
 	}
 
 	root := findWorkspaceRoot(wd)
 	wrapper := filepath.Join(root, wrapperPath)
-	if stat, err := os.Stat(wrapper); err != nil || stat.IsDir() || stat.Mode().Perm()&0111 == 0 {
+	if stat, err := os.Stat(wrapper); err == nil && !stat.Mode().IsDir() && stat.Mode().Perm()&0111 != 0 {
+		return wrapper
+	}
+
+	if runtime.GOOS == "windows" {
+		powershellWrapper := filepath.Join(root, wrapperPath + ".ps1")
+		if stat, err := os.Stat(powershellWrapper); err == nil && !stat.Mode().IsDir() {
+			return powershellWrapper
+		}
+
+		batchWrapper := filepath.Join(root, wrapperPath + ".bat")
+		if stat, err := os.Stat(batchWrapper); err == nil && !stat.Mode().IsDir() {
+			return batchWrapper
+		}
+	}
+
+	return bazel
+}
+
+func maybeDelegateToWrapper(bazel string) string {
+	wd, err := os.Getwd()
+	if err != nil {
 		return bazel
 	}
 
-	return wrapper
+	return maybeDelegateToWrapperFromDir(bazel, wd, false)
 }
 
 func prependDirToPathList(cmd *exec.Cmd, dir string) {
