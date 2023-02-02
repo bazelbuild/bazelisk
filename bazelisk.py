@@ -258,6 +258,8 @@ def normalized_machine_arch_name():
     machine = platform.machine().lower()
     if machine == "amd64":
         machine = "x86_64"
+    elif machine == "aarch64":
+        machine = "arm64"
     return machine
 
 
