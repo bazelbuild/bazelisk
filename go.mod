@@ -1,6 +1,6 @@
 module github.com/bazelbuild/bazelisk
 
-go 1.18
+go 1.20
 
 require (
 	github.com/bazelbuild/rules_go v0.38.1
