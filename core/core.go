@@ -33,6 +33,7 @@ const (
 	wrapperPath    = "./tools/bazel"
 	rcFileName     = ".bazeliskrc"
 	maxDirLength   = 255
+	maxRetryTimes  = 5
 )
 
 var (
@@ -532,7 +533,7 @@ func makeBazelCmd(bazel string, args []string, out io.Writer) *exec.Cmd {
 	return cmd
 }
 
-func runBazel(bazel string, args []string, out io.Writer) (int, error) {
+func runBazelOnce(bazel string, args []string, out io.Writer) (int, error) {
 	cmd := makeBazelCmd(bazel, args, out)
 	err := cmd.Start()
 	if err != nil {
@@ -559,6 +560,23 @@ func runBazel(bazel string, args []string, out io.Writer) (int, error) {
 		return 1, fmt.Errorf("could not launch Bazel: %v", err)
 	}
 	return 0, nil
+}
+
+func isRetriableExitCode(exitCode int) bool {
+	// Bazel exits with 39 when remote cache evicts blobs, in which case, it can recover from error in next invocation.
+	return exitCode == 39
+}
+
+func runBazel(bazel string, args []string, out io.Writer) (int, error) {
+	retries := 0
+	for {
+		exitCode, err := runBazelOnce(bazel, args, out)
+		if retries < maxRetryTimes && isRetriableExitCode(exitCode) {
+			retries += 1;
+			continue;
+		}
+		return exitCode, err
+	}
 }
 
 // getIncompatibleFlags returns all incompatible flags for the current Bazel command in alphabetical order.
