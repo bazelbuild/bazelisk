@@ -316,6 +316,12 @@ def download_bazel_into_directory(version, is_commit, directory):
                 sys.stderr.write(
                     "The Bazel mirror does not have a checksum file; skipping checksum verification."
                 )
+                if "https://releases.bazel.build" not in bazel_url:
+                    (version, rc) = re.match(r"(\d*\.\d*(?:\.\d*)?)(rc\d+)?", version).groups()
+                    fallback_url="https://releases.bazel.build/{}/{}/{}".format(
+                        version, rc if rc else "release", bazel_filename
+                    )
+                    download(fallback_url, destination_path)
                 return destination_path
             raise e
     with open(sha256_path, "r") as sha_file:
@@ -326,16 +332,17 @@ def download_bazel_into_directory(version, is_commit, directory):
             sha256_hash.update(byte_block)
     actual_hash = sha256_hash.hexdigest()
     if actual_hash != expected_hash:
-        os.remove(destination_path)
         os.remove(sha256_path)
         print(
-            "The downloaded Bazel binary is corrupted. Expected SHA-256 {}, got {}. Please try again.".format(
+            "The downloaded Bazel binary is corrupted. Expected SHA-256 {}, got {}. Fallback to default releases.bazel build url.".format(
                 expected_hash, actual_hash
             )
         )
-        # Exiting with a special exit code not used by Bazel, so the calling process may retry based on that.
-        # https://docs.bazel.build/versions/0.21.0/guide.html#what-exit-code-will-i-get
-        sys.exit(22)
+        (version, rc) = re.match(r"(\d*\.\d*(?:\.\d*)?)(rc\d+)?", version).groups()
+        fallback_url="https://releases.bazel.build/{}/{}/{}".format(
+            version, rc if rc else "release", bazel_filename
+        )
+        download(fallback_url, destination_path)
     return destination_path
 
 
