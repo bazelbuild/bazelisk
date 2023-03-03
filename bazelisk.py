@@ -317,11 +317,13 @@ def download_bazel_into_directory(version, is_commit, directory):
                     "The Bazel mirror does not have a checksum file; skipping checksum verification."
                 )
                 if "https://releases.bazel.build" not in bazel_url:
-                    (version, rc) = re.match(r"(\d*\.\d*(?:\.\d*)?)(rc\d+)?", version).groups()
-                    fallback_url="https://releases.bazel.build/{}/{}/{}".format(
-                        version, rc if rc else "release", bazel_filename
-                    )
-                    download(fallback_url, destination_path)
+                    matched=re.match(r"(\d*\.\d*(?:\.\d*)?)(rc\d+)?", version)
+                    if matched:
+                        (version, rc) = matched.groups()
+                        fallback_url="https://releases.bazel.build/{}/{}/{}".format(
+                            version, rc if rc else "release", bazel_filename
+                        )
+                        download(fallback_url, destination_path)
                 return destination_path
             raise e
     with open(sha256_path, "r") as sha_file:
