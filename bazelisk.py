@@ -334,7 +334,7 @@ def download_bazel_into_directory(version, is_commit, directory):
     if actual_hash != expected_hash:
         os.remove(sha256_path)
         print(
-            "The downloaded Bazel binary is corrupted. Expected SHA-256 {}, got {}. Fallback to default releases.bazel build url.".format(
+            "The downloaded Bazel binary is corrupted. Expected SHA-256 {}, got {}. Fallback to default releases.bazel.build url.".format(
                 expected_hash, actual_hash
             )
         )
