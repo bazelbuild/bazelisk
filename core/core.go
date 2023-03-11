@@ -8,7 +8,6 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -18,9 +17,9 @@ import (
 	"runtime"
 	"sort"
 	"strings"
-	"sync"
 	"syscall"
 
+	"github.com/bazelbuild/bazelisk/configs"
 	"github.com/bazelbuild/bazelisk/httputil"
 	"github.com/bazelbuild/bazelisk/platforms"
 	"github.com/bazelbuild/bazelisk/versions"
@@ -31,17 +30,11 @@ const (
 	bazelReal      = "BAZEL_REAL"
 	skipWrapperEnv = "BAZELISK_SKIP_WRAPPER"
 	wrapperPath    = "./tools/bazel"
-	rcFileName     = ".bazeliskrc"
 	maxDirLength   = 255
 )
 
-var (
-	// BazeliskVersion is filled in via x_defs when building a release.
-	BazeliskVersion = "development"
-
-	fileConfig     map[string]string
-	fileConfigOnce sync.Once
-)
+// BazeliskVersion is filled in via x_defs when building a release.
+var BazeliskVersion = "development"
 
 // ArgsFunc is a function that receives a resolved Bazel version and returns the arguments to invoke
 // Bazel with.
@@ -57,7 +50,7 @@ func RunBazelisk(args []string, repos *Repositories) (int, error) {
 func RunBazeliskWithArgsFunc(argsFunc ArgsFunc, repos *Repositories) (int, error) {
 	httputil.UserAgent = getUserAgent()
 
-	bazeliskHome := GetEnvOrConfig("BAZELISK_HOME")
+	bazeliskHome := configs.GetEnvOrConfig("BAZELISK_HOME")
 	if len(bazeliskHome) == 0 {
 		userCacheDir, err := os.UserCacheDir()
 		if err != nil {
@@ -100,7 +93,7 @@ func RunBazeliskWithArgsFunc(argsFunc ArgsFunc, repos *Repositories) (int, error
 			return -1, fmt.Errorf("could not resolve the version '%s' to an actual version number: %v", bazelVersion, err)
 		}
 
-		bazelForkOrURL := dirForURL(GetEnvOrConfig(BaseURLEnv))
+		bazelForkOrURL := dirForURL(configs.GetEnvOrConfig(BaseURLEnv))
 		if len(bazelForkOrURL) == 0 {
 			bazelForkOrURL = bazelFork
 		}
@@ -187,127 +180,11 @@ func getBazelCommand(args []string) (string, error) {
 }
 
 func getUserAgent() string {
-	agent := GetEnvOrConfig("BAZELISK_USER_AGENT")
+	agent := configs.GetEnvOrConfig("BAZELISK_USER_AGENT")
 	if len(agent) > 0 {
 		return agent
 	}
 	return fmt.Sprintf("Bazelisk/%s", BazeliskVersion)
-}
-
-// GetEnvOrConfig reads a configuration value from the environment, but fall back to reading it from .bazeliskrc in the workspace root.
-func GetEnvOrConfig(name string) string {
-	if val := os.Getenv(name); val != "" {
-		return val
-	}
-
-	fileConfigOnce.Do(loadFileConfig)
-
-	return fileConfig[name]
-}
-
-// loadFileConfig locates available .bazeliskrc configuration files, parses them with a precedence order preference,
-// and updates a global configuration map with their contents. This routine should be executed exactly once.
-func loadFileConfig() {
-	var rcFilePaths []string
-
-	if userRC, err := locateUserConfigFile(); err == nil {
-		rcFilePaths = append(rcFilePaths, userRC)
-	}
-	if workspaceRC, err := locateWorkspaceConfigFile(); err == nil {
-		rcFilePaths = append(rcFilePaths, workspaceRC)
-	}
-
-	fileConfig = make(map[string]string)
-	for _, rcPath := range rcFilePaths {
-		config, err := parseFileConfig(rcPath)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		for key, value := range config {
-			fileConfig[key] = value
-		}
-	}
-}
-
-// locateWorkspaceConfigFile locates a .bazeliskrc file in the current workspace root.
-func locateWorkspaceConfigFile() (string, error) {
-	workingDirectory, err := os.Getwd()
-	if err != nil {
-		return "", err
-	}
-	workspaceRoot := findWorkspaceRoot(workingDirectory)
-	if workspaceRoot == "" {
-		return "", err
-	}
-	return filepath.Join(workspaceRoot, rcFileName), nil
-}
-
-// locateUserConfigFile locates a .bazeliskrc file in the user's home directory.
-func locateUserConfigFile() (string, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(home, rcFileName), nil
-}
-
-// parseFileConfig parses a .bazeliskrc file as a map of key-value configuration values.
-func parseFileConfig(rcFilePath string) (map[string]string, error) {
-	config := make(map[string]string)
-
-	contents, err := ioutil.ReadFile(rcFilePath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			// Non-critical error.
-			return config, nil
-		}
-		return nil, err
-	}
-
-	for _, line := range strings.Split(string(contents), "\n") {
-		if strings.HasPrefix(line, "#") {
-			// comments
-			continue
-		}
-		parts := strings.SplitN(line, "=", 2)
-		if len(parts) < 2 {
-			continue
-		}
-		key := strings.TrimSpace(parts[0])
-		config[key] = strings.TrimSpace(parts[1])
-	}
-
-	return config, nil
-}
-
-// isValidWorkspace returns true iff the supplied path is the workspace root, defined by the presence of
-// a file named WORKSPACE or WORKSPACE.bazel
-// see https://github.com/bazelbuild/bazel/blob/8346ea4cfdd9fbd170d51a528fee26f912dad2d5/src/main/cpp/workspace_layout.cc#L37
-func isValidWorkspace(path string) bool {
-	info, err := os.Stat(path)
-	if err != nil {
-		return false
-	}
-
-	return !info.IsDir()
-}
-
-func findWorkspaceRoot(root string) string {
-	if isValidWorkspace(filepath.Join(root, "WORKSPACE")) {
-		return root
-	}
-
-	if isValidWorkspace(filepath.Join(root, "WORKSPACE.bazel")) {
-		return root
-	}
-
-	parentDirectory := filepath.Dir(root)
-	if parentDirectory == root {
-		return ""
-	}
-
-	return findWorkspaceRoot(parentDirectory)
 }
 
 // TODO(go 1.18): remove backport of strings.Cut
@@ -334,7 +211,7 @@ func getBazelVersion() (string, error) {
 	// - workspace_root/.bazeliskrc exists -> read contents, in contents:
 	//   var "USE_BAZEL_FALLBACK_VERSION" is set to a fallback version format.
 	// - fallback version format "silent:latest"
-	bazelVersion := GetEnvOrConfig("USE_BAZEL_VERSION")
+	bazelVersion := configs.GetEnvOrConfig("USE_BAZEL_VERSION")
 	if len(bazelVersion) != 0 {
 		return bazelVersion, nil
 	}
@@ -344,7 +221,7 @@ func getBazelVersion() (string, error) {
 		return "", fmt.Errorf("could not get working directory: %v", err)
 	}
 
-	workspaceRoot := findWorkspaceRoot(workingDirectory)
+	workspaceRoot := configs.FindWorkspaceRoot(workingDirectory)
 	if len(workspaceRoot) != 0 {
 		bazelVersionPath := filepath.Join(workspaceRoot, ".bazelversion")
 		if _, err := os.Stat(bazelVersionPath); err == nil {
@@ -367,7 +244,7 @@ func getBazelVersion() (string, error) {
 		}
 	}
 
-	fallbackVersionFormat := GetEnvOrConfig("USE_BAZEL_FALLBACK_VERSION")
+	fallbackVersionFormat := configs.GetEnvOrConfig("USE_BAZEL_FALLBACK_VERSION")
 	fallbackVersionMode, fallbackVersion, hasFallbackVersionMode := cutString(fallbackVersionFormat, ":")
 	if !hasFallbackVersionMode {
 		fallbackVersionMode, fallbackVersion, hasFallbackVersionMode = "silent", fallbackVersionMode, true
@@ -413,7 +290,7 @@ func downloadBazel(version string, baseDirectory string, repos *Repositories, do
 	destFile := "bazel" + platforms.DetermineExecutableFilenameSuffix()
 	destinationDir := filepath.Join(baseDirectory, pathSegment, "bin")
 
-	if url := GetEnvOrConfig(BaseURLEnv); url != "" {
+	if url := configs.GetEnvOrConfig(BaseURLEnv); url != "" {
 		return repos.DownloadFromBaseURL(url, version, destinationDir, destFile)
 	}
 
@@ -460,23 +337,23 @@ func linkLocalBazel(baseDirectory string, bazelPath string) (string, error) {
 }
 
 func maybeDelegateToWrapperFromDir(bazel string, wd string, ignoreEnv bool) string {
-	if !ignoreEnv && GetEnvOrConfig(skipWrapperEnv) != "" {
+	if !ignoreEnv && configs.GetEnvOrConfig(skipWrapperEnv) != "" {
 		return bazel
 	}
 
-	root := findWorkspaceRoot(wd)
+	root := configs.FindWorkspaceRoot(wd)
 	wrapper := filepath.Join(root, wrapperPath)
 	if stat, err := os.Stat(wrapper); err == nil && !stat.Mode().IsDir() && stat.Mode().Perm()&0111 != 0 {
 		return wrapper
 	}
 
 	if runtime.GOOS == "windows" {
-		powershellWrapper := filepath.Join(root, wrapperPath + ".ps1")
+		powershellWrapper := filepath.Join(root, wrapperPath+".ps1")
 		if stat, err := os.Stat(powershellWrapper); err == nil && !stat.Mode().IsDir() {
 			return powershellWrapper
 		}
 
-		batchWrapper := filepath.Join(root, wrapperPath + ".bat")
+		batchWrapper := filepath.Join(root, wrapperPath+".bat")
 		if stat, err := os.Stat(batchWrapper); err == nil && !stat.Mode().IsDir() {
 			return batchWrapper
 		}
@@ -563,7 +440,7 @@ func runBazel(bazel string, args []string, out io.Writer) (int, error) {
 
 // getIncompatibleFlags returns all incompatible flags for the current Bazel command in alphabetical order.
 func getIncompatibleFlags(bazelPath, cmd string) ([]string, error) {
-	var incompatibleFlagsStr = GetEnvOrConfig("BAZELISK_INCOMPATIBLE_FLAGS")
+	incompatibleFlagsStr := configs.GetEnvOrConfig("BAZELISK_INCOMPATIBLE_FLAGS")
 	if len(incompatibleFlagsStr) > 0 {
 		return strings.Split(incompatibleFlagsStr, ","), nil
 	}
@@ -604,28 +481,28 @@ func insertArgs(baseArgs []string, newArgs []string) []string {
 
 func parseStartupOptions(baseArgs []string) []string {
 	var result []string
-	var BAZEL_COMMANDS = map[string]bool{
-		"analyze-profile": true,
-		"aquery": true,
-		"build": true,
+	BAZEL_COMMANDS := map[string]bool{
+		"analyze-profile":    true,
+		"aquery":             true,
+		"build":              true,
 		"canonicalize-flags": true,
-		"clean": true,
-		"coverage": true,
-		"cquery": true,
-		"dump": true,
-		"fetch": true,
-		"help": true,
-		"info": true,
-		"license": true,
-		"mobile-install": true,
-		"mod": true,
-		"print_action": true,
-		"query": true,
-		"run": true,
-		"shutdown": true,
-		"sync": true,
-		"test": true,
-		"version": true,
+		"clean":              true,
+		"coverage":           true,
+		"cquery":             true,
+		"dump":               true,
+		"fetch":              true,
+		"help":               true,
+		"info":               true,
+		"license":            true,
+		"mobile-install":     true,
+		"mod":                true,
+		"print_action":       true,
+		"query":              true,
+		"run":                true,
+		"shutdown":           true,
+		"sync":               true,
+		"test":               true,
+		"version":            true,
 	}
 	// Arguments before a Bazel command are startup options.
 	for _, arg := range baseArgs {
@@ -638,7 +515,7 @@ func parseStartupOptions(baseArgs []string) []string {
 }
 
 func shutdownIfNeeded(bazelPath string, startupOptions []string) {
-	bazeliskClean := GetEnvOrConfig("BAZELISK_SHUTDOWN")
+	bazeliskClean := configs.GetEnvOrConfig("BAZELISK_SHUTDOWN")
 	if len(bazeliskClean) == 0 {
 		return
 	}
@@ -657,7 +534,7 @@ func shutdownIfNeeded(bazelPath string, startupOptions []string) {
 }
 
 func cleanIfNeeded(bazelPath string, startupOptions []string) {
-	bazeliskClean := GetEnvOrConfig("BAZELISK_CLEAN")
+	bazeliskClean := configs.GetEnvOrConfig("BAZELISK_CLEAN")
 	if len(bazeliskClean) == 0 {
 		return
 	}
@@ -677,7 +554,7 @@ func cleanIfNeeded(bazelPath string, startupOptions []string) {
 
 // migrate will run Bazel with each flag separately and report which ones are failing.
 func migrate(bazelPath string, baseArgs []string, flags []string) {
-	var startupOptions = parseStartupOptions(baseArgs)
+	startupOptions := parseStartupOptions(baseArgs)
 
 	// 1. Try with all the flags.
 	args := insertArgs(baseArgs, flags)

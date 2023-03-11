@@ -6,6 +6,7 @@ import (
 	"log"
 	"runtime"
 
+	"github.com/bazelbuild/bazelisk/configs"
 	"github.com/bazelbuild/bazelisk/versions"
 	semver "github.com/hashicorp/go-version"
 )
@@ -83,7 +84,11 @@ func DetermineBazelFilename(version string, includeSuffix bool) (string, error) 
 		filenameSuffix = DetermineExecutableFilenameSuffix()
 	}
 
-	return fmt.Sprintf("bazel-%s-%s-%s%s", version, osName, machineName, filenameSuffix), nil
+	bazelFlavor := "bazel"
+	if configs.GetEnvOrConfig("BAZELISK_NOJDK") == "1" {
+		bazelFlavor = "bazel_nojdk"
+	}
+	return fmt.Sprintf("%s-%s-%s-%s%s", bazelFlavor, version, osName, machineName, filenameSuffix), nil
 }
 
 // DarwinFallback Darwin arm64 was supported since 4.1.0, before 4.1.0, fall back to x86_64

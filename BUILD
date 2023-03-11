@@ -44,6 +44,7 @@ go_library(
     importpath = "github.com/bazelbuild/bazelisk",
     visibility = ["//visibility:private"],
     deps = [
+        "//configs:go_default_library",
         "//core:go_default_library",
         "//repositories:go_default_library",
     ],

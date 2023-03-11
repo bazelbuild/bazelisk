@@ -10,6 +10,7 @@ go_library(
     visibility = ["//visibility:public"],
     x_defs = {"BazeliskVersion": "{STABLE_VERSION}"},
     deps = [
+        "//configs:go_default_library",
         "//httputil:go_default_library",
         "//platforms:go_default_library",
         "//versions:go_default_library",
