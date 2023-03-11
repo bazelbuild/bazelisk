@@ -82,7 +82,6 @@ func RunBazelisk(args []string, repos *Repositories) (int, error) {
 // RunBazeliskWithArgsFunc runs the main Bazelisk logic for the given ArgsFunc and Bazel
 // repositories.
 func RunBazeliskWithArgsFunc(argsFunc ArgsFunc, repos *Repositories) (int, error) {
-
 	return RunBazeliskWithArgsFuncAndConfig(argsFunc, repos, MakeDefaultConfig())
 }
 
@@ -101,7 +100,9 @@ func RunBazeliskWithArgsFuncAndConfig(argsFunc ArgsFunc, repos *Repositories, co
 		bazeliskHome = filepath.Join(userCacheDir, "bazelisk")
 	}
 
-	err := os.MkdirAll(bazeliskHome, 0755)
+	bazelFlavor := getBazelFlavor(config)
+
+	err := os.MkdirAll(bazeliskHome, 0o755)
 	if err != nil {
 		return -1, fmt.Errorf("could not create directory %s: %v", bazeliskHome, err)
 	}
@@ -123,13 +124,13 @@ func RunBazeliskWithArgsFuncAndConfig(argsFunc ArgsFunc, repos *Repositories, co
 	// If we aren't using a local Bazel binary, we'll have to parse the version string and
 	// download the version that the user wants.
 	if !filepath.IsAbs(bazelPath) {
-		bazelPath, err = downloadBazel(bazelVersionString, bazeliskHome, repos, config)
+		bazelPath, err = downloadBazel(bazelFlavor, bazelVersionString, bazeliskHome, repos, config)
 		if err != nil {
 			return -1, fmt.Errorf("could not download Bazel: %v", err)
 		}
 	} else {
 		baseDirectory := filepath.Join(bazeliskHome, "local")
-		bazelPath, err = linkLocalBazel(baseDirectory, bazelPath)
+		bazelPath, err = linkLocalBazel(bazelFlavor, baseDirectory, bazelPath)
 		if err != nil {
 			return -1, fmt.Errorf("could not link local Bazel: %v", err)
 		}
@@ -172,7 +173,7 @@ func RunBazeliskWithArgsFuncAndConfig(argsFunc ArgsFunc, repos *Repositories, co
 		value := args[0][len("--bisect="):]
 		commits := strings.Split(value, "..")
 		if len(commits) == 2 {
-			bisect(commits[0], commits[1], args[1:], bazeliskHome, repos, config)
+			bisect(commits[0], commits[1], args[1:], bazeliskHome, bazelFlavor, repos, config)
 		} else {
 			return -1, fmt.Errorf("Error: Invalid format for --bisect. Expected format: '--bisect=<good bazel commit>..<bad bazel commit>'")
 		}
@@ -316,13 +317,21 @@ func parseBazelForkAndVersion(bazelForkAndVersion string) (string, string, error
 	return bazelFork, bazelVersion, nil
 }
 
-func downloadBazel(bazelVersionString string, bazeliskHome string, repos *Repositories, config config.Config) (string, error) {
+func getBazelFlavor(config config.Config) string {
+	flavor := "bazel"
+	if config.Get("BAZELISK_NOJDK") == "1" {
+		flavor = "bazel_nojdk"
+	}
+	return flavor
+}
+
+func downloadBazel(bazelFlavor, bazelVersionString, bazeliskHome string, repos *Repositories, config config.Config) (string, error) {
 	bazelFork, bazelVersion, err := parseBazelForkAndVersion(bazelVersionString)
 	if err != nil {
 		return "", fmt.Errorf("could not parse Bazel fork and version: %v", err)
 	}
 
-	resolvedBazelVersion, downloader, err := repos.ResolveVersion(bazeliskHome, bazelFork, bazelVersion)
+	resolvedBazelVersion, downloader, err := repos.ResolveVersion(bazeliskHome, bazelFork, bazelVersion, bazelFlavor)
 	if err != nil {
 		return "", fmt.Errorf("could not resolve the version '%s' to an actual version number: %v", bazelVersion, err)
 	}
@@ -332,7 +341,7 @@ func downloadBazel(bazelVersionString string, bazeliskHome string, repos *Reposi
 		bazelForkOrURL = bazelFork
 	}
 
-	bazelPath, err := downloadBazelIfNecessary(resolvedBazelVersion, bazeliskHome, bazelForkOrURL, repos, config, downloader)
+	bazelPath, err := downloadBazelIfNecessary(bazelFlavor, resolvedBazelVersion, bazeliskHome, bazelForkOrURL, repos, config, downloader)
 	return bazelPath, err
 }
 
@@ -345,13 +354,13 @@ func downloadBazel(bazelVersionString string, bazeliskHome string, repos *Reposi
 //
 //	downloads/metadata/[fork-or-url]/bazel-[version-os-etc] is a text file containing a hex sha256 of the contents of the downloaded bazel file.
 //	downloads/sha256/[sha256]/bin/bazel[extension] contains the bazel with a particular sha256.
-func downloadBazelIfNecessary(version string, bazeliskHome string, bazelForkOrURLDirName string, repos *Repositories, config config.Config, downloader DownloadFunc) (string, error) {
-	pathSegment, err := platforms.DetermineBazelFilename(version, false)
+func downloadBazelIfNecessary(flavor, version, bazeliskHome string, bazelForkOrURLDirName string, repos *Repositories, config config.Config, downloader DownloadFunc) (string, error) {
+	pathSegment, err := platforms.DetermineBazelFilename(flavor, version, false)
 	if err != nil {
 		return "", fmt.Errorf("could not determine path segment to use for Bazel binary: %v", err)
 	}
 
-	destFile := "bazel" + platforms.DetermineExecutableFilenameSuffix()
+	destFile := flavor + platforms.DetermineExecutableFilenameSuffix()
 
 	mappingPath := filepath.Join(bazeliskHome, "downloads", "metadata", bazelForkOrURLDirName, pathSegment)
 	digestFromMappingFile, err := os.ReadFile(mappingPath)
@@ -362,7 +371,7 @@ func downloadBazelIfNecessary(version string, bazeliskHome string, bazelForkOrUR
 		}
 	}
 
-	pathToBazelInCAS, downloadedDigest, err := downloadBazelToCAS(version, bazeliskHome, repos, config, downloader)
+	pathToBazelInCAS, downloadedDigest, err := downloadBazelToCAS(flavor, version, bazeliskHome, repos, config, downloader)
 	if err != nil {
 		return "", fmt.Errorf("failed to download bazel: %w", err)
 	}
@@ -374,7 +383,7 @@ func downloadBazelIfNecessary(version string, bazeliskHome string, bazelForkOrUR
 		}
 	}
 
-	if err := atomicWriteFile(mappingPath, []byte(downloadedDigest), 0644); err != nil {
+	if err := atomicWriteFile(mappingPath, []byte(downloadedDigest), 0o644); err != nil {
 		return "", fmt.Errorf("failed to write mapping file after downloading bazel: %w", err)
 	}
 
@@ -382,7 +391,7 @@ func downloadBazelIfNecessary(version string, bazeliskHome string, bazelForkOrUR
 }
 
 func atomicWriteFile(path string, contents []byte, perm os.FileMode) error {
-	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return fmt.Errorf("failed to MkdirAll parent of %s: %w", path, err)
 	}
 	tmpPath := path + ".tmp"
@@ -395,7 +404,7 @@ func atomicWriteFile(path string, contents []byte, perm os.FileMode) error {
 	return nil
 }
 
-func downloadBazelToCAS(version string, bazeliskHome string, repos *Repositories, config config.Config, downloader DownloadFunc) (string, string, error) {
+func downloadBazelToCAS(flavor, version, bazeliskHome string, repos *Repositories, config config.Config, downloader DownloadFunc) (string, string, error) {
 	downloadsDir := filepath.Join(bazeliskHome, "downloads")
 	temporaryDownloadDir := filepath.Join(downloadsDir, "_tmp")
 	casDir := filepath.Join(bazeliskHome, "downloads", "sha256")
@@ -415,7 +424,7 @@ func downloadBazelToCAS(version string, bazeliskHome string, repos *Repositories
 	} else if formatURL != "" {
 		tmpDestPath, err = repos.DownloadFromFormatURL(config, formatURL, version, temporaryDownloadDir, tmpDestFile)
 	} else if baseURL != "" {
-		tmpDestPath, err = repos.DownloadFromBaseURL(baseURL, version, temporaryDownloadDir, tmpDestFile)
+		tmpDestPath, err = repos.DownloadFromBaseURL(baseURL, flavor, version, temporaryDownloadDir, tmpDestFile)
 	} else {
 		tmpDestPath, err = downloader(temporaryDownloadDir, tmpDestFile)
 	}
@@ -436,8 +445,8 @@ func downloadBazelToCAS(version string, bazeliskHome string, repos *Repositories
 	f.Close()
 	actualSha256 := strings.ToLower(fmt.Sprintf("%x", h.Sum(nil)))
 
-	pathToBazelInCAS := filepath.Join(casDir, actualSha256, "bin", "bazel"+platforms.DetermineExecutableFilenameSuffix())
-	if err := os.MkdirAll(filepath.Dir(pathToBazelInCAS), 0755); err != nil {
+	pathToBazelInCAS := filepath.Join(casDir, actualSha256, "bin", flavor+platforms.DetermineExecutableFilenameSuffix())
+	if err := os.MkdirAll(filepath.Dir(pathToBazelInCAS), 0o755); err != nil {
 		return "", "", fmt.Errorf("failed to MkdirAll parent of %s: %w", pathToBazelInCAS, err)
 	}
 
@@ -470,19 +479,19 @@ func copyFile(src, dst string, perm os.FileMode) error {
 	return err
 }
 
-func linkLocalBazel(baseDirectory string, bazelPath string) (string, error) {
+func linkLocalBazel(bazelFlavor, baseDirectory, bazelPath string) (string, error) {
 	normalizedBazelPath := dirForURL(bazelPath)
 	destinationDir := filepath.Join(baseDirectory, normalizedBazelPath, "bin")
-	err := os.MkdirAll(destinationDir, 0755)
+	err := os.MkdirAll(destinationDir, 0o755)
 	if err != nil {
 		return "", fmt.Errorf("could not create directory %s: %v", destinationDir, err)
 	}
-	destinationPath := filepath.Join(destinationDir, "bazel"+platforms.DetermineExecutableFilenameSuffix())
+	destinationPath := filepath.Join(destinationDir, bazelFlavor+platforms.DetermineExecutableFilenameSuffix())
 	if _, err := os.Stat(destinationPath); err != nil {
 		err = os.Symlink(bazelPath, destinationPath)
 		// If can't create Symlink, fallback to copy
 		if err != nil {
-			err = copyFile(bazelPath, destinationPath, 0755)
+			err = copyFile(bazelPath, destinationPath, 0o755)
 			if err != nil {
 				return "", fmt.Errorf("could not copy file from %s to %s: %v", bazelPath, destinationPath, err)
 			}
@@ -498,7 +507,7 @@ func maybeDelegateToWrapperFromDir(bazel string, wd string, config config.Config
 
 	root := ws.FindWorkspaceRoot(wd)
 	wrapper := filepath.Join(root, wrapperPath)
-	if stat, err := os.Stat(wrapper); err == nil && !stat.Mode().IsDir() && stat.Mode().Perm()&0111 != 0 {
+	if stat, err := os.Stat(wrapper); err == nil && !stat.Mode().IsDir() && stat.Mode().Perm()&0o111 != 0 {
 		return wrapper
 	}
 
@@ -595,7 +604,7 @@ func runBazel(bazel string, args []string, out io.Writer, config config.Config) 
 
 // getIncompatibleFlags returns all incompatible flags for the current Bazel command in alphabetical order.
 func getIncompatibleFlags(bazelPath, cmd string, config config.Config) ([]string, error) {
-	var incompatibleFlagsStr = config.Get("BAZELISK_INCOMPATIBLE_FLAGS")
+	incompatibleFlagsStr := config.Get("BAZELISK_INCOMPATIBLE_FLAGS")
 	if len(incompatibleFlagsStr) > 0 {
 		return strings.Split(incompatibleFlagsStr, ","), nil
 	}
@@ -636,7 +645,7 @@ func insertArgs(baseArgs []string, newArgs []string) []string {
 
 func parseStartupOptions(baseArgs []string) []string {
 	var result []string
-	var bazelCommands = map[string]bool{
+	bazelCommands := map[string]bool{
 		"analyze-profile":    true,
 		"aquery":             true,
 		"build":              true,
@@ -803,8 +812,7 @@ func getBazelCommitsBetween(goodCommit string, badCommit string, config config.C
 	return goodCommit, commitList, nil
 }
 
-func bisect(goodCommit string, badCommit string, args []string, bazeliskHome string, repos *Repositories, config config.Config) {
-
+func bisect(goodCommit string, badCommit string, args []string, bazeliskHome, bazelFlavor string, repos *Repositories, config config.Config) {
 	// 1. Get the list of commits between goodCommit and badCommit
 	fmt.Printf("\n\n--- Getting the list of commits between %s and %s\n\n", goodCommit, badCommit)
 	goodCommit, commitList, err := getBazelCommitsBetween(goodCommit, badCommit, config)
@@ -815,7 +823,7 @@ func bisect(goodCommit string, badCommit string, args []string, bazeliskHome str
 
 	// 2. Check if goodCommit is actually good
 	fmt.Printf("\n\n--- Verifying if the given good Bazel commit (%s) is actually good\n\n", goodCommit)
-	bazelExitCode, err := testWithBazelAtCommit(goodCommit, args, bazeliskHome, repos, config)
+	bazelExitCode, err := testWithBazelAtCommit(goodCommit, bazelFlavor, args, bazeliskHome, repos, config)
 	if err != nil {
 		log.Fatalf("could not run Bazel: %v", err)
 		os.Exit(1)
@@ -833,7 +841,7 @@ func bisect(goodCommit string, badCommit string, args []string, bazeliskHome str
 		mid := (left + right) / 2
 		midCommit := commitList[mid]
 		fmt.Printf("\n\n--- Testing with Bazel built at %s, %d commits remaining...\n\n", midCommit, right-left)
-		bazelExitCode, err := testWithBazelAtCommit(midCommit, args, bazeliskHome, repos, config)
+		bazelExitCode, err := testWithBazelAtCommit(midCommit, bazelFlavor, args, bazeliskHome, repos, config)
 		if err != nil {
 			log.Fatalf("could not run Bazel: %v", err)
 			os.Exit(1)
@@ -859,8 +867,8 @@ func bisect(goodCommit string, badCommit string, args []string, bazeliskHome str
 	os.Exit(0)
 }
 
-func testWithBazelAtCommit(bazelCommit string, args []string, bazeliskHome string, repos *Repositories, config config.Config) (int, error) {
-	bazelPath, err := downloadBazel(bazelCommit, bazeliskHome, repos, config)
+func testWithBazelAtCommit(bazelCommit, bazelFlavor string, args []string, bazeliskHome string, repos *Repositories, config config.Config) (int, error) {
+	bazelPath, err := downloadBazel(bazelFlavor, bazelCommit, bazeliskHome, repos, config)
 	if err != nil {
 		return 1, fmt.Errorf("could not download Bazel: %v", err)
 	}
@@ -877,7 +885,7 @@ func testWithBazelAtCommit(bazelCommit string, args []string, bazeliskHome strin
 
 // migrate will run Bazel with each flag separately and report which ones are failing.
 func migrate(bazelPath string, baseArgs []string, flags []string, config config.Config) {
-	var startupOptions = parseStartupOptions(baseArgs)
+	startupOptions := parseStartupOptions(baseArgs)
 
 	// 1. Try with all the flags.
 	args := insertArgs(baseArgs, flags)

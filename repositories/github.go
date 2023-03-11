@@ -84,8 +84,8 @@ type gitHubRelease struct {
 }
 
 // DownloadVersion downloads a Bazel binary for the given version and fork to the specified location and returns the absolute path.
-func (gh *GitHubRepo) DownloadVersion(fork, version, destDir, destFile string) (string, error) {
-	filename, err := platforms.DetermineBazelFilename(version, true)
+func (gh *GitHubRepo) DownloadVersion(fork, flavor, version, destDir, destFile string) (string, error) {
+	filename, err := platforms.DetermineBazelFilename(flavor, version, true)
 	if err != nil {
 		return "", err
 	}

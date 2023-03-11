@@ -46,7 +46,7 @@ type ReleaseRepo interface {
 	GetReleaseVersions(bazeliskHome string, filter ReleaseFilter) ([]string, error)
 
 	// DownloadRelease downloads the given Bazel version into the specified location and returns the absolute path.
-	DownloadRelease(version, destDir, destFile string) (string, error)
+	DownloadRelease(flavor, version, destDir, destFile string) (string, error)
 }
 
 // CandidateRepo represents a repository that stores Bazel release candidates.
@@ -55,7 +55,7 @@ type CandidateRepo interface {
 	GetCandidateVersions(bazeliskHome string) ([]string, error)
 
 	// DownloadCandidate downloads the given Bazel release candidate into the specified location and returns the absolute path.
-	DownloadCandidate(version, destDir, destFile string) (string, error)
+	DownloadCandidate(flavor, version, destDir, destFile string) (string, error)
 }
 
 // ForkRepo represents a repository that stores a fork of Bazel (releases).
@@ -64,7 +64,7 @@ type ForkRepo interface {
 	GetVersions(bazeliskHome, fork string) ([]string, error)
 
 	// DownloadVersion downloads the given Bazel binary from the specified fork into the given location and returns the absolute path.
-	DownloadVersion(fork, version, destDir, destFile string) (string, error)
+	DownloadVersion(flavor, fork, version, destDir, destFile string) (string, error)
 }
 
 // CommitRepo represents a repository that stores Bazel binaries built at specific commits.
@@ -76,7 +76,7 @@ type CommitRepo interface {
 	GetLastGreenCommit(bazeliskHome string, downstreamGreen bool) (string, error)
 
 	// DownloadAtCommit downloads a Bazel binary built at the given commit into the specified location and returns the absolute path.
-	DownloadAtCommit(commit, destDir, destFile string) (string, error)
+	DownloadAtCommit(commit, flavor, destDir, destFile string) (string, error)
 }
 
 // RollingRepo represents a repository that stores rolling Bazel releases.
@@ -85,7 +85,7 @@ type RollingRepo interface {
 	GetRollingVersions(bazeliskHome string) ([]string, error)
 
 	// DownloadRolling downloads the given Bazel version into the specified location and returns the absolute path.
-	DownloadRolling(version, destDir, destFile string) (string, error)
+	DownloadRolling(flavor, version, destDir, destFile string) (string, error)
 }
 
 // Repositories offers access to different types of Bazel repositories, mainly for finding and downloading the correct version of Bazel.
@@ -99,8 +99,8 @@ type Repositories struct {
 }
 
 // ResolveVersion resolves a potentially relative Bazel version string such as "latest" to an absolute version identifier, and returns this identifier alongside a function to download said version.
-func (r *Repositories) ResolveVersion(bazeliskHome, fork, version string) (string, DownloadFunc, error) {
-	vi, err := versions.Parse(fork, version)
+func (r *Repositories) ResolveVersion(bazeliskHome, fork, version, flavor string) (string, DownloadFunc, error) {
+	vi, err := versions.Parse(fork, version, flavor)
 	if err != nil {
 		return "", nil, err
 	}
@@ -132,7 +132,7 @@ func (r *Repositories) resolveFork(bazeliskHome string, vi *versions.Info) (stri
 		return "", nil, err
 	}
 	downloader := func(destDir, destFile string) (string, error) {
-		return r.Fork.DownloadVersion(vi.Fork, version, destDir, destFile)
+		return r.Fork.DownloadVersion(vi.Flavor, vi.Fork, version, destDir, destFile)
 	}
 	return version, downloader, nil
 }
@@ -154,7 +154,7 @@ func (r *Repositories) resolveRelease(bazeliskHome string, vi *versions.Info) (s
 		return "", nil, err
 	}
 	downloader := func(destDir, destFile string) (string, error) {
-		return r.Releases.DownloadRelease(version, destDir, destFile)
+		return r.Releases.DownloadRelease(vi.Flavor, version, destDir, destFile)
 	}
 	return version, downloader, nil
 }
@@ -165,7 +165,7 @@ func (r *Repositories) resolveCandidate(bazeliskHome string, vi *versions.Info) 
 		return "", nil, err
 	}
 	downloader := func(destDir, destFile string) (string, error) {
-		return r.Candidates.DownloadCandidate(version, destDir, destFile)
+		return r.Candidates.DownloadCandidate(vi.Flavor, version, destDir, destFile)
 	}
 	return version, downloader, nil
 }
@@ -180,7 +180,7 @@ func (r *Repositories) resolveCommit(bazeliskHome string, vi *versions.Info) (st
 		}
 	}
 	downloader := func(destDir, destFile string) (string, error) {
-		return r.Commits.DownloadAtCommit(version, destDir, destFile)
+		return r.Commits.DownloadAtCommit(version, vi.Flavor, destDir, destFile)
 	}
 	return version, downloader, nil
 }
@@ -194,7 +194,7 @@ func (r *Repositories) resolveRolling(bazeliskHome string, vi *versions.Info) (s
 		return "", nil, err
 	}
 	downloader := func(destDir, destFile string) (string, error) {
-		return r.Rolling.DownloadRolling(version, destDir, destFile)
+		return r.Rolling.DownloadRolling(vi.Flavor, version, destDir, destFile)
 	}
 	return version, downloader, nil
 }
@@ -220,14 +220,14 @@ func resolvePotentiallyRelativeVersion(bazeliskHome string, lister listVersionsF
 }
 
 // DownloadFromBaseURL can download Bazel binaries from a specific URL while ignoring the predefined repositories.
-func (r *Repositories) DownloadFromBaseURL(baseURL, version, destDir, destFile string) (string, error) {
+func (r *Repositories) DownloadFromBaseURL(baseURL, flavor, version, destDir, destFile string) (string, error) {
 	if !r.supportsBaseURL {
 		return "", fmt.Errorf("downloads from %s are forbidden", BaseURLEnv)
 	} else if baseURL == "" {
 		return "", fmt.Errorf("%s is not set", BaseURLEnv)
 	}
 
-	srcFile, err := platforms.DetermineBazelFilename(version, true)
+	srcFile, err := platforms.DetermineBazelFilename(flavor, version, true)
 	if err != nil {
 		return "", err
 	}
@@ -343,7 +343,7 @@ func (nrr *noReleaseRepo) GetReleaseVersions(bazeliskHome string, filter Release
 	return nil, nrr.err
 }
 
-func (nrr *noReleaseRepo) DownloadRelease(version, destDir, destFile string) (string, error) {
+func (nrr *noReleaseRepo) DownloadRelease(flavor, version, destDir, destFile string) (string, error) {
 	return "", nrr.err
 }
 
@@ -355,7 +355,7 @@ func (ncc *noCandidateRepo) GetCandidateVersions(bazeliskHome string) ([]string,
 	return nil, ncc.err
 }
 
-func (ncc *noCandidateRepo) DownloadCandidate(version, destDir, destFile string) (string, error) {
+func (ncc *noCandidateRepo) DownloadCandidate(flavor, version, destDir, destFile string) (string, error) {
 	return "", ncc.err
 }
 
@@ -367,7 +367,7 @@ func (nfr *noForkRepo) GetVersions(bazeliskHome, fork string) ([]string, error) 
 	return nil, nfr.err
 }
 
-func (nfr *noForkRepo) DownloadVersion(fork, version, destDir, destFile string) (string, error) {
+func (nfr *noForkRepo) DownloadVersion(fork, flavor, version, destDir, destFile string) (string, error) {
 	return "", nfr.err
 }
 
@@ -379,7 +379,7 @@ func (nlgr *noCommitRepo) GetLastGreenCommit(bazeliskHome string, downstreamGree
 	return "", nlgr.err
 }
 
-func (nlgr *noCommitRepo) DownloadAtCommit(commit, destDir, destFile string) (string, error) {
+func (nlgr *noCommitRepo) DownloadAtCommit(commit, flavor, destDir, destFile string) (string, error) {
 	return "", nlgr.err
 }
 
@@ -391,6 +391,6 @@ func (nrr *noRollingRepo) GetRollingVersions(bazeliskHome string) ([]string, err
 	return nil, nrr.err
 }
 
-func (nrr *noRollingRepo) DownloadRolling(version, destDir, destFile string) (string, error) {
+func (nrr *noRollingRepo) DownloadRolling(flavor, version, destDir, destFile string) (string, error) {
 	return "", nrr.err
 }

@@ -82,7 +82,7 @@ func DetermineOperatingSystem() (string, error) {
 }
 
 // DetermineBazelFilename returns the correct file name of a local Bazel binary.
-func DetermineBazelFilename(version string, includeSuffix bool) (string, error) {
+func DetermineBazelFilename(flavor, version string, includeSuffix bool) (string, error) {
 	osName, err := DetermineOperatingSystem()
 	if err != nil {
 		return "", err
@@ -98,7 +98,7 @@ func DetermineBazelFilename(version string, includeSuffix bool) (string, error) 
 		filenameSuffix = DetermineExecutableFilenameSuffix()
 	}
 
-	return fmt.Sprintf("bazel-%s-%s-%s%s", version, osName, machineName, filenameSuffix), nil
+	return fmt.Sprintf("%s-%s-%s-%s%s", flavor, version, osName, machineName, filenameSuffix), nil
 }
 
 // DarwinFallback Darwin arm64 was supported since 4.1.0, before 4.1.0, fall back to x86_64

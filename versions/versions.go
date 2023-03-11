@@ -28,13 +28,13 @@ var (
 // Info represents a structured Bazel version identifier.
 type Info struct {
 	IsRelease, IsCandidate, IsCommit, IsFork, IsRolling, IsRelative, IsDownstream bool
-	Fork, Value                                                                   string
+	Fork, Value, Flavor                                                           string
 	LatestOffset, TrackRestriction                                                int
 }
 
 // Parse extracts and returns structured information about the given Bazel version label.
-func Parse(fork, version string) (*Info, error) {
-	vi := &Info{Fork: fork, Value: version, IsFork: isFork(fork)}
+func Parse(fork, version, flavor string) (*Info, error) {
+	vi := &Info{Fork: fork, Value: version, IsFork: isFork(fork), Flavor: flavor}
 
 	if m := releasePattern.FindStringSubmatch(version); m != nil {
 		vi.IsRelease = true

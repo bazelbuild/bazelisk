@@ -25,6 +25,7 @@ Frontend developers may want to install it with `npm install -g @bazel/bazelisk`
 > [`nvm` utility](https://github.com/nvm-sh/nvm) which manages your version of Node.js.
 
 Some ideas how to use it:
+
 - Install it as the `bazel` binary in your `PATH` (e.g. copy it to `/usr/local/bin/bazel`).
   Never worry about upgrading Bazel to the latest version again.
 - Check it into your repository and recommend users to build your software via `./bazelisk build //my:software`.
@@ -42,6 +43,7 @@ The documentation below describes the newer Go version only.
 ## How does Bazelisk know which Bazel version to run?
 
 It uses a simple algorithm:
+
 - If the environment variable `USE_BAZEL_VERSION` is set, it will use the version specified in the value.
 - Otherwise, if a `.bazeliskrc` file exists in the workspace root and contains the `USE_BAZEL_VERSION` variable, this version will be used.
 - Otherwise, if a `.bazelversion` file exists in the current directory or recursively any parent directory, it will read the file and use the version specified in it.
@@ -55,7 +57,10 @@ A version can optionally be prefixed with a fork name.
 The fork and version should be separated by slash: `<FORK>/<VERSION>`.
 Please see the next section for how to work with forks.
 
+If `BAZELISK_NOJDK` is set in environment variable or `.bazeliskrc` to `1`, bazelisk will use the `nojdk` version of bazel.
+
 Bazelisk currently understands the following formats for version labels:
+
 - `latest` means the latest stable (LTS) version of Bazel as released on GitHub.
   Previous releases can be specified via `latest-1`, `latest-2` etc.
 - A version number like `0.17.2` means that exact version of Bazel.
@@ -64,6 +69,7 @@ Bazelisk currently understands the following formats for version labels:
 - The hash of a Git commit. Please note that Bazel binaries are only available for commits that passed [Bazel CI](https://buildkite.com/bazel/bazel-bazel).
 
 Additionally, a few special version names are supported for our official releases only (these formats do not work when using a fork):
+
 - `last_green` refers to the Bazel binary that was built at the most recent commit that passed [Bazel CI](https://buildkite.com/bazel/bazel-bazel).
   Ideally this binary should be very close to Bazel-at-head.
 - `last_downstream_green` points to the most recent Bazel binary that builds and tests all [downstream projects](https://buildkite.com/bazel/bazel-at-head-plus-downstream) successfully.
@@ -108,6 +114,7 @@ an installer, then `tools/bazel` and `.bazelversion` are not checked. You could 
 require users update their bazel.
 
 [shell wrapper script]: https://github.com/bazelbuild/bazel/blob/master/scripts/packages/bazel.sh
+
 ## Other features
 
 The Go version of Bazelisk offers three new flags.
@@ -170,7 +177,6 @@ The Go version supports a `.bazeliskrc` file in the root directory of a workspac
 
 Example file content:
 
-
 ```shell
 USE_BAZEL_VERSION=0.19.0
 BAZELISK_GITHUB_TOKEN=abc
@@ -191,9 +197,9 @@ The following variables can be set:
 
 Configuration variables are evaluated with precedence order. The preferred values are derived in order from highest to lowest precedence as follows:
 
-* Variables defined in the environment
-* Variables defined in the workspace root `.bazeliskrc`
-* Variables defined in the user home `.bazeliskrc`
+- Variables defined in the environment
+- Variables defined in the workspace root `.bazeliskrc`
+- Variables defined in the user home `.bazeliskrc`
 
 ## Requirements
 
@@ -207,7 +213,9 @@ To install the Go version, type:
 ```shell
 go get github.com/bazelbuild/bazelisk
 ```
+
 With Go 1.17 or later, the recommended way to install it is:
+
 ```shell
 go install github.com/bazelbuild/bazelisk@latest
 ```
@@ -230,5 +238,6 @@ For more information, you may read about the [`GOPATH` environment variable](htt
 ## FAQ
 
 ### Where does Bazelisk store the downloaded versions of Bazel?
+
 It creates a directory called "bazelisk" inside your [user cache directory](https://golang.org/pkg/os/#UserCacheDir) and will store them there.
 Feel free to delete this directory at any time, as it can be regenerated automatically when required.
