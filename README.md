@@ -77,10 +77,20 @@ By default Bazelisk retrieves Bazel releases, release candidates and binaries bu
 
 As mentioned in the previous section, the `<FORK>/<VERSION>` version format allows you to use your own Bazel fork hosted on GitHub:
 
-If you want to create a fork with your own releases, you have to follow the naming conventions that we use in `bazelbuild/bazel` for the binary file names.
+If you want to create a fork with your own releases, you should follow the naming conventions that we use in `bazelbuild/bazel` for the binary file names as this results in predictable URLs that are similar to the official ones.
 The URL format looks like `https://github.com/<FORK>/bazel/releases/download/<VERSION>/<FILENAME>`.
 
 You can also override the URL by setting the environment variable `$BAZELISK_BASE_URL`. Bazelisk will then append `/<VERSION>/<FILENAME>` to the base URL instead of using the official release server. Bazelisk will read file [`~/.netrc`](https://everything.curl.dev/usingcurl/netrc) for credentials for Basic authentication.
+
+If for any reason none of this works, you can also override the URL format altogether by setting the environment variable `$BAZELISK_FORMAT_URL`. This variable takes a format-like string with placeholders and performs the following replacements to compute the download URL:
+
+- `%e`: Extension suffix, such as the empty string or `.exe`.
+- `%h`: Value of `BAZELISK_VERIFY_SHA256`, respecting uppercase/lowercase characters.
+- `%m`: Machine architecture name, such as `arm64` or `x86_64`.
+- `%o`: Operating system name, such as `darwin` or `linux`.
+- `%v`: Bazel version as determined by Bazelisk.
+- `%%`: Literal `%` for escaping purposes.
+- All other characters after `%` are reserved for future use and result in a processing error.
 
 ## Ensuring that your developers use Bazelisk rather than Bazel
 

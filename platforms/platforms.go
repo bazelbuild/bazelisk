@@ -54,8 +54,7 @@ func DetermineExecutableFilenameSuffix() string {
 	return filenameSuffix
 }
 
-// DetermineBazelFilename returns the correct file name of a local Bazel binary.
-func DetermineBazelFilename(version string, includeSuffix bool) (string, error) {
+func DetermineArchitecture(osName, version string) (string, error) {
 	var machineName string
 	switch runtime.GOARCH {
 	case "amd64":
@@ -66,16 +65,32 @@ func DetermineBazelFilename(version string, includeSuffix bool) (string, error) 
 		return "", fmt.Errorf("unsupported machine architecture \"%s\", must be arm64 or x86_64", runtime.GOARCH)
 	}
 
-	var osName string
+	if osName == "darwin" {
+		machineName = DarwinFallback(machineName, version)
+	}
+
+	return machineName, nil
+}
+
+func DetermineOperatingSystem() (string, error) {
 	switch runtime.GOOS {
 	case "darwin", "linux", "windows":
-		osName = runtime.GOOS
+		return runtime.GOOS, nil
 	default:
 		return "", fmt.Errorf("unsupported operating system \"%s\", must be Linux, macOS or Windows", runtime.GOOS)
 	}
+}
 
-	if osName == "darwin" {
-		machineName = DarwinFallback(machineName, version)
+// DetermineBazelFilename returns the correct file name of a local Bazel binary.
+func DetermineBazelFilename(version string, includeSuffix bool) (string, error) {
+	osName, err := DetermineOperatingSystem()
+	if err != nil {
+		return "", err
+	}
+
+	machineName, err := DetermineArchitecture(osName, version)
+	if err != nil {
+		return "", err
 	}
 
 	var filenameSuffix string

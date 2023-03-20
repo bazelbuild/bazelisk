@@ -422,8 +422,14 @@ func downloadBazelIfNecessary(version string, baseDirectory string, repos *Repos
 	}
 
 	var tmpDestPath string
-	if url := GetEnvOrConfig(BaseURLEnv); url != "" {
-		tmpDestPath, err = repos.DownloadFromBaseURL(url, version, destDir, tmpDestFile)
+	baseURL := GetEnvOrConfig(BaseURLEnv)
+	formatURL := GetEnvOrConfig(FormatURLEnv)
+	if baseURL != "" && formatURL != "" {
+		return "", fmt.Errorf("cannot set %s and %s at once", BaseURLEnv, FormatURLEnv)
+	} else if formatURL != "" {
+		tmpDestPath, err = repos.DownloadFromFormatURL(formatURL, version, destDir, tmpDestFile)
+	} else if baseURL != "" {
+		tmpDestPath, err = repos.DownloadFromBaseURL(baseURL, version, destDir, tmpDestFile)
 	} else {
 		tmpDestPath, err = downloader(destDir, tmpDestFile)
 	}
