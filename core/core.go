@@ -604,7 +604,7 @@ func insertArgs(baseArgs []string, newArgs []string) []string {
 
 func parseStartupOptions(baseArgs []string) []string {
 	var result []string
-	var BAZEL_COMMANDS = map[string]bool{
+	var bazelCommands = map[string]bool{
 		"analyze-profile": true,
 		"aquery": true,
 		"build": true,
@@ -629,7 +629,7 @@ func parseStartupOptions(baseArgs []string) []string {
 	}
 	// Arguments before a Bazel command are startup options.
 	for _, arg := range baseArgs {
-		if _, ok := BAZEL_COMMANDS[arg]; ok {
+		if _, ok := bazelCommands[arg]; ok {
 			return result
 		}
 		result = append(result, arg)
