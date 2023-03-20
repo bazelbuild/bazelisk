@@ -411,6 +411,9 @@ func downloadBazelIfNecessary(version string, baseDirectory string, repos *Repos
 	}
 
 	destDir := filepath.Join(baseDirectory, pathSegment, "bin")
+	expectedSha256 := strings.ToLower(GetEnvOrConfig("BAZELISK_VERIFY_SHA256"))
+
+	tmpDestFile := "bazel-tmp" + platforms.DetermineExecutableFilenameSuffix()
 	destFile := "bazel" + platforms.DetermineExecutableFilenameSuffix()
 
 	destPath := filepath.Join(destDir, destFile)
@@ -418,11 +421,45 @@ func downloadBazelIfNecessary(version string, baseDirectory string, repos *Repos
 		return destPath, nil
 	}
 
+	var tmpDestPath string
 	if url := GetEnvOrConfig(BaseURLEnv); url != "" {
-		return repos.DownloadFromBaseURL(url, version, destDir, destFile)
+		tmpDestPath, err = repos.DownloadFromBaseURL(url, version, destDir, tmpDestFile)
+	} else {
+		tmpDestPath, err = downloader(destDir, tmpDestFile)
+	}
+	if err != nil {
+		return "", err
 	}
 
-	return downloader(destDir, destFile)
+	if len(expectedSha256) > 0 {
+		f, err := os.Open(tmpDestPath)
+		if err != nil {
+			os.Remove(tmpDestPath)
+			return "", fmt.Errorf("cannot open %s after download: %v", tmpDestPath, err)
+		}
+		defer os.Remove(tmpDestPath)
+		// We cannot defer f.Close() because keeping the handle open when we try to do the
+		// rename later on fails on Windows.
+
+		h := sha256.New()
+		if _, err := io.Copy(h, f); err != nil {
+			f.Close()
+			return "", fmt.Errorf("cannot compute sha256 of %s after download: %v", tmpDestPath, err)
+		}
+		f.Close()
+
+		actualSha256 := strings.ToLower(fmt.Sprintf("%x", h.Sum(nil)))
+		if expectedSha256 != actualSha256 {
+			return "", fmt.Errorf("%s has sha256=%s but need sha256=%s", tmpDestPath, actualSha256, expectedSha256)
+		}
+	}
+
+	// Only place the downloaded binary in its final location once we know it is fully downloaded
+	// and valid, to prevent invalid files from ever being executed.
+	if err = os.Rename(tmpDestPath, destPath); err != nil {
+		return "", fmt.Errorf("cannot rename %s to %s: %v", tmpDestPath, destPath, err)
+	}
+	return destPath, nil
 }
 
 func copyFile(src, dst string, perm os.FileMode) error {

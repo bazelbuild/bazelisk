@@ -73,7 +73,7 @@ Additionally, a few special version names are supported for our official release
 
 ## Where does Bazelisk get Bazel from?
 
-By default Bazelisk retrieves Bazel releases, release candidates and binaries built at green commits from Google Cloud Storage.
+By default Bazelisk retrieves Bazel releases, release candidates and binaries built at green commits from Google Cloud Storage. The downloaded artifacts are validated against the SHA256 value recorded in `BAZELISK_VERIFY_SHA256` if this variable is set in the configuration file.
 
 As mentioned in the previous section, the `<FORK>/<VERSION>` version format allows you to use your own Bazel fork hosted on GitHub:
 
@@ -149,6 +149,7 @@ The following variables can be set:
 - `BAZELISK_SHUTDOWN`
 - `BAZELISK_SKIP_WRAPPER`
 - `BAZELISK_USER_AGENT`
+- `BAZELISK_VERIFY_SHA256`
 - `USE_BAZEL_VERSION`
 
 Configuration variables are evaluated with precedence order. The preferred values are derived in order from highest to lowest precedence as follows:

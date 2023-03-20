@@ -320,6 +320,50 @@ function test_bazel_download_path_go() {
       (echo "FAIL: Expected to download bazel binary into specific path."; exit 1)
 }
 
+function test_bazel_verify_sha256() {
+  setup
+
+  echo "6.1.1" > .bazelversion
+
+  # First try to download and expect an invalid hash (it doesn't matter what it is).
+  if BAZELISK_HOME="$BAZELISK_HOME" BAZELISK_VERIFY_SHA256="invalid-hash" \
+      bazelisk version 2>&1 | tee log; then
+    echo "FAIL: Command should have errored out"; exit 1
+  fi
+
+  grep "need sha256=invalid-hash" log || \
+      (echo "FAIL: Expected to find hash mismatch"; exit 1)
+
+  # IMPORTANT: The mixture of lowercase and uppercase letters in the hashes below is
+  # intentional to ensure the variable contents are normalized before comparison.
+  # If updating these values, re-introduce randomness.
+  local os="$(uname -s | tr A-Z a-z)"
+  case "${os}" in
+    darwin)
+      expected_sha256="038e95BAE998340812562ab8d6ada1a187729630bc4940a4cd7920cc78acf156"
+      ;;
+    linux)
+      expected_sha256="651a20d85531325df406b38f38A1c2578c49D5e61128fba034f5b6abdb3d303f"
+      ;;
+    msys*|mingw*|cygwin*)
+      expected_sha256="1d997D344936a1d98784ae58db1152d083569556f85cd845e6e340EE855357f9"
+      ;;
+    *)
+      echo "FAIL: Unknown OS ${os} in test"
+      exit 1
+      ;;
+  esac
+
+  # Now try the same download as before but with the correct hash expectation. Note that the
+  # hash has a random uppercase / lowercase mixture to ensure this does not impact equality
+  # checks.
+  BAZELISK_HOME="$BAZELISK_HOME" BAZELISK_VERIFY_SHA256="${expected_sha256}" \
+      bazelisk version 2>&1 | tee log
+
+  grep "Build label:" log || \
+      (echo "FAIL: Expected to find 'Build label' in the output of 'bazelisk version'"; exit 1)
+}
+
 function test_bazel_download_path_py() {
   setup
 
@@ -409,6 +453,10 @@ if [[ $BAZELISK_VERSION == "GO" ]]; then
 
   echo '# test_bazel_download_path_go'
   test_bazel_download_path_go
+  echo
+
+  echo '# test_bazel_verify_sha256'
+  test_bazel_verify_sha256
   echo
 
   echo "# test_bazel_prepend_binary_directory_to_path_go"
