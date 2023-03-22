@@ -97,6 +97,8 @@ def find_workspace_root(root=None):
         root = os.getcwd()
     if os.path.exists(os.path.join(root, "WORKSPACE")):
         return root
+    if os.path.exists(os.path.join(root, "WORKSPACE.bazel")):
+        return root
     new_root = os.path.dirname(root)
     return find_workspace_root(new_root) if new_root != root else None
 
