@@ -743,10 +743,6 @@ type CompareResponse struct {
 	MergeBaseCommit Commit `json:"merge_base_commit"`
 }
 
-type Message struct {
-	Content string `json:"message"`
-}
-
 func sendRequest(url string) (*http.Response, error) {
 	client := &http.Client{}
 
