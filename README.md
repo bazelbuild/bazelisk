@@ -100,7 +100,9 @@ require users update their bazel.
 [shell wrapper script]: https://github.com/bazelbuild/bazel/blob/master/scripts/packages/bazel.sh
 ## Other features
 
-The Go version of Bazelisk offers two new flags.
+The Go version of Bazelisk offers three new flags.
+
+### --strict
 
 `--strict` expands to the set of incompatible flags which may be enabled for the given version of Bazel.
 
@@ -108,17 +110,32 @@ The Go version of Bazelisk offers two new flags.
 bazelisk --strict build //...
 ```
 
+### --migrate
+
 `--migrate` will run Bazel multiple times to help you identify compatibility issues.
 If the code fails with `--strict`, the flag `--migrate` will run Bazel with each one of the flag separately, and print a report at the end.
 This will show you which flags can safely enabled, and which flags require a migration.
+
+
+### --bisect
+
+`--bisect` flag allows you to bisect Bazel versions to find which version introduced a build failure. You can specify the range of versions to bisect with `--bisect=<GOOD>..<BAD>`, where GOOD is the last known working Bazel version and BAD is the first known non-working Bazel version. Bazelisk uses [GitHub's compare API](https://docs.github.com/en/rest/commits/commits#compare-two-commits) to get the list of commits to bisect. When GOOD is not an ancestor of BAD, GOOD is reset to their merge base commit.
+
+```shell
+bazelisk --bisect=6.0.0..HEAD test //foo:bar_test
+```
+
+### Useful environment variables
 
 You can set `BAZELISK_INCOMPATIBLE_FLAGS` to set a list of incompatible flags (separated by `,`) to be tested, otherwise Bazelisk tests all flags starting with `--incompatible_`.
 
 You can set `BAZELISK_GITHUB_TOKEN` to set a GitHub access token to use for API requests to avoid rate limiting when on shared networks.
 
-You can set `BAZELISK_SHUTDOWN` to run `shutdown` between builds when migrating if you suspect this affects your results.
+You can set `BAZELISK_SHUTDOWN` to run `shutdown` between builds when migrating or bisecting if you suspect this affects your results.
 
-You can set `BAZELISK_CLEAN` to run `clean --expunge` between builds when migrating if you suspect this affects your results.
+You can set `BAZELISK_CLEAN` to run `clean --expunge` between builds when migrating or bisecting if you suspect this affects your results.
+
+## tools/bazel
 
 If `tools/bazel` exists in your workspace root and is executable, Bazelisk will run this file, instead of the Bazel version it downloaded.
 It will set the environment variable `BAZEL_REAL` to the path of the downloaded Bazel binary.
