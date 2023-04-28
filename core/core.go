@@ -127,7 +127,7 @@ func RunBazeliskWithArgsFunc(argsFunc ArgsFunc, repos *Repositories) (int, error
 		}
 		if args[0] == "--migrate" {
 			migrate(bazelPath, args[1:], newFlags)
-		} else if args[0] == "--migrate" {
+		} else {
 			// When --strict is present, it expands to the list of --incompatible_ flags
 			// that should be enabled for the given Bazel version.
 			args = insertArgs(args[1:], newFlags)
