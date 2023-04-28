@@ -796,12 +796,10 @@ func getBazelCommitsBetween(goodCommit string, badCommit string) ([]string, erro
 			break
 		}
 
-		if page == 1 {
-			mergeBaseCommit := compareResponse.MergeBaseCommit.SHA
-			if compareResponse.MergeBaseCommit.SHA != goodCommit {
-				fmt.Printf("The good Bazel commit is not an ancestor of the bad Bazel commit, overriding the good Bazel commit to the merge base commit %s\n", mergeBaseCommit)
-				goodCommit = mergeBaseCommit
-			}
+		mergeBaseCommit := compareResponse.MergeBaseCommit.SHA
+		if compareResponse.MergeBaseCommit.SHA != goodCommit {
+			fmt.Printf("The good Bazel commit is not an ancestor of the bad Bazel commit, overriding the good Bazel commit to the merge base commit %s\n", mergeBaseCommit)
+			goodCommit = mergeBaseCommit
 		}
 
 		for _, commit := range compareResponse.Commits {
