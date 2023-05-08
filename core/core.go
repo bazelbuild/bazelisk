@@ -734,8 +734,13 @@ func cleanIfNeeded(bazelPath string, startupOptions []string) {
 	}
 }
 
+type ParentCommit struct {
+	SHA string `json:"sha"`
+}
+
 type Commit struct {
 	SHA string `json:"sha"`
+	PARENTS []ParentCommit `json:"parents"`
 }
 
 type CompareResponse struct {
@@ -803,7 +808,10 @@ func getBazelCommitsBetween(goodCommit string, badCommit string) ([]string, erro
 		}
 
 		for _, commit := range compareResponse.Commits {
-			commitList = append(commitList, commit.SHA)
+			// If it has only one parent commit, add it to the list, otherwise it's a merge commit and we ignore it
+			if len(commit.PARENTS) == 1 {
+				commitList = append(commitList, commit.SHA)
+			}
 		}
 
 		// Check if there are more commits to fetch
