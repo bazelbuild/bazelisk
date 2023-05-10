@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/bazelbuild/bazelisk/core"
 	"github.com/bazelbuild/bazelisk/httputil"
@@ -83,11 +84,14 @@ func listDirectoriesInReleaseBucket(prefix string) ([]string, bool, error) {
 		// Theoretically, this should always work, but we've seen transient
 		// errors on Bazel CI, so we retry a few times to work around this.
 		// https://github.com/bazelbuild/continuous-integration/issues/1627
+		waitTime := 100 * time.Microsecond
 		for attempt := 0; attempt < 5; attempt++ {
 			content, _, err = httputil.ReadRemoteFile(url, "")
 			if err == nil {
 				break
 			}
+			time.Sleep(waitTime)
+			waitTime *= 2
 		}
 
 		if err != nil {
