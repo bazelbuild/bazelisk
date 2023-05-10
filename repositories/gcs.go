@@ -77,7 +77,19 @@ func listDirectoriesInReleaseBucket(prefix string) ([]string, bool, error) {
 		if nextPageToken != "" {
 			url = fmt.Sprintf("%s&pageToken=%s", baseURL, nextPageToken)
 		}
-		content, _, err := httputil.ReadRemoteFile(url, "")
+
+		var content []byte
+		var err error
+		// Theoretically, this should always work, but we've seen transient
+		// errors on Bazel CI, so we retry a few times to work around this.
+		// https://github.com/bazelbuild/continuous-integration/issues/1627
+		for attempt := 0; attempt < 5; attempt++ {
+			content, _, err = httputil.ReadRemoteFile(url, "")
+			if err == nil {
+				break
+			}
+		}
+
 		if err != nil {
 			return nil, false, fmt.Errorf("could not list GCS objects at %s: %v", url, err)
 		}
