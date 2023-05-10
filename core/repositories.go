@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/bazelbuild/bazelisk/config"
 	"github.com/bazelbuild/bazelisk/httputil"
 	"github.com/bazelbuild/bazelisk/platforms"
 	"github.com/bazelbuild/bazelisk/versions"
@@ -235,7 +236,7 @@ func (r *Repositories) DownloadFromBaseURL(baseURL, version, destDir, destFile s
 	return httputil.DownloadBinary(url, destDir, destFile)
 }
 
-func BuildURLFromFormat(formatURL, version string) (string, error) {
+func BuildURLFromFormat(config config.Config, formatURL, version string) (string, error) {
 	osName, err := platforms.DetermineOperatingSystem()
 	if err != nil {
 		return "", err
@@ -261,7 +262,7 @@ func BuildURLFromFormat(formatURL, version string) (string, error) {
 			case 'e':
 				b.WriteString(platforms.DetermineExecutableFilenameSuffix())
 			case 'h':
-				b.WriteString(GetEnvOrConfig("BAZELISK_VERIFY_SHA256"))
+				b.WriteString(config.Get("BAZELISK_VERIFY_SHA256"))
 			case 'm':
 				b.WriteString(machineName)
 			case 'o':
@@ -281,12 +282,12 @@ func BuildURLFromFormat(formatURL, version string) (string, error) {
 }
 
 // DownloadFromFormatURL can download Bazel binaries from a specific URL while ignoring the predefined repositories.
-func (r *Repositories) DownloadFromFormatURL(formatURL, version, destDir, destFile string) (string, error) {
+func (r *Repositories) DownloadFromFormatURL(config config.Config, formatURL, version, destDir, destFile string) (string, error) {
 	if formatURL == "" {
 		return "", fmt.Errorf("%s is not set", FormatURLEnv)
 	}
 
-	url, err := BuildURLFromFormat(formatURL, version)
+	url, err := BuildURLFromFormat(config, formatURL, version)
 	if err != nil {
 		return "", err
 	}

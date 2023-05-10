@@ -3,9 +3,9 @@ package core
 import (
 	"errors"
 	"fmt"
-	"os"
 	"testing"
 
+	"github.com/bazelbuild/bazelisk/config"
 	"github.com/bazelbuild/bazelisk/platforms"
 )
 
@@ -24,18 +24,10 @@ func TestBuildURLFromFormat(t *testing.T) {
 
 	suffix := platforms.DetermineExecutableFilenameSuffix()
 
-	previousSha256, hadSha256 := os.LookupEnv("BAZELISK_VERIFY_SHA256")
 	sha256 := "SomeSha256ValueThatIsIrrelevant"
-	if err := os.Setenv("BAZELISK_VERIFY_SHA256", sha256); err != nil {
-		t.Fatalf("Failed to set BAZELISK_VERIFY_SHA256")
-	}
-	defer func() {
-		if hadSha256 {
-			os.Setenv("BAZELISK_VERIFY_SHA256", previousSha256)
-		} else {
-			os.Unsetenv("BAZELISK_VERIFY_SHA256")
-		}
-	}()
+	config := config.Static(map[string]string{
+		"BAZELISK_VERIFY_SHA256": sha256,
+	})
 
 	type test struct {
 		format  string
@@ -65,7 +57,7 @@ func TestBuildURLFromFormat(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		got, err := BuildURLFromFormat(tc.format, version)
+		got, err := BuildURLFromFormat(config, tc.format, version)
 		if fmt.Sprintf("%v", err) != fmt.Sprintf("%v", tc.wantErr) {
 			if got != "" {
 				t.Errorf("format '%s': got non-empty '%s' on error", tc.format, got)
