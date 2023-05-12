@@ -745,6 +745,7 @@ type Commit struct {
 
 type CompareResponse struct {
 	Commits []Commit `json:"commits"`
+	BaseCommit Commit `json:"base_commit"`
 	MergeBaseCommit Commit `json:"merge_base_commit"`
 }
 
@@ -764,7 +765,7 @@ func sendRequest(url string) (*http.Response, error) {
 	return client.Do(req)
 }
 
-func getBazelCommitsBetween(goodCommit string, badCommit string) ([]string, error) {
+func getBazelCommitsBetween(goodCommit string, badCommit string) (string, []string, error) {
 	commitList := make([]string, 0)
 	page := 1
 	perPage := 250 // 250 is the maximum number of commits per page
@@ -774,27 +775,27 @@ func getBazelCommitsBetween(goodCommit string, badCommit string) ([]string, erro
 
 		response, err := sendRequest(url)
 		if err != nil {
-			return nil, fmt.Errorf("Error fetching commit data: %v", err)
+			return goodCommit, nil, fmt.Errorf("Error fetching commit data: %v", err)
 		}
 		defer response.Body.Close()
 
 		body, err := ioutil.ReadAll(response.Body)
 		if err != nil {
-			return nil, fmt.Errorf("Error reading response body: %v", err)
+			return goodCommit, nil, fmt.Errorf("Error reading response body: %v", err)
 		}
 
 		if response.StatusCode == http.StatusNotFound {
-			return nil, fmt.Errorf("repository or commit not found: %s", string(body))
+			return goodCommit, nil, fmt.Errorf("repository or commit not found: %s", string(body))
 		} else if response.StatusCode == 403 {
-			return nil, fmt.Errorf("github API rate limit hit, consider setting BAZELISK_GITHUB_TOKEN: %s", string(body))
+			return goodCommit, nil, fmt.Errorf("github API rate limit hit, consider setting BAZELISK_GITHUB_TOKEN: %s", string(body))
 		} else if response.StatusCode != http.StatusOK {
-			return nil, fmt.Errorf("unexpected response status code %d: %s", response.StatusCode, string(body))
+			return goodCommit, nil, fmt.Errorf("unexpected response status code %d: %s", response.StatusCode, string(body))
 		}
 
 		var compareResponse CompareResponse
 		err = json.Unmarshal(body, &compareResponse)
 		if err != nil {
-			return nil, fmt.Errorf("Error unmarshaling JSON: %v", err)
+			return goodCommit, nil, fmt.Errorf("Error unmarshaling JSON: %v", err)
 		}
 
 		if len(compareResponse.Commits) == 0 {
@@ -802,7 +803,7 @@ func getBazelCommitsBetween(goodCommit string, badCommit string) ([]string, erro
 		}
 
 		mergeBaseCommit := compareResponse.MergeBaseCommit.SHA
-		if compareResponse.MergeBaseCommit.SHA != goodCommit {
+		if mergeBaseCommit != compareResponse.BaseCommit.SHA {
 			fmt.Printf("The good Bazel commit is not an ancestor of the bad Bazel commit, overriding the good Bazel commit to the merge base commit %s\n", mergeBaseCommit)
 			goodCommit = mergeBaseCommit
 		}
@@ -823,17 +824,17 @@ func getBazelCommitsBetween(goodCommit string, badCommit string) ([]string, erro
 	}
 
 	if len(commitList) == 0 {
-		return nil, fmt.Errorf("no commits found between (%s, %s], the good commit should be first, maybe try with --bisect=%s..%s ?", goodCommit, badCommit, badCommit, goodCommit)
+		return goodCommit, nil, fmt.Errorf("no commits found between (%s, %s], the good commit should be first, maybe try with --bisect=%s..%s ?", goodCommit, badCommit, badCommit, goodCommit)
 	}
 	fmt.Printf("Found %d commits between (%s, %s]\n", len(commitList), goodCommit, badCommit)
-	return commitList, nil
+	return goodCommit, commitList, nil
 }
 
 func bisect(goodCommit string, badCommit string, args []string, bazeliskHome string, repos *Repositories) {
 
 	// 1. Get the list of commits between goodCommit and badCommit
 	fmt.Printf("\n\n--- Getting the list of commits between %s and %s\n\n", goodCommit, badCommit)
-	commitList, err := getBazelCommitsBetween(goodCommit, badCommit)
+	goodCommit, commitList, err := getBazelCommitsBetween(goodCommit, badCommit)
 	if err != nil {
 		log.Fatalf("Failed to get commits: %v", err)
 		os.Exit(1)
