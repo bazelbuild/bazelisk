@@ -125,7 +125,9 @@ This will show you which flags can safely enabled, and which flags require a mig
 bazelisk --bisect=6.0.0..HEAD test //foo:bar_test
 ```
 
-### Useful environment variables
+Note that, Bazelisk uses prebuilt Bazel binaries at commits on the main and release branches, therefore you cannot bisect your local commits.
+
+### Useful environment variables for --migrate and --bisect
 
 You can set `BAZELISK_INCOMPATIBLE_FLAGS` to set a list of incompatible flags (separated by `,`) to be tested, otherwise Bazelisk tests all flags starting with `--incompatible_`.
 
