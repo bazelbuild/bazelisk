@@ -13,6 +13,9 @@ import (
 const (
 	// BaseURLEnv is the name of the environment variable that stores the base URL for downloads.
 	BaseURLEnv = "BAZELISK_BASE_URL"
+
+	// FormatURLEnv is the name of the environment variable that stores the format string to generate URLs for downloads.
+	FormatURLEnv = "BAZELISK_FORMAT_URL"
 )
 
 // DownloadFunc downloads a specific Bazel binary to the given location and returns the absolute path.
@@ -229,6 +232,65 @@ func (r *Repositories) DownloadFromBaseURL(baseURL, version, destDir, destFile s
 	}
 
 	url := fmt.Sprintf("%s/%s/%s", baseURL, version, srcFile)
+	return httputil.DownloadBinary(url, destDir, destFile)
+}
+
+func BuildURLFromFormat(formatURL, version string) (string, error) {
+	osName, err := platforms.DetermineOperatingSystem()
+	if err != nil {
+		return "", err
+	}
+
+	machineName, err := platforms.DetermineArchitecture(osName, version)
+	if err != nil {
+		return "", err
+	}
+
+	var b strings.Builder
+	b.Grow(len(formatURL) * 2) // Approximation.
+	for i := 0; i < len(formatURL); i++ {
+		ch := formatURL[i]
+		if ch == '%' {
+			i++
+			if i == len(formatURL) {
+				return "", errors.New("trailing %")
+			}
+
+			ch = formatURL[i]
+			switch ch {
+			case 'e':
+				b.WriteString(platforms.DetermineExecutableFilenameSuffix())
+			case 'h':
+				b.WriteString(GetEnvOrConfig("BAZELISK_VERIFY_SHA256"))
+			case 'm':
+				b.WriteString(machineName)
+			case 'o':
+				b.WriteString(osName)
+			case 'v':
+				b.WriteString(version)
+			case '%':
+				b.WriteByte('%')
+			default:
+				return "", fmt.Errorf("unknown placeholder %%%c", ch)
+			}
+		} else {
+			b.WriteByte(ch)
+		}
+	}
+	return b.String(), nil
+}
+
+// DownloadFromFormatURL can download Bazel binaries from a specific URL while ignoring the predefined repositories.
+func (r *Repositories) DownloadFromFormatURL(formatURL, version, destDir, destFile string) (string, error) {
+	if formatURL == "" {
+		return "", fmt.Errorf("%s is not set", FormatURLEnv)
+	}
+
+	url, err := BuildURLFromFormat(formatURL, version)
+	if err != nil {
+		return "", err
+	}
+
 	return httputil.DownloadBinary(url, destDir, destFile)
 }
 

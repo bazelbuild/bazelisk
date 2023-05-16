@@ -19,6 +19,9 @@ go_library(
 
 go_test(
     name = "go_default_test",
-    srcs = ["core_test.go"],
+    srcs = [
+        "core_test.go",
+        "repositories_test.go",
+    ],
     embed = [":go_default_library"],
 )
