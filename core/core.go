@@ -5,6 +5,7 @@ package core
 
 import (
 	"bufio"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
@@ -416,73 +417,123 @@ func downloadBazel(bazelVersionString string, bazeliskHome string, repos *Reposi
 		bazelForkOrURL = bazelFork
 	}
 
-	baseDirectory := filepath.Join(bazeliskHome, "downloads", bazelForkOrURL)
-	bazelPath, err := downloadBazelIfNecessary(resolvedBazelVersion, baseDirectory, repos, downloader)
+	bazelPath, err := downloadBazelIfNecessary(resolvedBazelVersion, bazeliskHome, bazelForkOrURL, repos, downloader)
 	return bazelPath, err
 }
 
-func downloadBazelIfNecessary(version string, baseDirectory string, repos *Repositories, downloader DownloadFunc) (string, error) {
+// downloadBazelIfNecessary returns a path to a bazel which can be run, which may have been cached.
+// The directory it returns may depend on version and bazeliskHome, but does not depend on bazelForkOrURLDirName.
+// This is important, as the directory may be added to $PATH, and varying the path for equivalent files may cause unnecessary repository rule cache invalidations.
+// Where a file was downloaded from shouldn't affect cache behaviour of Bazel invocations.
+//
+// The structure of the downloads directory is as follows ([]s indicate variables):
+//
+//	downloads/metadata/[fork-or-url]/bazel-[version-os-etc] is a text file containing a hex sha256 of the contents of the downloaded bazel file.
+//	downloads/sha256/[sha256]/bin/bazel[extension] contains the bazel with a particular sha256.
+func downloadBazelIfNecessary(version string, bazeliskHome string, bazelForkOrURLDirName string, repos *Repositories, downloader DownloadFunc) (string, error) {
 	pathSegment, err := platforms.DetermineBazelFilename(version, false)
 	if err != nil {
 		return "", fmt.Errorf("could not determine path segment to use for Bazel binary: %v", err)
 	}
-
-	destDir := filepath.Join(baseDirectory, pathSegment, "bin")
-	expectedSha256 := strings.ToLower(GetEnvOrConfig("BAZELISK_VERIFY_SHA256"))
-
-	tmpDestFile := "bazel-tmp" + platforms.DetermineExecutableFilenameSuffix()
 	destFile := "bazel" + platforms.DetermineExecutableFilenameSuffix()
 
-	destPath := filepath.Join(destDir, destFile)
-	if _, err := os.Stat(destPath); err == nil {
-		return destPath, nil
+	mappingPath := filepath.Join(bazeliskHome, "downloads", "metadata", bazelForkOrURLDirName, pathSegment)
+	digestFromMappingFile, err := os.ReadFile(mappingPath)
+	if err == nil {
+		pathToBazelInCAS := filepath.Join(bazeliskHome, "downloads", "sha256", string(digestFromMappingFile), "bin", destFile)
+		if _, err := os.Stat(pathToBazelInCAS); err == nil {
+			return pathToBazelInCAS, nil
+		}
 	}
 
+	pathToBazelInCAS, downloadedDigest, err := downloadBazelToCAS(version, bazeliskHome, repos, downloader)
+	if err != nil {
+		return "", fmt.Errorf("failed to download bazel: %w", err)
+	}
+
+	expectedSha256 := strings.ToLower(GetEnvOrConfig("BAZELISK_VERIFY_SHA256"))
+	if len(expectedSha256) > 0 {
+		if expectedSha256 != downloadedDigest {
+			return "", fmt.Errorf("%s has sha256=%s but need sha256=%s", pathToBazelInCAS, downloadedDigest, expectedSha256)
+		}
+	}
+
+	if err := atomicWriteFile(mappingPath, []byte(downloadedDigest), 0644); err != nil {
+		return "", fmt.Errorf("failed to write mapping file after downloading bazel: %w", err)
+	}
+
+	return pathToBazelInCAS, nil
+}
+
+func atomicWriteFile(path string, contents []byte, perm os.FileMode) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		return fmt.Errorf("failed to MkdirAll parent of %s: %w", path, err)
+	}
+	tmpPath := path + ".tmp"
+	if err := os.WriteFile(tmpPath, contents, perm); err != nil {
+		return fmt.Errorf("failed to write file %s: %w", tmpPath, err)
+	}
+	if err := os.Rename(tmpPath, path); err != nil {
+		return fmt.Errorf("failed to rename %s to %s: %w", tmpPath, path, err)
+	}
+	return nil
+}
+
+func downloadBazelToCAS(version string, bazeliskHome string, repos *Repositories, downloader DownloadFunc) (string, string, error) {
+	downloadsDir := filepath.Join(bazeliskHome, "downloads")
+	temporaryDownloadDir := filepath.Join(downloadsDir, "_tmp")
+	casDir := filepath.Join(bazeliskHome, "downloads", "sha256")
+
+	tmpDestFileBytes := make([]byte, 32)
+	if _, err := rand.Read(tmpDestFileBytes); err != nil {
+		return "", "", fmt.Errorf("failed to generate temporary file name: %w", err)
+	}
+	tmpDestFile := fmt.Sprintf("%x", tmpDestFileBytes)
+
 	var tmpDestPath string
+	var err error
 	baseURL := GetEnvOrConfig(BaseURLEnv)
 	formatURL := GetEnvOrConfig(FormatURLEnv)
 	if baseURL != "" && formatURL != "" {
-		return "", fmt.Errorf("cannot set %s and %s at once", BaseURLEnv, FormatURLEnv)
+		return "", "", fmt.Errorf("cannot set %s and %s at once", BaseURLEnv, FormatURLEnv)
 	} else if formatURL != "" {
-		tmpDestPath, err = repos.DownloadFromFormatURL(formatURL, version, destDir, tmpDestFile)
+		tmpDestPath, err = repos.DownloadFromFormatURL(formatURL, version, temporaryDownloadDir, tmpDestFile)
 	} else if baseURL != "" {
-		tmpDestPath, err = repos.DownloadFromBaseURL(baseURL, version, destDir, tmpDestFile)
+		tmpDestPath, err = repos.DownloadFromBaseURL(baseURL, version, temporaryDownloadDir, tmpDestFile)
 	} else {
-		tmpDestPath, err = downloader(destDir, tmpDestFile)
+		tmpDestPath, err = downloader(temporaryDownloadDir, tmpDestFile)
 	}
 	if err != nil {
-		return "", err
+		return "", "", fmt.Errorf("failed to download bazel: %w", err)
 	}
 
-	if len(expectedSha256) > 0 {
-		f, err := os.Open(tmpDestPath)
-		if err != nil {
-			os.Remove(tmpDestPath)
-			return "", fmt.Errorf("cannot open %s after download: %v", tmpDestPath, err)
-		}
-		defer os.Remove(tmpDestPath)
-		// We cannot defer f.Close() because keeping the handle open when we try to do the
-		// rename later on fails on Windows.
+	f, err := os.Open(tmpDestPath)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to open downloaded bazel to digest it: %w", err)
+	}
 
-		h := sha256.New()
-		if _, err := io.Copy(h, f); err != nil {
-			f.Close()
-			return "", fmt.Errorf("cannot compute sha256 of %s after download: %v", tmpDestPath, err)
-		}
+	h := sha256.New()
+	if _, err := io.Copy(h, f); err != nil {
 		f.Close()
+		return "", "", fmt.Errorf("cannot compute sha256 of %s after download: %v", tmpDestPath, err)
+	}
+	f.Close()
+	actualSha256 := strings.ToLower(fmt.Sprintf("%x", h.Sum(nil)))
 
-		actualSha256 := strings.ToLower(fmt.Sprintf("%x", h.Sum(nil)))
-		if expectedSha256 != actualSha256 {
-			return "", fmt.Errorf("%s has sha256=%s but need sha256=%s", tmpDestPath, actualSha256, expectedSha256)
-		}
+	pathToBazelInCAS := filepath.Join(casDir, actualSha256, "bin", "bazel"+platforms.DetermineExecutableFilenameSuffix())
+	if err := os.MkdirAll(filepath.Dir(pathToBazelInCAS), 0755); err != nil {
+		return "", "", fmt.Errorf("failed to MkdirAll parent of %s: %w", pathToBazelInCAS, err)
 	}
 
-	// Only place the downloaded binary in its final location once we know it is fully downloaded
-	// and valid, to prevent invalid files from ever being executed.
-	if err = os.Rename(tmpDestPath, destPath); err != nil {
-		return "", fmt.Errorf("cannot rename %s to %s: %v", tmpDestPath, destPath, err)
+	tmpPathInCorrectDirectory := pathToBazelInCAS + ".tmp"
+	if err := os.Rename(tmpDestPath, tmpPathInCorrectDirectory); err != nil {
+		return "", "", fmt.Errorf("failed to move %s to %s: %w", tmpDestPath, tmpPathInCorrectDirectory, err)
 	}
-	return destPath, nil
+	if err := os.Rename(tmpPathInCorrectDirectory, pathToBazelInCAS); err != nil {
+		return "", "", fmt.Errorf("failed to move %s to %s: %w", tmpPathInCorrectDirectory, pathToBazelInCAS, err)
+	}
+
+	return pathToBazelInCAS, actualSha256, nil
 }
 
 func copyFile(src, dst string, perm os.FileMode) error {
