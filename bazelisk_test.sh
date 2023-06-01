@@ -299,6 +299,52 @@ EOF
       (echo "FAIL: Expected to find 'BAZELISK_SKIP_WRAPPER=true' in the output of 'bazelisk version'"; exit 1)
 }
 
+function test_path_is_consistent_regardless_of_base_url() {
+  setup
+
+  echo 6.2.0 > .bazelversion
+
+  cat >WORKSPACE <<EOF
+load("//:print_path.bzl", "print_path")
+
+print_path(name = "print_path")
+
+load("@print_path//:defs.bzl", "noop")
+
+noop()
+EOF
+
+cat >print_path.bzl <<EOF
+def _print_path_impl(rctx):
+    print("PATH is: {}".format(rctx.os.environ["PATH"]))
+
+    rctx.file("WORKSPACE", "")
+    rctx.file("BUILD", "")
+    rctx.file("defs.bzl", "def noop(): pass")
+
+print_path = repository_rule(
+    implementation = _print_path_impl,
+)
+EOF
+
+  BAZELISK_HOME="$BAZELISK_HOME" bazelisk sync --only=print_path 2>&1 | tee log1
+
+  BAZELISK_HOME="$BAZELISK_HOME" bazelisk clean --expunge 2>&1
+
+  # We need a separate mirror of bazel binaries, which has identical files.
+  # Ideally we wouldn't depend on sourceforge for test runtime, but hey, it exists and it works.
+  BAZELISK_HOME="$BAZELISK_HOME" BAZELISK_BASE_URL=https://downloads.sourceforge.net/project/bazel.mirror bazelisk sync --only=print_path 2>&1 | tee log2
+
+  path1="$(grep "PATH is:" log1)"
+  path2="$(grep "PATH is:" log2)"
+
+  [[ -n "${path1}" && -n "${path2}" ]] || \
+      (echo "FAIL: Expected PATH to be non-empty, got path1=${path1}, path2=${path2}"; exit 1)
+
+  [[ "${path1}" == "${path2}" ]] || \
+      (echo "FAIL: Expected PATH to be the same regardless of which mirror was used, got path1=${path1}, path2=${path2}"; exit 1)
+}
+
 function test_skip_wrapper() {
   setup
 
@@ -327,10 +373,10 @@ function test_bazel_download_path_go() {
   BAZELISK_HOME="$BAZELISK_HOME" \
       bazelisk version 2>&1 | tee log
 
-  find "$BAZELISK_HOME/downloads/bazelbuild" 2>&1 | tee log
+  find "$BAZELISK_HOME/downloads/metadata/bazelbuild" 2>&1 | tee log
 
-  grep "^$BAZELISK_HOME/downloads/bazelbuild/bazel-[0-9][0-9]*.[0-9][0-9]*.[0-9][0-9]*-[a-z0-9_-]*/bin/bazel\(.exe\)\?$" log || \
-      (echo "FAIL: Expected to download bazel binary into specific path."; exit 1)
+  grep "^$BAZELISK_HOME/downloads/metadata/bazelbuild/bazel-[0-9][0-9]*.[0-9][0-9]*.[0-9][0-9]*-[a-z0-9_-]*$" log || \
+      (echo "FAIL: Expected to download bazel metadata in specific path."; exit 1)
 }
 
 function test_bazel_verify_sha256() {
@@ -395,8 +441,26 @@ function test_bazel_prepend_binary_directory_to_path_go() {
   BAZELISK_HOME="$BAZELISK_HOME" \
       bazelisk --print_env 2>&1 | tee log
 
-  PATTERN=$(echo "^PATH=$BAZELISK_HOME/downloads/bazelbuild/bazel-[0-9][0-9]*.[0-9][0-9]*.[0-9][0-9]*-[a-z0-9_-]*/bin[:;]" | sed -e 's/\//\[\/\\\\\]/g')
-  grep "$PATTERN" log || \
+  local os="$(uname -s | tr A-Z a-z)"
+  case "${os}" in
+      darwin|linux)
+        path_entry_delimiter=":"
+        path_delimiter="/"
+        extension=""
+        ;;
+      msys*|mingw*|cygwin*)
+        path_entry_delimiter=";"
+        path_delimiter="\\"
+        extension=".exe"
+        ;;
+      *)
+        echo "FAIL: Unknown OS ${os} in test"
+        exit 1
+        ;;
+    esac
+  path_entry="$(grep "^PATH=" log | cut -d= -f2- | cut -d"${path_entry_delimiter}" -f1)"
+
+  [[ -x "${path_entry}${path_delimiter}bazel${extension}" ]] || \
       (echo "FAIL: Expected PATH to contains bazel binary directory."; exit 1)
 }
 
@@ -478,6 +542,10 @@ if [[ $BAZELISK_VERSION == "GO" ]]; then
 
   echo "# test_bazel_prepend_binary_directory_to_path_go"
   test_bazel_prepend_binary_directory_to_path_go
+  echo
+
+  echo "# test_path_is_consistent_regardless_of_base_url"
+  test_path_is_consistent_regardless_of_base_url
   echo
 
   case "$(uname -s)" in
