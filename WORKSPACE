@@ -44,10 +44,9 @@ go_repository(
 
 go_repository(
     name = "com_github_bgentry_go_netrc",
-    importpath = "github.com/bgentry/go-netrc/netrc",
-    urls = ["https://github.com/bgentry/go-netrc/archive/9fd32a8.zip"],
-    type = "zip",
-    strip_prefix = "go-netrc-9fd32a8b3d3d3f9d43c341bfe098430e07609480/netrc",
+    importpath = "github.com/bgentry/go-netrc",
+    sum = "h1:xDfNPAt8lFiC1UJrqV3uuy861HCTo708pDMbjHHdCas=",
+    version = "v0.0.0-20140422174119-9fd32a8b3d3d",
 )
 
 go_rules_dependencies()
