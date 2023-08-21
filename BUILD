@@ -154,6 +154,7 @@ go_binary(
 pkg_npm(
     name = "npm_package",
     package_name = "@bazel/bazelisk",
+    substitutions = {"0.0.0-PLACEHOLDER": "{BUILD_SCM_VERSION}"},
     srcs = [
         "LICENSE",
         "README.md",
