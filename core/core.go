@@ -106,7 +106,7 @@ func RunBazeliskWithArgsFuncAndConfig(argsFunc ArgsFunc, repos *Repositories, co
 		return -1, fmt.Errorf("could not create directory %s: %v", bazeliskHome, err)
 	}
 
-	bazelVersionString, err := getBazelVersion(config)
+	bazelVersionString, err := GetBazelVersion(config)
 	if err != nil {
 		return -1, fmt.Errorf("could not get Bazel version: %v", err)
 	}
@@ -230,7 +230,7 @@ func cutString(s, sep string) (before, after string, found bool) {
 	return s, "", false
 }
 
-func getBazelVersion(config config.Config) (string, error) {
+func GetBazelVersion(config config.Config) (string, error) {
 	// Check in this order:
 	// - env var "USE_BAZEL_VERSION" is set to a specific version.
 	// - workspace_root/.bazeliskrc exists -> read contents, in contents:
