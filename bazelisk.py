@@ -379,7 +379,7 @@ def download(url, destination_path, retries=5, wait_seconds=5):
         finally:
             time.sleep(wait_seconds)
     else:
-        raise RuntimeError("all attempts to download Bazel binary failed")
+        raise RuntimeError("all attempts to download Bazel remote resource failed")
 
 
 def get_bazelisk_directory():
