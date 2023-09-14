@@ -339,29 +339,32 @@ def download_bazel_into_directory(version, is_commit, directory):
 
 
 def download(url, destination_path, retries=5, wait_seconds=5):
-    while retries > 0:
-        retries -= 1
+    request = Request(url)
+    if "BAZELISK_BASE_URL" in os.environ:
+        parts = urlparse(url)
+
+        # Include credentials in the request if found.
+        creds = None
+        try:
+            creds = netrc.netrc().hosts.get(parts.netloc)
+        except Exception:
+            pass
+        if creds is not None:
+            auth = base64.b64encode(("%s:%s" % (creds[0], creds[2])).encode("ascii"))
+            request.add_header("Authorization", "Basic %s" % auth.decode("utf-8"))
+
+    # Attempt to download the Bazel binary with a rudimentary retry implementation.
+    for _ in range(retries):
         try:
             sys.stderr.write("Downloading {}...\n".format(url))
-            request = Request(url)
-            if "BAZELISK_BASE_URL" in os.environ:
-                parts = urlparse(url)
-                creds = None
-                try:
-                    creds = netrc.netrc().hosts.get(parts.netloc)
-                except Exception:
-                    pass
-                if creds is not None:
-                    auth = base64.b64encode(("%s:%s" % (creds[0], creds[2])).encode("ascii"))
-                    request.add_header("Authorization", "Basic %s" % auth.decode("utf-8"))
-
             with closing(urlopen(request)) as response, open(destination_path, "wb") as file:
                 shutil.copyfileobj(response, file)
                 return
-        except Exception:
-            if retries <= 0:
-                raise
+        except Exception as ex:
+            print("failed to download Bazel binary: {}".format(ex))
             time.sleep(wait_seconds)
+    else:
+        raise RuntimeError("all attempts to download Bazel binary failed")
 
 
 def get_bazelisk_directory():
