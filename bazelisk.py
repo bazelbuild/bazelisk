@@ -382,7 +382,7 @@ def download(url, destination_path, retries=5, wait_seconds=5):
             finally:
                 response.close()
         except Exception as ex:
-            print("failed to download Bazel binary: {}".format(ex))
+            print("failed to download Bazel resource: {}".format(ex))
         finally:
             time.sleep(wait_seconds)
     else:
