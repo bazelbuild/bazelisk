@@ -292,6 +292,10 @@ def trim_suffix(string, suffix):
 
 
 def download_bazel_into_directory(version, is_commit, directory):
+    # Obtain configuration settings to control download retry logic.
+    retry_attempts = int(os.getenv(key="BAZELISK_DOWNLOAD_RETRY_ATTEMPTS", default="5"))
+    retry_wait_secs = int(os.getenv(key="BAZELISK_DOWNLOAD_RETRY_WAIT_SECS", default="5"))
+
     bazel_filename = determine_bazel_filename(version)
     bazel_url = determine_url(version, is_commit, bazel_filename)
 
@@ -302,14 +306,24 @@ def download_bazel_into_directory(version, is_commit, directory):
 
     destination_path = os.path.join(destination_dir, "bazel" + filename_suffix)
     if not os.path.exists(destination_path):
-        download(bazel_url, destination_path)
+        download(
+            url=bazel_url,
+            destination_path=destination_path,
+            retries=retry_attempts,
+            wait_seconds=retry_wait_secs,
+        )
         os.chmod(destination_path, 0o755)
 
     sha256_path = destination_path + ".sha256"
     expected_hash = ""
     if not os.path.exists(sha256_path):
         try:
-            download(bazel_url + ".sha256", sha256_path)
+            download(
+                url=bazel_url + ".sha256",
+                destination_path=sha256_path,
+                retries=retry_attempts,
+                wait_seconds=retry_wait_secs,
+            )
         except HTTPError as e:
             if e.code == 404:
                 sys.stderr.write(
