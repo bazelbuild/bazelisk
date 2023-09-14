@@ -371,16 +371,18 @@ def download(url, destination_path, retries=5, wait_seconds=5):
     for _ in range(retries):
         try:
             sys.stderr.write("Downloading {}...\n".format(url))
+            response = None
             try:
                 response = urlopen(request)
                 with open(destination_path, "wb") as file:
                     shutil.copyfileobj(response, file)
                     return
-            except HTTPError as exception:
-                if exception.code == 404:
-                    raise
             finally:
-                response.close()
+                if response:
+                    response.close()
+        except HTTPError as ex:
+            if ex.code == 404:
+                raise
         except Exception as ex:
             print("failed to download Bazel resource: {}".format(ex))
         finally:
