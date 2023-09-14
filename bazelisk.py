@@ -362,6 +362,7 @@ def download(url, destination_path, retries=5, wait_seconds=5):
                 return
         except Exception as ex:
             print("failed to download Bazel binary: {}".format(ex))
+        finally:
             time.sleep(wait_seconds)
     else:
         raise RuntimeError("all attempts to download Bazel binary failed")
