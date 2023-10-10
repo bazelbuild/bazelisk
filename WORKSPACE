@@ -25,7 +25,7 @@ go_repository(
     name = "com_github_bazelbuild_rules_go",
     importpath = "github.com/bazelbuild/rules_go",
     sum = "h1:vbnESGv/t2WgGEbXatwbXAS95dTx93Lv6Uh5QkVF13s=",
-    version = "v0.37.0",
+    version = "v0.42.0",
 )
 
 go_repository(
