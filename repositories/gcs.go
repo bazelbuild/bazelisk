@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bazelbuild/bazelisk/config"
 	"github.com/bazelbuild/bazelisk/core"
 	"github.com/bazelbuild/bazelisk/httputil"
 	"github.com/bazelbuild/bazelisk/platforms"
@@ -137,14 +138,14 @@ type GcsListResponse struct {
 }
 
 // DownloadRelease downloads the given Bazel release into the specified location and returns the absolute path.
-func (gcs *GCSRepo) DownloadRelease(version, destDir, destFile string) (string, error) {
+func (gcs *GCSRepo) DownloadRelease(version, destDir, destFile string, config config.Config) (string, error) {
 	srcFile, err := platforms.DetermineBazelFilename(version, true)
 	if err != nil {
 		return "", err
 	}
 
 	url := fmt.Sprintf("%s/%s/release/%s", candidateBaseURL, version, srcFile)
-	return httputil.DownloadBinary(url, destDir, destFile)
+	return httputil.DownloadBinary(url, destDir, destFile, config)
 }
 
 func (gcs *GCSRepo) removeCandidates(history []string, filter core.ReleaseFilter) ([]string, error) {
@@ -229,7 +230,7 @@ func (gcs *GCSRepo) GetCandidateVersions(bazeliskHome string) ([]string, error) 
 }
 
 // DownloadCandidate downloads the given release candidate into the specified location and returns the absolute path.
-func (gcs *GCSRepo) DownloadCandidate(version, destDir, destFile string) (string, error) {
+func (gcs *GCSRepo) DownloadCandidate(version, destDir, destFile string, config config.Config) (string, error) {
 	if !strings.Contains(version, "rc") {
 		return "", fmt.Errorf("'%s' does not refer to a release candidate", version)
 	}
@@ -243,7 +244,7 @@ func (gcs *GCSRepo) DownloadCandidate(version, destDir, destFile string) (string
 	baseVersion := versionComponents[0]
 	rcVersion := "rc" + versionComponents[1]
 	url := fmt.Sprintf("%s/%s/%s/%s", candidateBaseURL, baseVersion, rcVersion, srcFile)
-	return httputil.DownloadBinary(url, destDir, destFile)
+	return httputil.DownloadBinary(url, destDir, destFile, config)
 }
 
 // CommitRepo
@@ -261,14 +262,14 @@ func (gcs *GCSRepo) GetLastGreenCommit(bazeliskHome string, downstreamGreen bool
 }
 
 // DownloadAtCommit downloads a Bazel binary built at the given commit into the specified location and returns the absolute path.
-func (gcs *GCSRepo) DownloadAtCommit(commit, destDir, destFile string) (string, error) {
+func (gcs *GCSRepo) DownloadAtCommit(commit, destDir, destFile string, config config.Config) (string, error) {
 	log.Printf("Using unreleased version at commit %s", commit)
 	platform, err := platforms.GetPlatform()
 	if err != nil {
 		return "", err
 	}
 	url := fmt.Sprintf("%s/%s/%s/bazel", nonCandidateBaseURL, platform, commit)
-	return httputil.DownloadBinary(url, destDir, destFile)
+	return httputil.DownloadBinary(url, destDir, destFile, config)
 }
 
 // RollingRepo
@@ -297,7 +298,7 @@ func (gcs *GCSRepo) GetRollingVersions(bazeliskHome string) ([]string, error) {
 }
 
 // DownloadRolling downloads the given Bazel version into the specified location and returns the absolute path.
-func (gcs *GCSRepo) DownloadRolling(version, destDir, destFile string) (string, error) {
+func (gcs *GCSRepo) DownloadRolling(version, destDir, destFile string, config config.Config) (string, error) {
 	srcFile, err := platforms.DetermineBazelFilename(version, true)
 	if err != nil {
 		return "", err
@@ -305,5 +306,5 @@ func (gcs *GCSRepo) DownloadRolling(version, destDir, destFile string) (string, 
 
 	releaseVersion := strings.Split(version, "-")[0]
 	url := fmt.Sprintf("%s/%s/rolling/%s/%s", candidateBaseURL, releaseVersion, version, srcFile)
-	return httputil.DownloadBinary(url, destDir, destFile)
+	return httputil.DownloadBinary(url, destDir, destFile, config)
 }

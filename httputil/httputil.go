@@ -18,6 +18,9 @@ import (
 
 	netrc "github.com/bgentry/go-netrc/netrc"
 	homedir "github.com/mitchellh/go-homedir"
+
+	"github.com/bazelbuild/bazelisk/config"
+	"github.com/bazelbuild/bazelisk/httputil/progress"
 )
 
 var (
@@ -167,7 +170,7 @@ func tryFindNetrcFileCreds(host string) (string, error) {
 }
 
 // DownloadBinary downloads a file from the given URL into the specified location, marks it executable and returns its full path.
-func DownloadBinary(originURL, destDir, destFile string) (string, error) {
+func DownloadBinary(originURL, destDir, destFile string, config config.Config) (string, error) {
 	err := os.MkdirAll(destDir, 0755)
 	if err != nil {
 		return "", fmt.Errorf("could not create directory %s: %v", destDir, err)
@@ -211,7 +214,11 @@ func DownloadBinary(originURL, destDir, destFile string) (string, error) {
 			return "", fmt.Errorf("HTTP GET %s failed with error %v", originURL, resp.StatusCode)
 		}
 
-		_, err = io.Copy(tmpfile, resp.Body)
+		_, err = io.Copy(
+			// Add a progress bar during download.
+			progress.Writer(tmpfile, "Downloading", resp.ContentLength, config),
+			resp.Body)
+		progress.Finish(config)
 		if err != nil {
 			return "", fmt.Errorf("could not copy from %s to %s: %v", originURL, tmpfile.Name(), err)
 		}

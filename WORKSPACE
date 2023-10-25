@@ -49,6 +49,20 @@ go_repository(
     version = "v0.0.0-20140422174119-9fd32a8b3d3d",
 )
 
+go_repository(
+    name = "org_golang_x_term",
+    importpath = "golang.org/x/term",
+    sum = "h1:bb+I9cTfFazGW51MZqBVmZy7+JEJMouUHTUSKVQLBek=",
+    version = "v0.13.0",
+)
+
+go_repository(
+    name = "org_golang_x_sys",
+    importpath = "golang.org/x/sys",
+    sum = "h1:Af8nKPmuFypiUBjVoU9V20FiaFXOcuZI21p0ycVYYGE=",
+    version = "v0.13.0",
+)
+
 go_rules_dependencies()
 
 go_register_toolchains(version = "1.19.4")
