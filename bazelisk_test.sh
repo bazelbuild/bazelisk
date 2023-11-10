@@ -544,9 +544,10 @@ if [[ $BAZELISK_VERSION == "GO" ]]; then
   test_bazel_prepend_binary_directory_to_path_go
   echo
 
-  echo "# test_path_is_consistent_regardless_of_base_url"
-  test_path_is_consistent_regardless_of_base_url
-  echo
+  # Disabled due to https://github.com/bazelbuild/bazelisk/pull/465#issuecomment-1805905082
+  # echo "# test_path_is_consistent_regardless_of_base_url"
+  # test_path_is_consistent_regardless_of_base_url
+  # echo
 
   case "$(uname -s)" in
     MSYS*)
