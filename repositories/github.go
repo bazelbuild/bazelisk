@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/bazelbuild/bazelisk/config"
 	"github.com/bazelbuild/bazelisk/httputil"
 	"github.com/bazelbuild/bazelisk/platforms"
 )
@@ -84,11 +85,11 @@ type gitHubRelease struct {
 }
 
 // DownloadVersion downloads a Bazel binary for the given version and fork to the specified location and returns the absolute path.
-func (gh *GitHubRepo) DownloadVersion(fork, version, destDir, destFile string) (string, error) {
+func (gh *GitHubRepo) DownloadVersion(fork, version, destDir, destFile string, config config.Config) (string, error) {
 	filename, err := platforms.DetermineBazelFilename(version, true)
 	if err != nil {
 		return "", err
 	}
 	url := fmt.Sprintf(urlPattern, fork, version, filename)
-	return httputil.DownloadBinary(url, destDir, destFile)
+	return httputil.DownloadBinary(url, destDir, destFile, config)
 }

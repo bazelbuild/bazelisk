@@ -58,6 +58,7 @@ go_test(
     embed = [":go_default_library"],
     importpath = "github.com/bazelbuild/bazelisk",
     deps = [
+        "//config:go_default_library",
         "//core:go_default_library",
         "//httputil:go_default_library",
         "//repositories:go_default_library",
@@ -154,7 +155,6 @@ go_binary(
 pkg_npm(
     name = "npm_package",
     package_name = "@bazel/bazelisk",
-    substitutions = {"0.0.0-PLACEHOLDER": "{BUILD_SCM_VERSION}"},
     srcs = [
         "LICENSE",
         "README.md",
@@ -162,6 +162,7 @@ pkg_npm(
         "bazelisk.js",
         "package.json",
     ],
+    substitutions = {"0.0.0-PLACEHOLDER": "{BUILD_SCM_VERSION}"},
     deps = [
         ":bazelisk-darwin-amd64",
         ":bazelisk-darwin-arm64",

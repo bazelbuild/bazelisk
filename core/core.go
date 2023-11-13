@@ -322,7 +322,7 @@ func downloadBazel(bazelVersionString string, bazeliskHome string, repos *Reposi
 		return "", fmt.Errorf("could not parse Bazel fork and version: %v", err)
 	}
 
-	resolvedBazelVersion, downloader, err := repos.ResolveVersion(bazeliskHome, bazelFork, bazelVersion)
+	resolvedBazelVersion, downloader, err := repos.ResolveVersion(bazeliskHome, bazelFork, bazelVersion, config)
 	if err != nil {
 		return "", fmt.Errorf("could not resolve the version '%s' to an actual version number: %v", bazelVersion, err)
 	}
@@ -415,7 +415,7 @@ func downloadBazelToCAS(version string, bazeliskHome string, repos *Repositories
 	} else if formatURL != "" {
 		tmpDestPath, err = repos.DownloadFromFormatURL(config, formatURL, version, temporaryDownloadDir, tmpDestFile)
 	} else if baseURL != "" {
-		tmpDestPath, err = repos.DownloadFromBaseURL(baseURL, version, temporaryDownloadDir, tmpDestFile)
+		tmpDestPath, err = repos.DownloadFromBaseURL(baseURL, version, temporaryDownloadDir, tmpDestFile, config)
 	} else {
 		tmpDestPath, err = downloader(temporaryDownloadDir, tmpDestFile)
 	}
