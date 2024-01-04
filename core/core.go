@@ -89,6 +89,12 @@ func RunBazeliskWithArgsFunc(argsFunc ArgsFunc, repos *Repositories) (int, error
 // RunBazeliskWithArgsFuncAndConfig runs the main Bazelisk logic for the given ArgsFunc and Bazel
 // repositories and config.
 func RunBazeliskWithArgsFuncAndConfig(argsFunc ArgsFunc, repos *Repositories, config config.Config) (int, error) {
+	return RunBazeliskWithArgsFuncAndConfigAndOut(argsFunc, repos, config, nil)
+}
+
+// RunBazeliskWithArgsFuncAndConfigAndOut runs the main Bazelisk logic for the given ArgsFunc and Bazel
+// repositories and config, writing its stdout to the passed writer.
+func RunBazeliskWithArgsFuncAndConfigAndOut(argsFunc ArgsFunc, repos *Repositories, config config.Config, out io.Writer) (int, error) {
 	httputil.UserAgent = getUserAgent(config)
 
 	bazeliskHome := config.Get("BAZELISK_HOME")
@@ -198,7 +204,7 @@ func RunBazeliskWithArgsFuncAndConfig(argsFunc ArgsFunc, repos *Repositories, co
 		}
 	}
 
-	exitCode, err := runBazel(bazelPath, args, nil, config)
+	exitCode, err := runBazel(bazelPath, args, out, config)
 	if err != nil {
 		return -1, fmt.Errorf("could not run Bazel: %v", err)
 	}
