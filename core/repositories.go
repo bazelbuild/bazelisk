@@ -227,7 +227,7 @@ func (r *Repositories) DownloadFromBaseURL(baseURL, version, destDir, destFile s
 		return "", fmt.Errorf("%s is not set", BaseURLEnv)
 	}
 
-	srcFile, err := platforms.DetermineBazelFilename(version, true)
+	srcFile, err := platforms.DetermineBazelFilename(version, true, config)
 	if err != nil {
 		return "", err
 	}

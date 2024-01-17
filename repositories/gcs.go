@@ -139,7 +139,7 @@ type GcsListResponse struct {
 
 // DownloadRelease downloads the given Bazel release into the specified location and returns the absolute path.
 func (gcs *GCSRepo) DownloadRelease(version, destDir, destFile string, config config.Config) (string, error) {
-	srcFile, err := platforms.DetermineBazelFilename(version, true)
+	srcFile, err := platforms.DetermineBazelFilename(version, true, config)
 	if err != nil {
 		return "", err
 	}
@@ -235,7 +235,7 @@ func (gcs *GCSRepo) DownloadCandidate(version, destDir, destFile string, config 
 		return "", fmt.Errorf("'%s' does not refer to a release candidate", version)
 	}
 
-	srcFile, err := platforms.DetermineBazelFilename(version, true)
+	srcFile, err := platforms.DetermineBazelFilename(version, true, config)
 	if err != nil {
 		return "", err
 	}
@@ -299,7 +299,7 @@ func (gcs *GCSRepo) GetRollingVersions(bazeliskHome string) ([]string, error) {
 
 // DownloadRolling downloads the given Bazel version into the specified location and returns the absolute path.
 func (gcs *GCSRepo) DownloadRolling(version, destDir, destFile string, config config.Config) (string, error) {
-	srcFile, err := platforms.DetermineBazelFilename(version, true)
+	srcFile, err := platforms.DetermineBazelFilename(version, true, config)
 	if err != nil {
 		return "", err
 	}

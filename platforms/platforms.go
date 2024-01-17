@@ -6,6 +6,7 @@ import (
 	"log"
 	"runtime"
 
+	"github.com/bazelbuild/bazelisk/config"
 	"github.com/bazelbuild/bazelisk/versions"
 	semver "github.com/hashicorp/go-version"
 )
@@ -82,7 +83,7 @@ func DetermineOperatingSystem() (string, error) {
 }
 
 // DetermineBazelFilename returns the correct file name of a local Bazel binary.
-func DetermineBazelFilename(version string, includeSuffix bool) (string, error) {
+func DetermineBazelFilename(version string, includeSuffix bool, config_ config.Config) (string, error) {
 	flavor := "bazel"
 
 	osName, err := DetermineOperatingSystem()
