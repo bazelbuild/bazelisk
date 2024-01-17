@@ -83,8 +83,14 @@ func DetermineOperatingSystem() (string, error) {
 }
 
 // DetermineBazelFilename returns the correct file name of a local Bazel binary.
-func DetermineBazelFilename(version string, includeSuffix bool, config_ config.Config) (string, error) {
+func DetermineBazelFilename(version string, includeSuffix bool, config config.Config) (string, error) {
 	flavor := "bazel"
+
+	bazeliskNojdk := config.Get("BAZELISK_NOJDK")
+	
+	if len(bazeliskNojdk) != 0 && bazeliskNojdk != "0" {
+		flavor = "bazel_nojdk"
+	}
 
 	osName, err := DetermineOperatingSystem()
 	if err != nil {
