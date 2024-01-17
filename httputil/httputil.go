@@ -89,16 +89,19 @@ func get(url, auth string) (*http.Response, error) {
 	}
 	client := &http.Client{Transport: DefaultTransport}
 	deadline := RetryClock.Now().Add(MaxRequestDuration)
-	lastStatus := 0
+	var lastFailure string
 	for attempt := 0; attempt <= MaxRetries; attempt++ {
 		res, err := client.Do(req)
-		// Do not retry on success and permanent/fatal errors
-		if err != nil || !shouldRetry(res) {
+		if !shouldRetry(res, err) {
 			return res, err
 		}
 
-		lastStatus = res.StatusCode
-		waitFor, err := getWaitPeriod(res, attempt)
+		if err == nil {
+			lastFailure = fmt.Sprintf("HTTP %d", res.StatusCode)
+		} else {
+			lastFailure = err.Error()
+		}
+		waitFor, err := getWaitPeriod(res, err, attempt)
 		if err != nil {
 			return nil, err
 		}
@@ -111,18 +114,25 @@ func get(url, auth string) (*http.Response, error) {
 			RetryClock.Sleep(waitFor)
 		}
 	}
-	return nil, fmt.Errorf("unable to complete request to %s after %d retries. Most recent status: %d", url, MaxRetries, lastStatus)
+	return nil, fmt.Errorf("unable to complete request to %s after %d retries. Most recent failure: %s", url, MaxRetries, lastFailure)
 }
 
-func shouldRetry(res *http.Response) bool {
+func shouldRetry(res *http.Response, err error) bool {
+	// Retry if the client failed to speak HTTP.
+	if err != nil {
+		return true
+	}
+	// For HTTP: only retry on permanent/fatal errors.
 	return res.StatusCode == 429 || (500 <= res.StatusCode && res.StatusCode <= 504)
 }
 
-func getWaitPeriod(res *http.Response, attempt int) (time.Duration, error) {
-	// Check if the server told us when to retry
-	for _, header := range retryHeaders {
-		if value := res.Header[header]; len(value) > 0 {
-			return parseRetryHeader(value[0])
+func getWaitPeriod(res *http.Response, err error, attempt int) (time.Duration, error) {
+	if err == nil {
+		// If HTTP works, check if the server told us when to retry
+		for _, header := range retryHeaders {
+			if value := res.Header[header]; len(value) > 0 {
+				return parseRetryHeader(value[0])
+			}
 		}
 	}
 	// Let's just use exponential backoff: 1s + d1, 2s + d2, 4s + d3, 8s + d4 with dx being a random value in [0ms, 500ms]
