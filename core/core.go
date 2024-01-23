@@ -346,7 +346,7 @@ func downloadBazel(bazelVersionString string, bazeliskHome string, repos *Reposi
 //	downloads/metadata/[fork-or-url]/bazel-[version-os-etc] is a text file containing a hex sha256 of the contents of the downloaded bazel file.
 //	downloads/sha256/[sha256]/bin/bazel[extension] contains the bazel with a particular sha256.
 func downloadBazelIfNecessary(version string, bazeliskHome string, bazelForkOrURLDirName string, repos *Repositories, config config.Config, downloader DownloadFunc) (string, error) {
-	pathSegment, err := platforms.DetermineBazelFilename(version, false)
+	pathSegment, err := platforms.DetermineBazelFilename(version, false, config)
 	if err != nil {
 		return "", fmt.Errorf("could not determine path segment to use for Bazel binary: %v", err)
 	}

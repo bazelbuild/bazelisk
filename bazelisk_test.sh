@@ -267,6 +267,32 @@ function test_bazel_last_downstream_green() {
       (echo "FAIL: 'bazelisk version' of an unreleased binary must not print a build label."; exit 1)
 }
 
+function test_BAZELISK_NOJDK() {
+  setup
+
+  # Running the nojdk Bazel without a valid JAVA is expected to fail
+  set +e
+  BAZELISK_HOME="$BAZELISK_HOME" \
+      USE_BAZEL_VERSION="7.0.0" \
+      BAZELISK_NOJDK="1" \
+      bazelisk --noautodetect_server_javabase version 2>&1 | tee log
+  set -e
+
+  grep "FATAL: Could not find embedded or explicit server javabase, and --noautodetect_server_javabase is set." log || \
+      (echo "FAIL: nojdk Bazel should fail when no JDK is supplied."; exit 1)
+
+  # Theoretically there could be a cache collision in the Bazelisk cache between nojdk and regular Bazel.
+  #
+  # Ensure that isn't happening by running the regular Bazel right after nojdk Bazel, just in case. If there is a collision, it will fail.
+  BAZELISK_HOME="$BAZELISK_HOME" \
+      USE_BAZEL_VERSION="7.0.0" \
+      JAVA_HOME="does/not/exist" \
+      bazelisk --noautodetect_server_javabase version 2>&1 | tee log
+
+  grep "Build label: 7.0.0" log || \
+      (echo "FAIL: Expected to find 'Build label: 7.0.0' in the output of 'bazelisk version'"; exit 1)
+}
+
 function test_bazel_last_rc() {
   setup
 
@@ -489,6 +515,10 @@ echo
 
 echo "# test_bazel_last_downstream_green"
 test_bazel_last_downstream_green
+echo
+
+echo "# test_BAZELISK_NOJDK"
+test_BAZELISK_NOJDK
 echo
 
 if [[ $BAZELISK_VERSION == "GO" ]]; then
