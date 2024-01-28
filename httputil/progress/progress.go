@@ -85,11 +85,19 @@ func (p *progress) Write(buf []byte) (int, error) {
 
 // Writes the current download progress to stdout.
 func (p *progress) ShowProgress() {
-	message := fmt.Sprintf("%s: %s out of %s (%s)",
-		p.header,
-		formatMb(p.current),
-		formatMb(p.total),
-		formatPercentage(p.current, p.total))
+	var message string
+
+	if p.total > 0 {
+		message = fmt.Sprintf("%s: %s out of %s (%s)",
+			p.header,
+			formatMb(p.current),
+			formatMb(p.total),
+			formatPercentage(p.current, p.total))
+	} else {
+		message = fmt.Sprintf("%s: %s",
+			p.header,
+			formatMb(p.current))
+	}
 
 	if message == p.lastMessage {
 		return
