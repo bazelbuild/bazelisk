@@ -43,8 +43,7 @@ var (
 	// BazeliskVersion is filled in via x_defs when building a release.
 	BazeliskVersion = "development"
 
-	fileConfig     map[string]string
-	fileConfigOnce sync.Once
+	userAgentOnce sync.Once
 )
 
 // ArgsFunc is a function that receives a resolved Bazel version and returns the arguments to invoke
@@ -89,7 +88,10 @@ func RunBazeliskWithArgsFunc(argsFunc ArgsFunc, repos *Repositories) (int, error
 // RunBazeliskWithArgsFuncAndConfig runs the main Bazelisk logic for the given ArgsFunc and Bazel
 // repositories and config.
 func RunBazeliskWithArgsFuncAndConfig(argsFunc ArgsFunc, repos *Repositories, config config.Config) (int, error) {
-	httputil.UserAgent = getUserAgent(config)
+
+	userAgentOnce.Do(func() {
+		httputil.UserAgent = getUserAgent(config)
+	})
 
 	bazeliskHome := config.Get("BAZELISK_HOME")
 	if len(bazeliskHome) == 0 {
