@@ -199,7 +199,7 @@ Configuration variables are evaluated with precedence order. The preferred value
 * Variables defined in the workspace root `.bazeliskrc`
 * Variables defined in the user home `.bazeliskrc`
 
-Additionally, the bazelisk home directory is also evaluated in precedence order. The preffered value is OS-specific e.g. `BAZELISK_HOME_LINUX`, then we fall back to `BAZELISK_HOME`.
+Additionally, the Bazelisk home directory is also evaluated in precedence order. The preferred value is OS-specific e.g. `BAZELISK_HOME_LINUX`, then we fall back to `BAZELISK_HOME`.
 
 ## Requirements
 
