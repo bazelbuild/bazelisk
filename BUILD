@@ -1,6 +1,7 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
 load("@bazel_gazelle//:def.bzl", "gazelle")
 load("@build_bazel_rules_nodejs//:index.bzl", "pkg_npm")
+load("//:def.bzl", "sha256sum")
 
 # gazelle:prefix github.com/bazelbuild/bazelisk
 gazelle(name = "gazelle")
@@ -86,6 +87,11 @@ go_binary(
     visibility = ["//visibility:public"],
 )
 
+sha256sum(
+   name = "bazelisk-darwin-amd64-sha",
+   src = ":bazelisk-darwin-amd64",
+)
+
 go_binary(
     name = "bazelisk-darwin-arm64",
     out = "bazelisk-darwin_arm64",
@@ -98,6 +104,11 @@ go_binary(
     goos = "darwin",
     pure = "on",
     visibility = ["//visibility:public"],
+)
+
+sha256sum(
+   name = "bazelisk-darwin-arm64-sha",
+   src = ":bazelisk-darwin-arm64",
 )
 
 genrule(
@@ -114,6 +125,11 @@ genrule(
     ],
 )
 
+sha256sum(
+   name = "bazelisk-darwin-universal-sha",
+   src = ":bazelisk-darwin-universal",
+)
+
 go_binary(
     name = "bazelisk-linux-amd64",
     out = "bazelisk-linux_amd64",
@@ -126,6 +142,11 @@ go_binary(
     goos = "linux",
     pure = "on",
     visibility = ["//visibility:public"],
+)
+
+sha256sum(
+   name = "bazelisk-linux-amd64-sha",
+   src = ":bazelisk-linux-amd64",
 )
 
 go_binary(
@@ -142,6 +163,11 @@ go_binary(
     visibility = ["//visibility:public"],
 )
 
+sha256sum(
+   name = "bazelisk-linux-arm64-sha",
+   src = ":bazelisk-linux-arm64",
+)
+
 go_binary(
     name = "bazelisk-windows-amd64",
     out = "bazelisk-windows_amd64.exe",
@@ -150,6 +176,11 @@ go_binary(
     goos = "windows",
     pure = "on",
     visibility = ["//visibility:public"],
+)
+
+sha256sum(
+   name = "bazelisk-windows-amd64-sha",
+   src = ":bazelisk-windows-amd64",
 )
 
 pkg_npm(
