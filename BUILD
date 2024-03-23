@@ -1,6 +1,6 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
 load("@bazel_gazelle//:def.bzl", "gazelle")
-load("@build_bazel_rules_nodejs//:index.bzl", "pkg_npm")
+load("@aspect_rules_js//npm:defs.bzl", "npm_package", "stamped_package_json")
 
 # gazelle:prefix github.com/bazelbuild/bazelisk
 gazelle(name = "gazelle")
@@ -152,22 +152,25 @@ go_binary(
     visibility = ["//visibility:public"],
 )
 
-pkg_npm(
+stamped_package_json(
+    name = "package",
+    # This key is defined by /stamp.sh
+    stamp_var = "BUILD_SCM_VERSION",
+)
+
+npm_package(
     name = "npm_package",
-    package_name = "@bazel/bazelisk",
     srcs = [
         "LICENSE",
         "README.md",
         "bazelisk.d.ts",
         "bazelisk.js",
-        "package.json",
-    ],
-    substitutions = {"0.0.0-PLACEHOLDER": "{BUILD_SCM_VERSION}"},
-    deps = [
         ":bazelisk-darwin-amd64",
         ":bazelisk-darwin-arm64",
         ":bazelisk-linux-amd64",
         ":bazelisk-linux-arm64",
         ":bazelisk-windows-amd64",
+        ":package",
     ],
+    package = "@bazel/bazelisk",
 )
