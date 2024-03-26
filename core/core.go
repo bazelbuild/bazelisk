@@ -76,26 +76,75 @@ func MakeDefaultConfig() config.Config {
 }
 
 // RunBazelisk runs the main Bazelisk logic for the given arguments and Bazel repositories.
+//
+// This will run Bazel in a subprocess and return its exit code.
 func RunBazelisk(args []string, repos *Repositories) (int, error) {
 	return RunBazeliskWithArgsFunc(func(_ string) []string { return args }, repos)
 }
 
 // RunBazeliskWithArgsFunc runs the main Bazelisk logic for the given ArgsFunc and Bazel
 // repositories.
+//
+// This will run Bazel in a subprocess and return its exit code.
 func RunBazeliskWithArgsFunc(argsFunc ArgsFunc, repos *Repositories) (int, error) {
-
 	return RunBazeliskWithArgsFuncAndConfig(argsFunc, repos, MakeDefaultConfig())
 }
 
 // RunBazeliskWithArgsFuncAndConfig runs the main Bazelisk logic for the given ArgsFunc and Bazel
 // repositories and config.
+//
+// This will run Bazel in a subprocess and return its exit code.
 func RunBazeliskWithArgsFuncAndConfig(argsFunc ArgsFunc, repos *Repositories, config config.Config) (int, error) {
 	return RunBazeliskWithArgsFuncAndConfigAndOut(argsFunc, repos, config, nil)
 }
 
 // RunBazeliskWithArgsFuncAndConfigAndOut runs the main Bazelisk logic for the given ArgsFunc and Bazel
 // repositories and config, writing its stdout to the passed writer.
+//
+// This will run Bazel in a subprocess and return its exit code.
 func RunBazeliskWithArgsFuncAndConfigAndOut(argsFunc ArgsFunc, repos *Repositories, config config.Config, out io.Writer) (int, error) {
+	return RunOrExecBazeliskWithArgsFuncAndConfigAndOut(argsFunc, repos, config, out, false)
+}
+
+// ExecBazelisk runs the main Bazelisk logic for the given arguments and Bazel repositories.
+//
+// If possible (i.e. on non-Windows platforms), this will replace the current process with Bazel
+// and will not return. On Windows, this will execute Bazel in a new process and return its exit
+// code.
+func ExecBazelisk(args []string, repos *Repositories) (int, error) {
+	return ExecBazeliskWithArgsFunc(func(_ string) []string { return args }, repos)
+}
+
+// ExecBazeliskWithArgsFunc runs the main Bazelisk logic for the given ArgsFunc and Bazel
+// repositories.
+//
+// If possible (i.e. on non-Windows platforms), this will replace the current process with Bazel
+// and will not return. On Windows, this will execute Bazel in a new process and return its exit
+// code.
+func ExecBazeliskWithArgsFunc(argsFunc ArgsFunc, repos *Repositories) (int, error) {
+	return ExecBazeliskWithArgsFuncAndConfig(argsFunc, repos, MakeDefaultConfig())
+}
+
+// ExecBazeliskWithArgsFuncAndConfig runs the main Bazelisk logic for the given ArgsFunc and Bazel
+// repositories and config.
+//
+// If possible (i.e. on non-Windows platforms), this will replace the current process with Bazel
+// and will not return. On Windows, this will execute Bazel in a new process and return its exit
+// code.
+func ExecBazeliskWithArgsFuncAndConfig(argsFunc ArgsFunc, repos *Repositories, config config.Config) (int, error) {
+	return RunOrExecBazeliskWithArgsFuncAndConfigAndOut(argsFunc, repos, config, nil, true)
+}
+
+// RunOrExecBazeliskWithArgsFuncAndConfigAndOut runs the main Bazelisk logic for the given ArgsFunc and Bazel
+// repositories and config.
+//
+// If exec is true, this will replace the current process with Bazel and will not return (this is
+// not possible on Windows; on Windows this will execute Bazel in a new process and return its exit
+// code even if exec is true).  `out` is not supported in exec mode.
+//
+// If exec is false, this will run Bazel in a subprocess and return its exit code, writing its stdout
+// to the passed writer if provided.
+func RunOrExecBazeliskWithArgsFuncAndConfigAndOut(argsFunc ArgsFunc, repos *Repositories, config config.Config, out io.Writer, exec bool) (int, error) {
 	httputil.UserAgent = getUserAgent(config)
 
 	bazelInstallation, err := GetBazelInstallation(repos, config)
@@ -108,8 +157,8 @@ func RunBazeliskWithArgsFuncAndConfigAndOut(argsFunc ArgsFunc, repos *Repositori
 	// --print_env must be the first argument.
 	if len(args) > 0 && args[0] == "--print_env" {
 		// print environment variables for sub-processes
-		cmd := makeBazelCmd(bazelInstallation.Path, args, nil, config)
-		for _, val := range cmd.Env {
+		_, _, env := makeBazelCmd(bazelInstallation.Path, args, config)
+		for _, val := range env {
 			fmt.Println(val)
 		}
 		return 0, nil
@@ -161,11 +210,22 @@ func RunBazeliskWithArgsFuncAndConfigAndOut(argsFunc ArgsFunc, repos *Repositori
 		}
 	}
 
-	exitCode, err := runBazel(bazelInstallation.Path, args, out, config)
-	if err != nil {
-		return -1, fmt.Errorf("could not run Bazel: %v", err)
+	if exec {
+		if out != nil {
+			return -1, fmt.Errorf("cannot run bazelisk in exec mode with a non-nil output writer")
+		}
+		exitCode, err := execBazel(bazelInstallation.Path, args, config)
+		if err != nil {
+			return -1, fmt.Errorf("could not run Bazel: %v", err)
+		}
+		return exitCode, nil
+	} else {
+		exitCode, err := runBazel(bazelInstallation.Path, args, out, config)
+		if err != nil {
+			return -1, fmt.Errorf("could not run Bazel: %v", err)
+		}
+		return exitCode, nil
 	}
-	return exitCode, nil
 }
 
 func isVersionCommand(args []string) (result bool, gnuFormat bool) {
@@ -636,38 +696,60 @@ func maybeDelegateToWrapper(bazel string, config config.Config) string {
 	return maybeDelegateToWrapperFromDir(bazel, wd, config)
 }
 
-func prependDirToPathList(cmd *exec.Cmd, dir string) {
+func prependDirToPathList(env []string, dir string) {
 	found := false
-	for idx, val := range cmd.Env {
+	for idx, val := range env {
 		splits := strings.Split(val, "=")
 		if len(splits) != 2 {
 			continue
 		}
 		if strings.EqualFold(splits[0], "PATH") {
 			found = true
-			cmd.Env[idx] = fmt.Sprintf("PATH=%s%s%s", dir, string(os.PathListSeparator), splits[1])
+			env[idx] = fmt.Sprintf("PATH=%s%s%s", dir, string(os.PathListSeparator), splits[1])
 			break
 		}
 	}
 
 	if !found {
-		cmd.Env = append(cmd.Env, fmt.Sprintf("PATH=%s", dir))
+		env = append(env, fmt.Sprintf("PATH=%s", dir))
 	}
 }
 
-func makeBazelCmd(bazel string, args []string, out io.Writer, config config.Config) *exec.Cmd {
+func makeBazelCmd(bazel string, args []string, config config.Config) (string, []string, []string) {
 	execPath := maybeDelegateToWrapper(bazel, config)
 
-	cmd := exec.Command(execPath, args...)
-	cmd.Env = append(os.Environ(), skipWrapperEnv+"=true")
+	env := append(os.Environ(), skipWrapperEnv+"=true")
 	if execPath != bazel {
-		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", bazelReal, bazel))
+		env = append(env, fmt.Sprintf("%s=%s", bazelReal, bazel))
 	}
 	selfPath, err := os.Executable()
 	if err != nil {
-		cmd.Env = append(cmd.Env, bazeliskEnv+"="+selfPath)
+		env = append(env, bazeliskEnv+"="+selfPath)
 	}
-	prependDirToPathList(cmd, filepath.Dir(execPath))
+	prependDirToPathList(env, filepath.Dir(execPath))
+
+	commandLine := []string{execPath}
+	commandLine = append(commandLine, args...)
+	return execPath, commandLine, env
+}
+
+func execBazel(bazel string, args []string, config config.Config) (int, error) {
+	if runtime.GOOS == "windows" {
+		// syscall.Exec is not supported on windows
+		return runBazel(bazel, args, nil, config)
+	}
+
+	execPath, args, env := makeBazelCmd(bazel, args, config)
+
+	err := syscall.Exec(execPath, args, env)
+	return 1, fmt.Errorf("could not start Bazel: %v", err)
+}
+
+func runBazel(bazel string, args []string, out io.Writer, config config.Config) (int, error) {
+	execPath, commandLine, env := makeBazelCmd(bazel, args, config)
+
+	cmd := exec.Command(execPath, commandLine[1:]...)
+	cmd.Env = env
 	cmd.Stdin = os.Stdin
 	if out == nil {
 		cmd.Stdout = os.Stdout
@@ -675,11 +757,7 @@ func makeBazelCmd(bazel string, args []string, out io.Writer, config config.Conf
 		cmd.Stdout = out
 	}
 	cmd.Stderr = os.Stderr
-	return cmd
-}
 
-func runBazel(bazel string, args []string, out io.Writer, config config.Config) (int, error) {
-	cmd := makeBazelCmd(bazel, args, out, config)
 	err := cmd.Start()
 	if err != nil {
 		return 1, fmt.Errorf("could not start Bazel: %v", err)

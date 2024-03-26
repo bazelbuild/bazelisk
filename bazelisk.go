@@ -30,7 +30,7 @@ func main() {
 	// Fetch LTS releases & candidates, rolling releases and Bazel-at-commits from GCS, forks from GitHub.
 	repos := core.CreateRepositories(gcs, gitHub, gcs, gcs, true)
 
-	exitCode, err := core.RunBazeliskWithArgsFuncAndConfig(func(string) []string { return os.Args[1:] }, repos, config)
+	exitCode, err := core.ExecBazeliskWithArgsFuncAndConfig(func(string) []string { return os.Args[1:] }, repos, config)
 	if err != nil {
 		log.Fatal(err)
 	}
