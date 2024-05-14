@@ -33,10 +33,11 @@ import (
 )
 
 const (
-	bazelReal      = "BAZEL_REAL"
-	skipWrapperEnv = "BAZELISK_SKIP_WRAPPER"
-	wrapperPath    = "./tools/bazel"
-	maxDirLength   = 255
+	bazelReal               = "BAZEL_REAL"
+	skipWrapperEnv          = "BAZELISK_SKIP_WRAPPER"
+	defaultWrapperDirectory = "./tools"
+	defaultWrapperName      = "bazel"
+	maxDirLength            = 255
 )
 
 var (
@@ -500,6 +501,13 @@ func linkLocalBazel(baseDirectory string, bazelPath string) (string, error) {
 func maybeDelegateToWrapperFromDir(bazel string, wd string, config config.Config) string {
 	if config.Get(skipWrapperEnv) != "" {
 		return bazel
+	}
+
+	wrapperPath := config.Get("BAZELISK_WRAPPER_DIRECTORY")
+	if wrapperPath == "" {
+		wrapperPath = filepath.Join(defaultWrapperDirectory, defaultWrapperName)
+	} else {
+		wrapperPath = filepath.Join(wrapperPath, defaultWrapperName)
 	}
 
 	root := ws.FindWorkspaceRoot(wd)
