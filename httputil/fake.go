@@ -2,7 +2,7 @@ package httputil
 
 import (
 	"bytes"
-	"io/ioutil"
+	"io"
 	"net/http"
 )
 
@@ -65,7 +65,7 @@ func (rc *responseCollection) Next() (*http.Response, error) {
 func createResponse(status int, body string, headers map[string]string) *http.Response {
 	return &http.Response{
 		StatusCode: status,
-		Body:       ioutil.NopCloser(bytes.NewBufferString(body)),
+		Body:       io.NopCloser(bytes.NewBufferString(body)),
 		Header:     transformHeaders(headers),
 	}
 }

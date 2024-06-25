@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -766,7 +765,7 @@ func getBazelCommitsBetween(goodCommit string, badCommit string, config config.C
 		}
 		defer response.Body.Close()
 
-		body, err := ioutil.ReadAll(response.Body)
+		body, err := io.ReadAll(response.Body)
 		if err != nil {
 			return goodCommit, nil, fmt.Errorf("Error reading response body: %v", err)
 		}

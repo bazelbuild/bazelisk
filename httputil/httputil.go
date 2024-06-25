@@ -5,7 +5,6 @@ import (
 	b64 "encoding/base64"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"math/rand"
 	"net/http"
@@ -70,7 +69,7 @@ func ReadRemoteFile(url string, auth string) ([]byte, http.Header, error) {
 		return nil, res.Header, fmt.Errorf("unexpected status code while reading %s: %v", url, res.StatusCode)
 	}
 
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, res.Header, fmt.Errorf("failed to read content at %s: %v", url, err)
 	}
@@ -188,7 +187,7 @@ func DownloadBinary(originURL, destDir, destFile string, config config.Config) (
 	destinationPath := filepath.Join(destDir, destFile)
 
 	if _, err := os.Stat(destinationPath); err != nil {
-		tmpfile, err := ioutil.TempFile(destDir, "download")
+		tmpfile, err := os.CreateTemp(destDir, "download")
 		if err != nil {
 			return "", fmt.Errorf("could not create temporary file: %v", err)
 		}
@@ -259,7 +258,7 @@ func MaybeDownload(bazeliskHome, url, filename, description, auth string, merger
 	cachePath := filepath.Join(bazeliskHome, filename)
 	if cacheStat, err := os.Stat(cachePath); err == nil {
 		if time.Since(cacheStat.ModTime()).Hours() < 1 {
-			res, err := ioutil.ReadFile(cachePath)
+			res, err := os.ReadFile(cachePath)
 			if err != nil {
 				return nil, fmt.Errorf("could not read %s: %v", cachePath, err)
 			}
@@ -284,7 +283,7 @@ func MaybeDownload(bazeliskHome, url, filename, description, auth string, merger
 		return nil, fmt.Errorf("failed to merge %d chunks from %s: %v", len(contents), url, err)
 	}
 
-	err = ioutil.WriteFile(cachePath, merged, 0666)
+	err = os.WriteFile(cachePath, merged, 0666)
 	if err != nil {
 		return nil, fmt.Errorf("could not create %s: %v", cachePath, err)
 	}

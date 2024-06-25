@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"strings"
@@ -26,7 +25,7 @@ var (
 
 func TestMain(m *testing.M) {
 	var err error
-	tmpDir, err = ioutil.TempDir("", "version_test")
+	tmpDir, err = os.MkdirTemp("", "version_test")
 	if err != nil {
 		log.Fatal(err)
 	}
