@@ -94,17 +94,12 @@ func RunBazeliskWithArgsFuncAndConfig(argsFunc ArgsFunc, repos *Repositories, co
 func RunBazeliskWithArgsFuncAndConfigAndOut(argsFunc ArgsFunc, repos *Repositories, config config.Config, out io.Writer) (int, error) {
 	httputil.UserAgent = getUserAgent(config)
 
-	bazeliskHome := config.Get("BAZELISK_HOME")
-	if len(bazeliskHome) == 0 {
-		userCacheDir, err := os.UserCacheDir()
-		if err != nil {
-			return -1, fmt.Errorf("could not get the user's cache directory: %v", err)
-		}
-
-		bazeliskHome = filepath.Join(userCacheDir, "bazelisk")
+	bazeliskHome, err := getBazeliskHome(config)
+	if err != nil {
+		return -1, fmt.Errorf("could not determine Bazelisk home directory: %v", err)
 	}
 
-	err := os.MkdirAll(bazeliskHome, 0755)
+	err = os.MkdirAll(bazeliskHome, 0755)
 	if err != nil {
 		return -1, fmt.Errorf("could not create directory %s: %v", bazeliskHome, err)
 	}
@@ -215,6 +210,32 @@ func getBazelCommand(args []string) (string, error) {
 		}
 	}
 	return "", fmt.Errorf("could not find a valid Bazel command in %q. Please run `bazel help` if you need help on how to use Bazel", strings.Join(args, " "))
+}
+
+// getBazeliskHome returns the path to the Bazelisk home directory.
+func getBazeliskHome(config config.Config) (string, error) {
+	bazeliskHome := config.Get("BAZELISK_HOME")
+	if len(bazeliskHome) == 0 {
+		userCacheDir, err := os.UserCacheDir()
+		if err != nil {
+			return "", fmt.Errorf("could not get the user's cache directory: %v", err)
+		}
+
+		bazeliskHome = filepath.Join(userCacheDir, "bazelisk")
+	} else {
+		// If a custom BAZELISK_HOME is set, handle tilde and var expansion
+		// before creating the Bazelisk home directory.
+		var err error
+
+		bazeliskHome, err = homedir.Expand(bazeliskHome)
+		if err != nil {
+			return "", fmt.Errorf("could not expand home directory in path: %v", err)
+		}
+
+		bazeliskHome = os.ExpandEnv(bazeliskHome)
+	}
+
+	return bazeliskHome, nil
 }
 
 func getUserAgent(config config.Config) string {
