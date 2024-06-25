@@ -87,7 +87,7 @@ func DetermineBazelFilename(version string, includeSuffix bool, config config.Co
 	flavor := "bazel"
 
 	bazeliskNojdk := config.Get("BAZELISK_NOJDK")
-	
+
 	if len(bazeliskNojdk) != 0 && bazeliskNojdk != "0" {
 		flavor = "bazel_nojdk"
 	}
