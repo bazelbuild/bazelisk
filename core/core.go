@@ -21,7 +21,6 @@ import (
 	"runtime"
 	"sort"
 	"strings"
-	"sync"
 	"syscall"
 
 	"github.com/bazelbuild/bazelisk/config"
@@ -43,9 +42,6 @@ const (
 var (
 	// BazeliskVersion is filled in via x_defs when building a release.
 	BazeliskVersion = "development"
-
-	fileConfig     map[string]string
-	fileConfigOnce sync.Once
 )
 
 // ArgsFunc is a function that receives a resolved Bazel version and returns the arguments to invoke
