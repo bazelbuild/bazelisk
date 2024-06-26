@@ -228,14 +228,6 @@ func getUserAgent(config config.Config) string {
 	return fmt.Sprintf("Bazelisk/%s", BazeliskVersion)
 }
 
-// TODO(go 1.18): remove backport of strings.Cut
-func cutString(s, sep string) (before, after string, found bool) {
-	if i := strings.Index(s, sep); i >= 0 {
-		return s[:i], s[i+len(sep):], true
-	}
-	return s, "", false
-}
-
 func GetBazelVersion(config config.Config) (string, error) {
 	// Check in this order:
 	// - env var "USE_BAZEL_VERSION" is set to a specific version.
@@ -286,7 +278,7 @@ func GetBazelVersion(config config.Config) (string, error) {
 	}
 
 	fallbackVersionFormat := config.Get("USE_BAZEL_FALLBACK_VERSION")
-	fallbackVersionMode, fallbackVersion, hasFallbackVersionMode := cutString(fallbackVersionFormat, ":")
+	fallbackVersionMode, fallbackVersion, hasFallbackVersionMode := strings.Cut(fallbackVersionFormat, ":")
 	if !hasFallbackVersionMode {
 		fallbackVersionMode, fallbackVersion, hasFallbackVersionMode = "silent", fallbackVersionMode, true
 	}
