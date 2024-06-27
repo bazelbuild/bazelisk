@@ -97,7 +97,10 @@ func RunBazeliskWithArgsFuncAndConfig(argsFunc ArgsFunc, repos *Repositories, co
 func RunBazeliskWithArgsFuncAndConfigAndOut(argsFunc ArgsFunc, repos *Repositories, config config.Config, out io.Writer) (int, error) {
 	httputil.UserAgent = getUserAgent(config)
 
-	bazeliskHome := config.Get("BAZELISK_HOME")
+	bazeliskHome := config.Get("BAZELISK_HOME_" + strings.ToUpper(runtime.GOOS))
+	if len(bazeliskHome) == 0 {
+		bazeliskHome = config.Get("BAZELISK_HOME")
+	}
 	if len(bazeliskHome) == 0 {
 		userCacheDir, err := os.UserCacheDir()
 		if err != nil {
