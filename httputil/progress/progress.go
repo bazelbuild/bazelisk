@@ -1,4 +1,4 @@
-// Package progress makes it possible to dissplay download progress.
+// Package progress makes it possible to display download progress.
 package progress
 
 import (
