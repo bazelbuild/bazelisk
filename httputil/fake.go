@@ -30,7 +30,7 @@ func (ft *FakeTransport) AddResponse(url string, status int, body string, header
 	ft.responseCollection(url).Add(createResponse(status, body, headers), nil)
 }
 
-// AddResponse stores a error for the given URL.
+// AddError stores a error for the given URL.
 func (ft *FakeTransport) AddError(url string, err error) {
 	ft.responseCollection(url).Add(nil, err)
 
