@@ -57,6 +57,7 @@ func showProgress(config config.Config) bool {
 	return true
 }
 
+// Writer creates an io.Writer to print the progress.
 func Writer(w io.Writer, header string, total int64, config config.Config) io.Writer {
 	if !showProgress(config) {
 		return w
@@ -69,6 +70,7 @@ func Writer(w io.Writer, header string, total int64, config config.Config) io.Wr
 	return out
 }
 
+// Finish writes final output after the progress bar is complete. 
 func Finish(config config.Config) {
 	if showProgress(config) {
 		// Add a newline after the progress bar

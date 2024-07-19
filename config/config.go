@@ -1,3 +1,4 @@
+// Package config reads Bazelisk configuration settings from files and the environment.
 package config
 
 import (
