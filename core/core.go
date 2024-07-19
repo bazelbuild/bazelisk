@@ -47,6 +47,7 @@ var (
 // Bazel with.
 type ArgsFunc func(resolvedBazelVersion string) []string
 
+// MakeDefaultConfig returns a config based on env and .bazeliskrc files.
 func MakeDefaultConfig() config.Config {
 	configs := []config.Config{config.FromEnv()}
 
@@ -245,6 +246,7 @@ func getUserAgent(config config.Config) string {
 	return fmt.Sprintf("Bazelisk/%s", BazeliskVersion)
 }
 
+// GetBazelVersion returns the Bazel version that should be used.
 func GetBazelVersion(config config.Config) (string, error) {
 	// Check in this order:
 	// - env var "USE_BAZEL_VERSION" is set to a specific version.
@@ -729,19 +731,19 @@ func cleanIfNeeded(bazelPath string, startupOptions []string, config config.Conf
 	}
 }
 
-type ParentCommit struct {
+type parentCommit struct {
 	SHA string `json:"sha"`
 }
 
-type Commit struct {
+type commit struct {
 	SHA     string         `json:"sha"`
-	PARENTS []ParentCommit `json:"parents"`
+	PARENTS []parentCommit `json:"parents"`
 }
 
-type CompareResponse struct {
-	Commits         []Commit `json:"commits"`
-	BaseCommit      Commit   `json:"base_commit"`
-	MergeBaseCommit Commit   `json:"merge_base_commit"`
+type compareResponse struct {
+	Commits         []commit `json:"commits"`
+	BaseCommit      commit   `json:"base_commit"`
+	MergeBaseCommit commit   `json:"merge_base_commit"`
 }
 
 func sendRequest(url string, config config.Config) (*http.Response, error) {
@@ -787,23 +789,23 @@ func getBazelCommitsBetween(goodCommit string, badCommit string, config config.C
 			return goodCommit, nil, fmt.Errorf("unexpected response status code %d: %s", response.StatusCode, string(body))
 		}
 
-		var compareResponse CompareResponse
-		err = json.Unmarshal(body, &compareResponse)
+		var compResp compareResponse
+		err = json.Unmarshal(body, &compResp)
 		if err != nil {
 			return goodCommit, nil, fmt.Errorf("Error unmarshaling JSON: %v", err)
 		}
-
-		if len(compareResponse.Commits) == 0 {
+	
+		if len(compResp.Commits) == 0 {
 			break
 		}
 
-		mergeBaseCommit := compareResponse.MergeBaseCommit.SHA
-		if mergeBaseCommit != compareResponse.BaseCommit.SHA {
+		mergeBaseCommit := compResp.MergeBaseCommit.SHA
+		if mergeBaseCommit != compResp.BaseCommit.SHA {
 			fmt.Printf("The good Bazel commit is not an ancestor of the bad Bazel commit, overriding the good Bazel commit to the merge base commit %s\n", mergeBaseCommit)
 			goodCommit = mergeBaseCommit
 		}
 
-		for _, commit := range compareResponse.Commits {
+		for _, commit := range compResp.Commits {
 			// If it has only one parent commit, add it to the list, otherwise it's a merge commit and we ignore it
 			if len(commit.PARENTS) == 1 {
 				commitList = append(commitList, commit.SHA)
@@ -811,7 +813,7 @@ func getBazelCommitsBetween(goodCommit string, badCommit string, config config.C
 		}
 
 		// Check if there are more commits to fetch
-		if len(compareResponse.Commits) < perPage {
+		if len(compResp.Commits) < perPage {
 			break
 		}
 
