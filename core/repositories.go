@@ -236,6 +236,7 @@ func (r *Repositories) DownloadFromBaseURL(baseURL, version, destDir, destFile s
 	return httputil.DownloadBinary(url, destDir, destFile, config)
 }
 
+// BuildURLFromFormat returns a Bazel download URL based on formatURL.
 func BuildURLFromFormat(config config.Config, formatURL, version string) (string, error) {
 	osName, err := platforms.DetermineOperatingSystem()
 	if err != nil {

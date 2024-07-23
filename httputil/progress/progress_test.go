@@ -23,7 +23,7 @@ func TestFormatMb(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			got := formatMb(tc.input)
 			if got != tc.want {
-				t.Fatalf("Expected %q, but got %q", tc.want, got)
+				t.Errorf("formatMb() = %q, want %q", got ,tc.want)
 			}
 		})
 	}
@@ -45,7 +45,7 @@ func TestFormatPercentage(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			got := formatPercentage(tc.curr, tc.total)
 			if got != tc.want {
-				t.Fatalf("Expected %q, but got %q", tc.want, got)
+				t.Fatalf("formatPercentage() = %q, want %q", got, tc.want)
 			}
 		})
 	}
