@@ -1,3 +1,4 @@
+// Package ws offers functions to get information about Bazel workspaces.
 package ws
 
 import (

@@ -20,7 +20,6 @@ import (
 	"runtime"
 	"sort"
 	"strings"
-	"sync"
 	"syscall"
 
 	"github.com/bazelbuild/bazelisk/config"
@@ -42,15 +41,13 @@ const (
 var (
 	// BazeliskVersion is filled in via x_defs when building a release.
 	BazeliskVersion = "development"
-
-	fileConfig     map[string]string
-	fileConfigOnce sync.Once
 )
 
 // ArgsFunc is a function that receives a resolved Bazel version and returns the arguments to invoke
 // Bazel with.
 type ArgsFunc func(resolvedBazelVersion string) []string
 
+// MakeDefaultConfig returns a config based on env and .bazeliskrc files.
 func MakeDefaultConfig() config.Config {
 	configs := []config.Config{config.FromEnv()}
 
@@ -97,17 +94,12 @@ func RunBazeliskWithArgsFuncAndConfig(argsFunc ArgsFunc, repos *Repositories, co
 func RunBazeliskWithArgsFuncAndConfigAndOut(argsFunc ArgsFunc, repos *Repositories, config config.Config, out io.Writer) (int, error) {
 	httputil.UserAgent = getUserAgent(config)
 
-	bazeliskHome := config.Get("BAZELISK_HOME")
-	if len(bazeliskHome) == 0 {
-		userCacheDir, err := os.UserCacheDir()
-		if err != nil {
-			return -1, fmt.Errorf("could not get the user's cache directory: %v", err)
-		}
-
-		bazeliskHome = filepath.Join(userCacheDir, "bazelisk")
+	bazeliskHome, err := getBazeliskHome(config)
+	if err != nil {
+		return -1, fmt.Errorf("could not determine Bazelisk home directory: %v", err)
 	}
 
-	err := os.MkdirAll(bazeliskHome, 0755)
+	err = os.MkdirAll(bazeliskHome, 0755)
 	if err != nil {
 		return -1, fmt.Errorf("could not create directory %s: %v", bazeliskHome, err)
 	}
@@ -220,6 +212,32 @@ func getBazelCommand(args []string) (string, error) {
 	return "", fmt.Errorf("could not find a valid Bazel command in %q. Please run `bazel help` if you need help on how to use Bazel", strings.Join(args, " "))
 }
 
+// getBazeliskHome returns the path to the Bazelisk home directory.
+func getBazeliskHome(config config.Config) (string, error) {
+	bazeliskHome := config.Get("BAZELISK_HOME")
+	if len(bazeliskHome) == 0 {
+		userCacheDir, err := os.UserCacheDir()
+		if err != nil {
+			return "", fmt.Errorf("could not get the user's cache directory: %v", err)
+		}
+
+		bazeliskHome = filepath.Join(userCacheDir, "bazelisk")
+	} else {
+		// If a custom BAZELISK_HOME is set, handle tilde and var expansion
+		// before creating the Bazelisk home directory.
+		var err error
+
+		bazeliskHome, err = homedir.Expand(bazeliskHome)
+		if err != nil {
+			return "", fmt.Errorf("could not expand home directory in path: %v", err)
+		}
+
+		bazeliskHome = os.ExpandEnv(bazeliskHome)
+	}
+
+	return bazeliskHome, nil
+}
+
 func getUserAgent(config config.Config) string {
 	agent := config.Get("BAZELISK_USER_AGENT")
 	if len(agent) > 0 {
@@ -228,6 +246,7 @@ func getUserAgent(config config.Config) string {
 	return fmt.Sprintf("Bazelisk/%s", BazeliskVersion)
 }
 
+// GetBazelVersion returns the Bazel version that should be used.
 func GetBazelVersion(config config.Config) (string, error) {
 	// Check in this order:
 	// - env var "USE_BAZEL_VERSION" is set to a specific version.
@@ -712,19 +731,19 @@ func cleanIfNeeded(bazelPath string, startupOptions []string, config config.Conf
 	}
 }
 
-type ParentCommit struct {
+type parentCommit struct {
 	SHA string `json:"sha"`
 }
 
-type Commit struct {
+type commit struct {
 	SHA     string         `json:"sha"`
-	PARENTS []ParentCommit `json:"parents"`
+	PARENTS []parentCommit `json:"parents"`
 }
 
-type CompareResponse struct {
-	Commits         []Commit `json:"commits"`
-	BaseCommit      Commit   `json:"base_commit"`
-	MergeBaseCommit Commit   `json:"merge_base_commit"`
+type compareResponse struct {
+	Commits         []commit `json:"commits"`
+	BaseCommit      commit   `json:"base_commit"`
+	MergeBaseCommit commit   `json:"merge_base_commit"`
 }
 
 func sendRequest(url string, config config.Config) (*http.Response, error) {
@@ -770,23 +789,23 @@ func getBazelCommitsBetween(goodCommit string, badCommit string, config config.C
 			return goodCommit, nil, fmt.Errorf("unexpected response status code %d: %s", response.StatusCode, string(body))
 		}
 
-		var compareResponse CompareResponse
-		err = json.Unmarshal(body, &compareResponse)
+		var compResp compareResponse
+		err = json.Unmarshal(body, &compResp)
 		if err != nil {
 			return goodCommit, nil, fmt.Errorf("Error unmarshaling JSON: %v", err)
 		}
-
-		if len(compareResponse.Commits) == 0 {
+	
+		if len(compResp.Commits) == 0 {
 			break
 		}
 
-		mergeBaseCommit := compareResponse.MergeBaseCommit.SHA
-		if mergeBaseCommit != compareResponse.BaseCommit.SHA {
+		mergeBaseCommit := compResp.MergeBaseCommit.SHA
+		if mergeBaseCommit != compResp.BaseCommit.SHA {
 			fmt.Printf("The good Bazel commit is not an ancestor of the bad Bazel commit, overriding the good Bazel commit to the merge base commit %s\n", mergeBaseCommit)
 			goodCommit = mergeBaseCommit
 		}
 
-		for _, commit := range compareResponse.Commits {
+		for _, commit := range compResp.Commits {
 			// If it has only one parent commit, add it to the list, otherwise it's a merge commit and we ignore it
 			if len(commit.PARENTS) == 1 {
 				commitList = append(commitList, commit.SHA)
@@ -794,7 +813,7 @@ func getBazelCommitsBetween(goodCommit string, badCommit string, config config.C
 		}
 
 		// Check if there are more commits to fetch
-		if len(compareResponse.Commits) < perPage {
+		if len(compResp.Commits) < perPage {
 			break
 		}
 

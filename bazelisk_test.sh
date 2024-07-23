@@ -93,7 +93,8 @@ function test_bazel_version_py() {
   BAZELISK_HOME="$BAZELISK_HOME" \
       bazelisk version 2>&1 | tee log
 
-  grep "Build label: 0.21.0" log || \
+  # 7.1.0 is the latest release in releases_for_tests.json
+  grep "Build label: 7.1.0" log || \
       (echo "FAIL: Expected to find 'Build label' in the output of 'bazelisk version'"; exit 1)
 }
 
@@ -110,117 +111,117 @@ function test_bazel_version_go() {
 function test_bazel_version_from_environment() {
   setup
 
-  USE_BAZEL_VERSION="5.0.0" \
+  USE_BAZEL_VERSION="7.0.0" \
       BAZELISK_HOME="$BAZELISK_HOME" \
       bazelisk version 2>&1 | tee log
 
-  grep "Build label: 5.0.0" log || \
-      (echo "FAIL: Expected to find 'Build label: 5.0.0' in the output of 'bazelisk version'"; exit 1)
+  grep "Build label: 7.0.0" log || \
+      (echo "FAIL: Expected to find 'Build label: 7.0.0' in the output of 'bazelisk version'"; exit 1)
 }
 
 function test_bazel_version_prefer_environment_to_bazeliskrc() {
   setup
 
-  echo "USE_BAZEL_VERSION=0.19.0" > .bazeliskrc
+  echo "USE_BAZEL_VERSION=7.2.1" > .bazeliskrc
 
-  USE_BAZEL_VERSION="0.20.0" \
+  USE_BAZEL_VERSION="7.0.0" \
       BAZELISK_HOME="$BAZELISK_HOME" \
       bazelisk version 2>&1 | tee log
 
-  grep "Build label: 0.20.0" log || \
-      (echo "FAIL: Expected to find 'Build label: 0.20.0' in the output of 'bazelisk version'"; exit 1)
+  grep "Build label: 7.0.0" log || \
+      (echo "FAIL: Expected to find 'Build label: 7.0.0' in the output of 'bazelisk version'"; exit 1)
 }
 
 function test_bazel_version_from_workspace_bazeliskrc() {
   setup
 
-  echo "USE_BAZEL_VERSION=0.19.0" > .bazeliskrc
+  echo "USE_BAZEL_VERSION=7.2.1" > .bazeliskrc
 
   BAZELISK_HOME="$BAZELISK_HOME" \
       bazelisk version 2>&1 | tee log
 
-  grep "Build label: 0.19.0" log || \
-      (echo "FAIL: Expected to find 'Build label: 0.19.0' in the output of 'bazelisk version'"; exit 1)
+  grep "Build label: 7.2.1" log || \
+      (echo "FAIL: Expected to find 'Build label: 7.2.1' in the output of 'bazelisk version'"; exit 1)
 }
 
 function test_bazel_version_from_user_home_bazeliskrc() {
   setup
 
-  echo "USE_BAZEL_VERSION=0.19.0" > "${USER_HOME}/.bazeliskrc"
+  echo "USE_BAZEL_VERSION=7.2.1" > "${USER_HOME}/.bazeliskrc"
 
   BAZELISK_HOME="$BAZELISK_HOME" \
       HOME="$USER_HOME" \
       USERPROFILE="$USER_HOME" \
       bazelisk version 2>&1 | tee log
 
-  grep "Build label: 0.19.0" log || \
-      (echo "FAIL: Expected to find 'Build label: 0.19.0' in the output of 'bazelisk version'"; exit 1)
+  grep "Build label: 7.2.1" log || \
+      (echo "FAIL: Expected to find 'Build label: 7.2.1' in the output of 'bazelisk version'"; exit 1)
 }
 
 function test_bazel_version_prefer_workspace_bazeliskrc_to_user_home_bazeliskrc() {
   setup
 
-  echo "USE_BAZEL_VERSION=0.19.0" > .bazeliskrc
-  echo "USE_BAZEL_VERSION=0.20.0" > "${USER_HOME}/.bazeliskrc"
+  echo "USE_BAZEL_VERSION=7.2.1" > .bazeliskrc
+  echo "USE_BAZEL_VERSION=7.0.0" > "${USER_HOME}/.bazeliskrc"
 
   BAZELISK_HOME="$BAZELISK_HOME" \
       HOME="$USER_HOME" \
       USERPROFILE="$USER_HOME" \
       bazelisk version 2>&1 | tee log
 
-  grep "Build label: 0.19.0" log || \
-      (echo "FAIL: Expected to find 'Build label: 0.19.0' in the output of 'bazelisk version'"; exit 1)
+  grep "Build label: 7.2.1" log || \
+      (echo "FAIL: Expected to find 'Build label: 7.2.1' in the output of 'bazelisk version'"; exit 1)
 }
 
 function test_bazel_version_prefer_bazeliskrc_to_bazelversion_file() {
   setup
 
-  echo "USE_BAZEL_VERSION=0.20.0" > .bazeliskrc
-  echo "0.19.0" > .bazelversion
+  echo "USE_BAZEL_VERSION=7.2.1" > .bazeliskrc
+  echo "7.0.0" > .bazelversion
 
   BAZELISK_HOME="$BAZELISK_HOME" \
       bazelisk version 2>&1 | tee log
 
-  grep "Build label: 0.20.0" log || \
-      (echo "FAIL: Expected to find 'Build label: 0.20.0' in the output of 'bazelisk version'"; exit 1)
+  grep "Build label: 7.2.1" log || \
+      (echo "FAIL: Expected to find 'Build label: 7.2.1' in the output of 'bazelisk version'"; exit 1)
 }
 
 function test_bazel_version_from_file() {
   setup
 
-  echo "5.0.0" > .bazelversion
+  echo "7.0.0" > .bazelversion
 
   BAZELISK_HOME="$BAZELISK_HOME" \
       bazelisk version 2>&1 | tee log
 
-  grep "Build label: 5.0.0" log || \
-      (echo "FAIL: Expected to find 'Build label: 5.0.0' in the output of 'bazelisk version'"; exit 1)
+  grep "Build label: 7.0.0" log || \
+      (echo "FAIL: Expected to find 'Build label: 7.0.0' in the output of 'bazelisk version'"; exit 1)
 }
 
 function test_bazel_version_from_format_url() {
   setup
 
-  echo "0.19.0" > .bazelversion
+  echo "7.2.1" > .bazelversion
 
   BAZELISK_FORMAT_URL="https://github.com/bazelbuild/bazel/releases/download/%v/bazel-%v-%o-%m%e" \
       BAZELISK_HOME="$BAZELISK_HOME" \
           bazelisk version 2>&1 | tee log
 
-  grep "Build label: 0.19.0" log || \
-      (echo "FAIL: Expected to find 'Build label: 0.19.0' in the output of 'bazelisk version'"; exit 1)
+  grep "Build label: 7.2.1" log || \
+      (echo "FAIL: Expected to find 'Build label: 7.2.1' in the output of 'bazelisk version'"; exit 1)
 }
 
 function test_bazel_version_from_base_url() {
   setup
 
-  echo "0.19.0" > .bazelversion
+  echo "7.2.1" > .bazelversion
 
   BAZELISK_BASE_URL="https://github.com/bazelbuild/bazel/releases/download" \
       BAZELISK_HOME="$BAZELISK_HOME" \
           bazelisk version 2>&1 | tee log
 
-  grep "Build label: 0.19.0" log || \
-      (echo "FAIL: Expected to find 'Build label: 0.19.0' in the output of 'bazelisk version'"; exit 1)
+  grep "Build label: 7.2.1" log || \
+      (echo "FAIL: Expected to find 'Build label: 7.2.1' in the output of 'bazelisk version'"; exit 1)
 }
 
 function test_bazel_latest_minus_3_py() {
@@ -230,8 +231,8 @@ function test_bazel_latest_minus_3_py() {
       BAZELISK_HOME="$BAZELISK_HOME" \
       bazelisk version 2>&1 | tee log
 
-  grep "Build label: 0.19.1" log || \
-      (echo "FAIL: Expected to find 'Build label' in the output of 'bazelisk version'"; exit 1)
+  grep "Build label: 7.0.0" log || \
+      (echo "FAIL: Expected to find 'Build label: 7.0.0' in the output of 'bazelisk version'"; exit 1)
 }
 
 function test_bazel_latest_minus_3_go() {
@@ -408,7 +409,7 @@ function test_bazel_download_path_go() {
 function test_bazel_verify_sha256() {
   setup
 
-  echo "6.1.1" > .bazelversion
+  echo "7.1.1" > .bazelversion
 
   # First try to download and expect an invalid hash (it doesn't matter what it is).
   if BAZELISK_HOME="$BAZELISK_HOME" BAZELISK_VERIFY_SHA256="invalid-hash" \
@@ -425,13 +426,13 @@ function test_bazel_verify_sha256() {
   local os="$(uname -s | tr A-Z a-z)"
   case "${os}" in
     darwin)
-      expected_sha256="038e95BAE998340812562ab8d6ada1a187729630bc4940a4cd7920cc78acf156"
+      expected_sha256="6E9274042665163de666f13b87aBfE187a9127ed90fF1142bf42cfd45b32CD2b"
       ;;
     linux)
-      expected_sha256="651a20d85531325df406b38f38A1c2578c49D5e61128fba034f5b6abdb3d303f"
+      expected_sha256="D93508529d41136065c7b1E5ff555fbfb9d18fd00e768886F2fc7dfb53b05B43"
       ;;
     msys*|mingw*|cygwin*)
-      expected_sha256="1d997D344936a1d98784ae58db1152d083569556f85cd845e6e340EE855357f9"
+      expected_sha256="9fb6f439e2eb646b9bae7bd2c0317165c0b08abc0bba25f6af53180fa1f86997"
       ;;
     *)
       echo "FAIL: Unknown OS ${os} in test"
@@ -457,7 +458,8 @@ function test_bazel_download_path_py() {
 
   find "$BAZELISK_HOME/downloads/bazelbuild" 2>&1 | tee log
 
-  grep "^$BAZELISK_HOME/downloads/bazelbuild/bazel-0.21.0-[a-z0-9_-]*/bin/bazel\(.exe\)\?$" log || \
+  # 7.1.0 is the latest release in releases_for_tests.json
+  grep "^$BAZELISK_HOME/downloads/bazelbuild/bazel-7.1.0-[a-z0-9_-]*/bin/bazel\(.exe\)\?$" log || \
       (echo "FAIL: Expected to download bazel binary into specific path."; exit 1)
 }
 
@@ -496,7 +498,8 @@ function test_bazel_prepend_binary_directory_to_path_py() {
   BAZELISK_HOME="$BAZELISK_HOME" \
       bazelisk --print_env 2>&1 | tee log
 
-  PATTERN=$(echo "^PATH=$BAZELISK_HOME/downloads/bazelbuild/bazel-0.21.0-[a-z0-9_-]*/bin[:;]" | sed -e 's/\//\[\/\\\\\]/g')
+  # 7.1.0 is the latest release in releases_for_tests.json
+  PATTERN=$(echo "^PATH=$BAZELISK_HOME/downloads/bazelbuild/bazel-7.1.0-[a-z0-9_-]*/bin[:;]" | sed -e 's/\//\[\/\\\\\]/g')
   grep "$PATTERN" log || \
       (echo "FAIL: Expected PATH to contains bazel binary directory."; exit 1)
 }

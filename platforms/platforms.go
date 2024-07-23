@@ -55,6 +55,7 @@ func DetermineExecutableFilenameSuffix() string {
 	return filenameSuffix
 }
 
+// DetermineArchitecture returns the architecture of the current machine.
 func DetermineArchitecture(osName, version string) (string, error) {
 	var machineName string
 	switch runtime.GOARCH {
@@ -73,6 +74,7 @@ func DetermineArchitecture(osName, version string) (string, error) {
 	return machineName, nil
 }
 
+// DetermineOperatingSystem returns the name of the operating system.
 func DetermineOperatingSystem() (string, error) {
 	switch runtime.GOOS {
 	case "darwin", "linux", "windows":

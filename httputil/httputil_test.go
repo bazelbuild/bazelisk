@@ -99,7 +99,7 @@ func TestSuccessOnRetryNonHTTPError(t *testing.T) {
 
 	url := "http://foo"
 	want := "the_body"
-	transport.AddError(url, errors.New("boom!"))
+	transport.AddError(url, errors.New("boom"))
 	transport.AddResponse(url, 200, want, nil)
 	body, _, err := ReadRemoteFile(url, "")
 

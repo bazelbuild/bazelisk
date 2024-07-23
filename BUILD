@@ -39,43 +39,43 @@ sh_test(
 )
 
 go_library(
-    name = "go_default_library",
+    name = "bazelisk_lib",
     srcs = ["bazelisk.go"],
     importpath = "github.com/bazelbuild/bazelisk",
     visibility = ["//visibility:private"],
     deps = [
-        "//core:go_default_library",
-        "//repositories:go_default_library",
+        "//core",
+        "//repositories",
     ],
 )
 
 go_test(
-    name = "go_default_test",
+    name = "bazelisk_version_test",
     srcs = ["bazelisk_version_test.go"],
     data = [
         "sample-issues-migration.json",
     ],
-    embed = [":go_default_library"],
+    embed = [":bazelisk_lib"],
     importpath = "github.com/bazelbuild/bazelisk",
     deps = [
-        "//config:go_default_library",
-        "//core:go_default_library",
-        "//httputil:go_default_library",
-        "//repositories:go_default_library",
-        "//versions:go_default_library",
+        "//config",
+        "//core",
+        "//httputil",
+        "//repositories",
+        "//versions",
     ],
 )
 
 go_binary(
     name = "bazelisk",
-    embed = [":go_default_library"],
+    embed = [":bazelisk_lib"],
     visibility = ["//visibility:public"],
 )
 
 go_binary(
     name = "bazelisk-darwin-amd64",
     out = "bazelisk-darwin_amd64",
-    embed = [":go_default_library"],
+    embed = [":bazelisk_lib"],
     gc_linkopts = [
         "-s",
         "-w",
@@ -89,7 +89,7 @@ go_binary(
 go_binary(
     name = "bazelisk-darwin-arm64",
     out = "bazelisk-darwin_arm64",
-    embed = [":go_default_library"],
+    embed = [":bazelisk_lib"],
     gc_linkopts = [
         "-s",
         "-w",
@@ -117,7 +117,7 @@ genrule(
 go_binary(
     name = "bazelisk-linux-amd64",
     out = "bazelisk-linux_amd64",
-    embed = [":go_default_library"],
+    embed = [":bazelisk_lib"],
     gc_linkopts = [
         "-s",
         "-w",
@@ -131,7 +131,7 @@ go_binary(
 go_binary(
     name = "bazelisk-linux-arm64",
     out = "bazelisk-linux_arm64",
-    embed = [":go_default_library"],
+    embed = [":bazelisk_lib"],
     gc_linkopts = [
         "-s",
         "-w",
@@ -145,7 +145,7 @@ go_binary(
 go_binary(
     name = "bazelisk-windows-amd64",
     out = "bazelisk-windows_amd64.exe",
-    embed = [":go_default_library"],
+    embed = [":bazelisk_lib"],
     goarch = "amd64",
     goos = "windows",
     pure = "on",
