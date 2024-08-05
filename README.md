@@ -202,15 +202,10 @@ Configuration variables are evaluated with precedence order. The preferred value
 
 For ease of use, the Python version of Bazelisk is written to work with Python 2.7 and 3.x and only uses modules provided by the standard library.
 
-The Go version can be compiled to run natively on Linux, macOS and Windows.
-You need at least Go 1.11 to build Bazelisk, otherwise you'll run into errors like `undefined: os.UserCacheDir`.
+The Go version can be compiled to run natively on Linux, macOS and Windows. 
 
-To install the Go version, type:
+To install it, run:
 
-```shell
-go get github.com/bazelbuild/bazelisk
-```
-With Go 1.17 or later, the recommended way to install it is:
 ```shell
 go install github.com/bazelbuild/bazelisk@latest
 ```
