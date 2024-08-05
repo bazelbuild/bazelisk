@@ -8,7 +8,7 @@ go_library(
     deps = [
         "//config",
         "//versions",
-        "@com_github_hashicorp_go_version//:go_default_library",
+        "@com_github_hashicorp_go_version//:go-version",
     ],
 )
 
