@@ -1,6 +1,6 @@
-load("@rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
-load("@gazelle//:def.bzl", "gazelle")
 load("@aspect_rules_js//npm:defs.bzl", "npm_package", "stamped_package_json")
+load("@gazelle//:def.bzl", "gazelle")
+load("@rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
 
 # gazelle:prefix github.com/bazelbuild/bazelisk
 gazelle(name = "gazelle")
