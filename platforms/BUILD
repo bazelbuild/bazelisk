@@ -1,4 +1,4 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "platforms",
@@ -8,7 +8,7 @@ go_library(
     deps = [
         "//config",
         "//versions",
-        "@com_github_hashicorp_go_version//:go_default_library",
+        "@com_github_hashicorp_go_version//:go-version",
     ],
 )
 
