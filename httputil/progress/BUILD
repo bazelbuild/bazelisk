@@ -1,26 +1,22 @@
-load("@bazel_gazelle//:def.bzl", "gazelle")
-load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+load("@gazelle//:def.bzl", "gazelle")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 # gazelle:prefix github.com/bazelbuild/bazelisk/httputil/progress
 gazelle(name = "gazelle")
 
 go_library(
-    name = "go_default_library",
-    srcs = [
-        "progress.go",
-    ],
+    name = "progress",
+    srcs = ["progress.go"],
     importpath = "github.com/bazelbuild/bazelisk/httputil/progress",
     visibility = ["//visibility:public"],
     deps = [
-        "//config:go_default_library",
-        "@org_golang_x_term//:go_default_library",
+        "//config",
+        "@org_golang_x_term//:term",
     ],
 )
 
 go_test(
-    name = "go_default_test",
-    srcs = [
-        "progress_test.go",
-    ],
-    embed = [":go_default_library"],
+    name = "progress_test",
+    srcs = ["progress_test.go"],
+    embed = [":progress"],
 )

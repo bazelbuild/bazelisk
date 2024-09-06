@@ -1,7 +1,7 @@
+// Package config reads Bazelisk configuration settings from files and the environment.
 package config
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -50,7 +50,7 @@ func (c *static) Get(name string) string {
 func parseFileConfig(rcFilePath string) (map[string]string, error) {
 	config := make(map[string]string)
 
-	contents, err := ioutil.ReadFile(rcFilePath)
+	contents, err := os.ReadFile(rcFilePath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			// Non-critical error.
