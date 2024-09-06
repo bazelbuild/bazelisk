@@ -179,8 +179,13 @@ BAZELISK_GITHUB_TOKEN=abc
 The following variables can be set:
 
 - `BAZELISK_BASE_URL`
+- `BAZELISK_FORMAT_URL`
+- `BAZELISK_NOJDK`
 - `BAZELISK_CLEAN`
 - `BAZELISK_GITHUB_TOKEN`
+- `BAZELISK_HOME_DARWIN`
+- `BAZELISK_HOME_LINUX`
+- `BAZELISK_HOME_WINDOWS`
 - `BAZELISK_HOME`
 - `BAZELISK_INCOMPATIBLE_FLAGS`
 - `BAZELISK_SHOW_PROGRESS`
@@ -196,19 +201,16 @@ Configuration variables are evaluated with precedence order. The preferred value
 * Variables defined in the workspace root `.bazeliskrc`
 * Variables defined in the user home `.bazeliskrc`
 
+Additionally, the Bazelisk home directory is also evaluated in precedence order. The preferred value is OS-specific e.g. `BAZELISK_HOME_LINUX`, then we fall back to `BAZELISK_HOME`.
+
 ## Requirements
 
 For ease of use, the Python version of Bazelisk is written to work with Python 2.7 and 3.x and only uses modules provided by the standard library.
 
-The Go version can be compiled to run natively on Linux, macOS and Windows.
-You need at least Go 1.11 to build Bazelisk, otherwise you'll run into errors like `undefined: os.UserCacheDir`.
+The Go version can be compiled to run natively on Linux, macOS and Windows. 
 
-To install the Go version, type:
+To install it, run:
 
-```shell
-go get github.com/bazelbuild/bazelisk
-```
-With Go 1.17 or later, the recommended way to install it is:
 ```shell
 go install github.com/bazelbuild/bazelisk@latest
 ```

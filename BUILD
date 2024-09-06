@@ -1,7 +1,8 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
-load("@bazel_gazelle//:def.bzl", "gazelle")
 load("@aspect_rules_js//npm:defs.bzl", "npm_package", "stamped_package_json")
+load("@gazelle//:def.bzl", "gazelle")
+load("@rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
 
+# gazelle:ignore
 # gazelle:prefix github.com/bazelbuild/bazelisk
 gazelle(name = "gazelle")
 
@@ -39,66 +40,76 @@ sh_test(
 )
 
 go_library(
-    name = "go_default_library",
+    name = "bazelisk_lib",
     srcs = ["bazelisk.go"],
     importpath = "github.com/bazelbuild/bazelisk",
     visibility = ["//visibility:private"],
     deps = [
-        "//core:go_default_library",
-        "//repositories:go_default_library",
+        "//core",
+        "//repositories",
     ],
 )
 
 go_test(
-    name = "go_default_test",
+    name = "bazelisk_version_test",
     srcs = ["bazelisk_version_test.go"],
     data = [
         "sample-issues-migration.json",
     ],
-    embed = [":go_default_library"],
+    embed = [":bazelisk_lib"],
     importpath = "github.com/bazelbuild/bazelisk",
     deps = [
-        "//config:go_default_library",
-        "//core:go_default_library",
-        "//httputil:go_default_library",
-        "//repositories:go_default_library",
-        "//versions:go_default_library",
+        "//config",
+        "//core",
+        "//httputil",
+        "//repositories",
+        "//versions",
     ],
 )
 
 go_binary(
     name = "bazelisk",
-    embed = [":go_default_library"],
+    embed = [":bazelisk_lib"],
     visibility = ["//visibility:public"],
 )
 
-go_binary(
-    name = "bazelisk-darwin-amd64",
-    out = "bazelisk-darwin_amd64",
-    embed = [":go_default_library"],
-    gc_linkopts = [
-        "-s",
-        "-w",
-    ],
-    goarch = "amd64",
-    goos = "darwin",
-    pure = "on",
-    visibility = ["//visibility:public"],
-)
+[
+    go_binary(
+        name = "bazelisk-%s-%s" % (os, arch),
+        out = "bazelisk-%s_%s" % (os, arch),
+        embed = [":bazelisk_lib"],
+        gc_linkopts = [
+            "-s",
+            "-w",
+        ],
+        goarch = arch,
+        goos = os,
+        pure = "on",
+        visibility = ["//visibility:public"],
+    )
+    for os, arch in [
+        ("darwin", "amd64"),
+        ("darwin", "arm64"),
+        ("linux", "amd64"),
+        ("linux", "arm64")
+    ]
+]
 
-go_binary(
-    name = "bazelisk-darwin-arm64",
-    out = "bazelisk-darwin_arm64",
-    embed = [":go_default_library"],
-    gc_linkopts = [
-        "-s",
-        "-w",
-    ],
-    goarch = "arm64",
-    goos = "darwin",
-    pure = "on",
-    visibility = ["//visibility:public"],
-)
+[
+    go_binary(
+        name = "bazelisk-%s-%s" % (os, arch),
+        out = "bazelisk-%s_%s.exe" % (os, arch),
+        embed = [":bazelisk_lib"],
+        goarch = arch,
+        goos = os,
+        pure = "on",
+        visibility = ["//visibility:public"],
+    )
+    for os, arch in [
+        ("windows", "amd64"),
+        ("windows", "arm64")
+    ]
+]
 
 genrule(
     name = "bazelisk-darwin-universal",
@@ -112,44 +123,6 @@ genrule(
     target_compatible_with = [
         "@platforms//os:macos",
     ],
-)
-
-go_binary(
-    name = "bazelisk-linux-amd64",
-    out = "bazelisk-linux_amd64",
-    embed = [":go_default_library"],
-    gc_linkopts = [
-        "-s",
-        "-w",
-    ],
-    goarch = "amd64",
-    goos = "linux",
-    pure = "on",
-    visibility = ["//visibility:public"],
-)
-
-go_binary(
-    name = "bazelisk-linux-arm64",
-    out = "bazelisk-linux_arm64",
-    embed = [":go_default_library"],
-    gc_linkopts = [
-        "-s",
-        "-w",
-    ],
-    goarch = "arm64",
-    goos = "linux",
-    pure = "on",
-    visibility = ["//visibility:public"],
-)
-
-go_binary(
-    name = "bazelisk-windows-amd64",
-    out = "bazelisk-windows_amd64.exe",
-    embed = [":go_default_library"],
-    goarch = "amd64",
-    goos = "windows",
-    pure = "on",
-    visibility = ["//visibility:public"],
 )
 
 stamped_package_json(
@@ -170,6 +143,7 @@ npm_package(
         ":bazelisk-linux-amd64",
         ":bazelisk-linux-arm64",
         ":bazelisk-windows-amd64",
+        ":bazelisk-windows-arm64",
         ":package",
     ],
     package = "@bazel/bazelisk",

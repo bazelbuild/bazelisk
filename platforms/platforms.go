@@ -22,8 +22,8 @@ var supportedPlatforms = map[string]*platform{
 		HasArm64Binary: true,
 	},
 	"linux": {
-		Name:           "centos7",
-		HasArm64Binary: false,
+		Name:           "linux",
+		HasArm64Binary: true,
 	},
 	"windows": {
 		Name:           "windows",
@@ -55,6 +55,7 @@ func DetermineExecutableFilenameSuffix() string {
 	return filenameSuffix
 }
 
+// DetermineArchitecture returns the architecture of the current machine.
 func DetermineArchitecture(osName, version string) (string, error) {
 	var machineName string
 	switch runtime.GOARCH {
@@ -73,6 +74,7 @@ func DetermineArchitecture(osName, version string) (string, error) {
 	return machineName, nil
 }
 
+// DetermineOperatingSystem returns the name of the operating system.
 func DetermineOperatingSystem() (string, error) {
 	switch runtime.GOOS {
 	case "darwin", "linux", "windows":
@@ -87,7 +89,7 @@ func DetermineBazelFilename(version string, includeSuffix bool, config config.Co
 	flavor := "bazel"
 
 	bazeliskNojdk := config.Get("BAZELISK_NOJDK")
-	
+
 	if len(bazeliskNojdk) != 0 && bazeliskNojdk != "0" {
 		flavor = "bazel_nojdk"
 	}

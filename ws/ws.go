@@ -1,3 +1,4 @@
+// Package ws offers functions to get information about Bazel workspaces.
 package ws
 
 import (
@@ -23,7 +24,7 @@ func FindWorkspaceRoot(root string) string {
 
 // isValidWorkspace returns true if the supplied path is the workspace root, defined by the presence of
 // a file named MODULE.bazel, REPO.bazel, WORKSPACE.bazel, or WORKSPACE
-// see https://github.com/bazelbuild/bazel/blob/6.3.0/src/main/cpp/workspace_layout.cc#L34
+// see https://github.com/bazelbuild/bazel/blob/7.2.1/src/main/cpp/workspace_layout.cc#L34
 func isValidWorkspace(path string) bool {
 	info, err := os.Stat(path)
 	if err != nil {
