@@ -214,7 +214,11 @@ func getBazelCommand(args []string) (string, error) {
 
 // getBazeliskHome returns the path to the Bazelisk home directory.
 func getBazeliskHome(config config.Config) (string, error) {
-	bazeliskHome := config.Get("BAZELISK_HOME")
+  bazeliskHome := config.Get("BAZELISK_HOME_" + strings.ToUpper(runtime.GOOS))
+	if len(bazeliskHome) == 0 {
+		bazeliskHome = config.Get("BAZELISK_HOME")
+	}
+  
 	if len(bazeliskHome) == 0 {
 		userCacheDir, err := os.UserCacheDir()
 		if err != nil {
