@@ -166,7 +166,7 @@ You can control the user agent that Bazelisk sends in all HTTP requests by setti
 
 # .bazeliskrc configuration file
 
-A `.bazeliskrc` file in the root directory of a workspace or the user home directory allows users to set environment variables persistently.
+A `.bazeliskrc` file in the root directory of a workspace or the user home directory allows users to set environment variables persistently. (The Python implementation of Bazelisk doesn't check the user home directory yet, only the workspace directory.)
 
 Example file content:
 
