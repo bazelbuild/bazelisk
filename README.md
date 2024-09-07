@@ -166,7 +166,7 @@ You can control the user agent that Bazelisk sends in all HTTP requests by setti
 
 # .bazeliskrc configuration file
 
-The Go version supports a `.bazeliskrc` file in the root directory of a workspace and the user home directory. This file allows users to set environment variables persistently.
+A `.bazeliskrc` file in the root directory of a workspace or the user home directory allows users to set environment variables persistently.
 
 Example file content:
 
