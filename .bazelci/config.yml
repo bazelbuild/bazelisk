@@ -1,6 +1,6 @@
 ---
 platforms:
-  ubuntu1804:
+  ubuntu2204:
     build_targets:
       - //...
     test_targets:
@@ -16,11 +16,14 @@ platforms:
     test_flags:
       - --flaky_test_attempts=1
       - --test_output=streamed
-  macos:
+  macos_arm64:
     build_targets:
       - //...
     test_targets:
       - //...
+      # The python version doesn't support macos arm64
+      - "-//:py_bazelisk_test"
+      - "-//:py3_bazelisk_test"
     test_flags:
       - --flaky_test_attempts=1
       - --test_output=streamed
