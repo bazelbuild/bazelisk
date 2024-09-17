@@ -28,7 +28,9 @@ go build
     //:bazelisk-linux-amd64 \
     //:bazelisk-linux-arm64 \
     //:bazelisk-windows-amd64 \
-    //:bazelisk-windows-arm64
+    //:bazelisk-windows-arm64 \
+    //deb:bazelisk-amd64_deb \
+    //deb:bazelisk-arm64_deb
 echo
 
 cp bazel-out/*-opt*/bin/bazelisk-darwin_amd64 bin/bazelisk-darwin-amd64
@@ -38,6 +40,8 @@ cp bazel-out/*-opt*/bin/bazelisk-linux_amd64 bin/bazelisk-linux-amd64
 cp bazel-out/*-opt*/bin/bazelisk-linux_arm64 bin/bazelisk-linux-arm64
 cp bazel-out/*-opt*/bin/bazelisk-windows_amd64.exe bin/bazelisk-windows-amd64.exe
 cp bazel-out/*-opt*/bin/bazelisk-windows_arm64.exe bin/bazelisk-windows-arm64.exe
+cp bazel-out/*-opt*/bin/deb/bazelisk-amd64.deb bin/bazelisk-amd64.deb
+cp bazel-out/*-opt*/bin/deb/bazelisk-arm64.deb bin/bazelisk-arm64.deb
 rm -f bazelisk
 
 ### Build release artifacts using `go build`.
