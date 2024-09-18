@@ -33,6 +33,7 @@ import (
 const (
 	bazelReal               = "BAZEL_REAL"
 	skipWrapperEnv          = "BAZELISK_SKIP_WRAPPER"
+	bazeliskEnv             = "BAZELISK"
 	defaultWrapperDirectory = "./tools"
 	defaultWrapperName      = "bazel"
 	maxDirLength            = 255
@@ -214,11 +215,11 @@ func getBazelCommand(args []string) (string, error) {
 
 // getBazeliskHome returns the path to the Bazelisk home directory.
 func getBazeliskHome(config config.Config) (string, error) {
-  bazeliskHome := config.Get("BAZELISK_HOME_" + strings.ToUpper(runtime.GOOS))
+	bazeliskHome := config.Get("BAZELISK_HOME_" + strings.ToUpper(runtime.GOOS))
 	if len(bazeliskHome) == 0 {
 		bazeliskHome = config.Get("BAZELISK_HOME")
 	}
-  
+
 	if len(bazeliskHome) == 0 {
 		userCacheDir, err := os.UserCacheDir()
 		if err != nil {
@@ -581,6 +582,10 @@ func makeBazelCmd(bazel string, args []string, out io.Writer, config config.Conf
 	if execPath != bazel {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", bazelReal, bazel))
 	}
+	selfPath, err := os.Executable()
+	if err != nil {
+		cmd.Env = append(cmd.Env, bazeliskEnv+"="+selfPath)
+	}
 	prependDirToPathList(cmd, filepath.Dir(execPath))
 	cmd.Stdin = os.Stdin
 	if out == nil {
@@ -798,7 +803,7 @@ func getBazelCommitsBetween(goodCommit string, badCommit string, config config.C
 		if err != nil {
 			return goodCommit, nil, fmt.Errorf("Error unmarshaling JSON: %v", err)
 		}
-	
+
 		if len(compResp.Commits) == 0 {
 			break
 		}
