@@ -92,6 +92,14 @@ If for any reason none of this works, you can also override the URL format altog
 - `%%`: Literal `%` for escaping purposes.
 - All other characters after `%` are reserved for future use and result in a processing error.
 
+## Environment variables set by Bazelisk
+
+Bazelisk prepends a directory to `PATH` that contains the downloaded Bazel binary.
+This ensures that Bazel targets that invoke `bazel` will use the same Bazel binary as the outer invocation.
+
+Bazelisk also sets the environment variable `BAZELISK` to its own path.
+This can be useful for scripts that want to know if they are running under Bazelisk and can also be used to run specific Bazel versions from within a Bazel run, e.g. to generate version-specific test data.
+
 ## Ensuring that your developers use Bazelisk rather than Bazel
 
 Bazel installers typically provide Bazel's [shell wrapper script] as the `bazel` on the PATH.
