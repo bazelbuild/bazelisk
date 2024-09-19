@@ -130,10 +130,11 @@ This will show you which flags can safely enabled, and which flags require a mig
 ### --bisect
 
 `--bisect` flag allows you to bisect Bazel versions to find which version introduced a build failure. You can specify the range of versions to bisect with `--bisect=<GOOD>..<BAD>`, where GOOD is the last known working Bazel version and BAD is the first known non-working Bazel version. Bazelisk uses [GitHub's compare API](https://docs.github.com/en/rest/commits/commits#compare-two-commits) to get the list of commits to bisect. When GOOD is not an ancestor of BAD, GOOD is reset to their merge base commit.
+The meaning of GOOD and BAD can be reversed by prefixing the range with `~`, e.g. `--bisect=!6.0.0..HEAD` will find the first version 6.0.0 and HEAD that *fixes* the build.
 
 Examples:
 ```shell
-# Bisect between 6.0.0 and Bazel at HEAD
+# Bisect between 6.0.0 and Bazel at HEAD to find the first commit that breaks the build.
 bazelisk --bisect=6.0.0..HEAD test //foo:bar_test
 
 # Bisect between 6.1.0 and the second release candidate of Bazel 6.2.0
@@ -141,6 +142,9 @@ bazelisk --bisect=6.1.0..release-6.2.0rc2 test //foo:bar_test
 
 # Bisect between two commits on the main branch (or branches with `release-` prefix) of the Bazel GitHub repository.
 bazelisk --bisect=<good commit hash>..<bad commit hash> test //foo:bar_test
+
+# Bisect between 6.0.0 and Bazel at HEAD to find the first commit that *fixes* the build.
+bazelisk --bisect=~6.0.0..HEAD test //foo:bar_test
 ```
 
 Note that, Bazelisk uses prebuilt Bazel binaries at commits on the main and release branches, therefore you cannot bisect your local commits.
@@ -227,8 +231,6 @@ For more information, you may read about the [`GOPATH` environment variable](htt
 
 - Add support for checked-in Bazel binaries.
 - When the version label is set to a commit hash, first download a matching binary version of Bazel, then build Bazel automatically at that commit and use the resulting binary.
-- Add support to automatically bisect a build failure to a culprit commit in Bazel.
-  If you notice that you could successfully build your project using version X, but not using version X+1, then Bazelisk should be able to figure out the commit that caused the breakage and the Bazel team can easily fix the problem.
 
 ## FAQ
 
