@@ -165,14 +165,14 @@ func RunBazeliskWithArgsFuncAndConfigAndOut(argsFunc ArgsFunc, repos *Repositori
 	} else if len(args) > 0 && strings.HasPrefix(args[0], "--bisect") {
 		// When --bisect is present, we run the bisect logic.
 		if !strings.HasPrefix(args[0], "--bisect=") {
-			return -1, fmt.Errorf("Error: --bisect must have a value. Expected format: '--bisect=[!]<good bazel commit>..<bad bazel commit>'")
+			return -1, fmt.Errorf("Error: --bisect must have a value. Expected format: '--bisect=[~]<good bazel commit>..<bad bazel commit>'")
 		}
 		value := args[0][len("--bisect="):]
 		commits := strings.Split(value, "..")
 		if len(commits) == 2 {
 			bisect(commits[0], commits[1], args[1:], bazeliskHome, repos, config)
 		} else {
-			return -1, fmt.Errorf("Error: Invalid format for --bisect. Expected format: '--bisect=[!]<good bazel commit>..<bad bazel commit>'")
+			return -1, fmt.Errorf("Error: Invalid format for --bisect. Expected format: '--bisect=[~]<good bazel commit>..<bad bazel commit>'")
 		}
 	}
 
@@ -805,7 +805,7 @@ func getBazelCommitsBetween(oldCommit string, newCommit string, config config.Co
 
 		mergeBaseCommit := compResp.MergeBaseCommit.SHA
 		if mergeBaseCommit != compResp.BaseCommit.SHA {
-			fmt.Printf("The old Bazel commit is not an ancestor of the good Bazel commit, overriding the old Bazel commit to the merge base commit %s\n", mergeBaseCommit)
+			fmt.Printf("The old Bazel commit is not an ancestor of the new Bazel commit, overriding the old Bazel commit to the merge base commit %s\n", mergeBaseCommit)
 			oldCommit = mergeBaseCommit
 		}
 

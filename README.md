@@ -130,7 +130,7 @@ This will show you which flags can safely enabled, and which flags require a mig
 ### --bisect
 
 `--bisect` flag allows you to bisect Bazel versions to find which version introduced a build failure. You can specify the range of versions to bisect with `--bisect=<GOOD>..<BAD>`, where GOOD is the last known working Bazel version and BAD is the first known non-working Bazel version. Bazelisk uses [GitHub's compare API](https://docs.github.com/en/rest/commits/commits#compare-two-commits) to get the list of commits to bisect. When GOOD is not an ancestor of BAD, GOOD is reset to their merge base commit.
-The meaning of GOOD and BAD can be reversed by prefixing the range with `~`, e.g. `--bisect=!6.0.0..HEAD` will find the first version 6.0.0 and HEAD that *fixes* the build.
+The meaning of GOOD and BAD can be reversed by prefixing the range with `~`, e.g. `--bisect=~6.0.0..HEAD` will find the first version 6.0.0 and HEAD that *fixes* the build.
 
 Examples:
 ```shell
