@@ -147,4 +147,5 @@ npm_package(
         ":package",
     ],
     package = "@bazel/bazelisk",
+    publishable = True,
 )
