@@ -27,7 +27,7 @@ var (
 
 // Info represents a structured Bazel version identifier.
 type Info struct {
-	IsRelease, IsCandidate, IsCommit, IsFork, IsRolling, IsRelative, IsDownstream bool
+	IsRelease, IsCandidate, IsCommit, IsFork, IsRolling, IsRelative bool
 	Fork, Value                                                                   string
 	LatestOffset, TrackRestriction                                                int
 }
@@ -68,10 +68,6 @@ func Parse(fork, version string) (*Info, error) {
 	} else if version == "last_green" {
 		vi.IsCommit = true
 		vi.IsRelative = true
-	} else if version == "last_downstream_green" {
-		vi.IsCommit = true
-		vi.IsRelative = true
-		vi.IsDownstream = true
 	} else if rollingPattern.MatchString(version) {
 		vi.IsRolling = true
 	} else if version == "rolling" {
@@ -106,7 +102,11 @@ func GetInAscendingOrder(versions []string) []string {
 	return sorted
 }
 
+func MatchCommitPattern(version string) bool {
+	return commitPattern.MatchString(version)
+}
+
 // IsCommit returns whether the given version refers to a commit.
 func IsCommit(version string) bool {
-	return version == "last_green" || version == "last_downstream_green" || commitPattern.MatchString(version)
+	return version == "last_green" || commitPattern.MatchString(version)
 }

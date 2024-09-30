@@ -21,15 +21,7 @@ import (
 const (
 	candidateBaseURL    = "https://releases.bazel.build"
 	nonCandidateBaseURL = "https://storage.googleapis.com/bazel-builds/artifacts"
-	lastGreenBaseURL    = "https://storage.googleapis.com/bazel-untrusted-builds/last_green_commit/"
-)
-
-var (
-	// key == includeDownstream
-	lastGreenCommitPathSuffixes = map[bool]string{
-		false: "github.com/bazelbuild/bazel.git/bazel-bazel",
-		true:  "downstream_pipeline",
-	}
+	lastGreenCommitURL  = "https://storage.googleapis.com/bazel-builds/last_green_commit/github.com/bazelbuild/bazel.git/publish-bazel-binaries"
 )
 
 // GCSRepo represents a Bazel repository on Google Cloud Storage that contains Bazel releases, release candidates and Bazel binaries built at arbitrary commits.
@@ -249,16 +241,20 @@ func (gcs *GCSRepo) DownloadCandidate(version, destDir, destFile string, config 
 
 // CommitRepo
 
-// GetLastGreenCommit returns the most recent commit at which a Bazel binary passed a specific Bazel CI pipeline.
-// If downstreamGreen is true, the pipeline is https://buildkite.com/bazel/bazel-at-head-plus-downstream, otherwise
-// it's https://buildkite.com/bazel/bazel-bazel
-func (gcs *GCSRepo) GetLastGreenCommit(bazeliskHome string, downstreamGreen bool) (string, error) {
-	pathSuffix := lastGreenCommitPathSuffixes[downstreamGreen]
-	content, _, err := httputil.ReadRemoteFile(lastGreenBaseURL+pathSuffix, "")
+// GetLastGreenCommit returns the most recent commit at which a Bazel binary is successfully built.
+func (gcs *GCSRepo) GetLastGreenCommit(bazeliskHome string) (string, error) {
+	content, _, err := httputil.ReadRemoteFile(lastGreenCommitURL, "")
 	if err != nil {
 		return "", fmt.Errorf("could not determine last green commit: %v", err)
 	}
-	return strings.TrimSpace(string(content)), nil
+
+	// Validate the content does look like a commit hash
+	commit := strings.TrimSpace(string(content))
+	if !versions.MatchCommitPattern(commit) {
+		return "", fmt.Errorf("invalid commit hash: %s", commit)
+	}
+
+	return commit, nil
 }
 
 // DownloadAtCommit downloads a Bazel binary built at the given commit into the specified location and returns the absolute path.

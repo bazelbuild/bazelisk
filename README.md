@@ -66,10 +66,11 @@ Bazelisk currently understands the following formats for version labels:
 Additionally, a few special version names are supported for our official releases only (these formats do not work when using a fork):
 - `last_green` refers to the Bazel binary that was built at the most recent commit that passed [Bazel CI](https://buildkite.com/bazel/bazel-bazel).
   Ideally this binary should be very close to Bazel-at-head.
-- `last_downstream_green` points to the most recent Bazel binary that builds and tests all [downstream projects](https://buildkite.com/bazel/bazel-at-head-plus-downstream) successfully.
 - `last_rc` points to the most recent release candidate.
   If there is no active release candidate, Bazelisk uses the latest Bazel release instead.
 - `rolling` refers to the latest rolling release (even if there is a newer LTS release).
+
+Note: `last_downstream_green` support has been removed, please use `last_green` instead.
 
 ## Where does Bazelisk get Bazel from?
 
@@ -219,7 +220,7 @@ Additionally, the Bazelisk home directory is also evaluated in precedence order.
 
 For ease of use, the Python version of Bazelisk is written to work with Python 2.7 and 3.x and only uses modules provided by the standard library.
 
-The Go version can be compiled to run natively on Linux, macOS and Windows. 
+The Go version can be compiled to run natively on Linux, macOS and Windows.
 
 To install it, run:
 

@@ -70,10 +70,8 @@ type ForkRepo interface {
 // CommitRepo represents a repository that stores Bazel binaries built at specific commits.
 // It can also return the hashes of the most recent commits that passed Bazel CI pipelines successfully.
 type CommitRepo interface {
-	// GetLastGreenCommit returns the most recent commit at which a Bazel binary passed a specific Bazel CI pipeline.
-	// If downstreamGreen is true, the pipeline is https://buildkite.com/bazel/bazel-at-head-plus-downstream, otherwise
-	// it's https://buildkite.com/bazel/bazel-bazel
-	GetLastGreenCommit(bazeliskHome string, downstreamGreen bool) (string, error)
+	// GetLastGreenCommit returns the most recent commit at which a Bazel binary is successfully built.
+	GetLastGreenCommit(bazeliskHome string) (string, error)
 
 	// DownloadAtCommit downloads a Bazel binary built at the given commit into the specified location and returns the absolute path.
 	DownloadAtCommit(commit, destDir, destFile string, config config.Config) (string, error)
@@ -122,7 +120,7 @@ func (r *Repositories) ResolveVersion(bazeliskHome, fork, version string, config
 
 func (r *Repositories) resolveFork(bazeliskHome string, vi *versions.Info, config config.Config) (string, DownloadFunc, error) {
 	if vi.IsRelative && (vi.IsCandidate || vi.IsCommit) {
-		return "", nil, errors.New("forks do not support last_rc, last_green and last_downstream_green")
+		return "", nil, errors.New("forks do not support last_rc and last_green")
 	}
 	lister := func(bazeliskHome string) ([]string, error) {
 		return r.Fork.GetVersions(bazeliskHome, vi.Fork)
@@ -174,7 +172,7 @@ func (r *Repositories) resolveCommit(bazeliskHome string, vi *versions.Info, con
 	version := vi.Value
 	if vi.IsRelative {
 		var err error
-		version, err = r.Commits.GetLastGreenCommit(bazeliskHome, vi.IsDownstream)
+		version, err = r.Commits.GetLastGreenCommit(bazeliskHome)
 		if err != nil {
 			return "", nil, fmt.Errorf("cannot resolve last green commit: %v", err)
 		}
@@ -376,7 +374,7 @@ type noCommitRepo struct {
 	err error
 }
 
-func (nlgr *noCommitRepo) GetLastGreenCommit(bazeliskHome string, downstreamGreen bool) (string, error) {
+func (nlgr *noCommitRepo) GetLastGreenCommit(bazeliskHome string) (string, error) {
 	return "", nlgr.err
 }
 
