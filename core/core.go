@@ -409,10 +409,10 @@ func atomicWriteFile(path string, contents []byte, perm os.FileMode) error {
 		return fmt.Errorf("failed to MkdirAll parent of %s: %w", path, err)
 	}
 	tmpFile, err := os.CreateTemp(parent, filepath.Base(path)+".tmp")
-	tmpFile.Close()
 	if err != nil {
 		return fmt.Errorf("failed to create temporary file in %s: %w", parent, err)
 	}
+	tmpFile.Close()
 	defer os.Remove(tmpFile.Name())
 	tmpPath := tmpFile.Name()
 	if err := os.WriteFile(tmpPath, contents, perm); err != nil {
@@ -473,10 +473,10 @@ func downloadBazelToCAS(version string, bazeliskHome string, repos *Repositories
 	}
 
 	tmpPathFile, err := os.CreateTemp(dirForBazelInCAS, bazelInCASBasename+".tmp")
-	tmpPathFile.Close()
 	if err != nil {
 		return "", "", fmt.Errorf("failed to create temporary file in %s: %w", dirForBazelInCAS, err)
 	}
+	tmpPathFile.Close()
 	defer os.Remove(tmpPathFile.Name())
 	tmpPathInCorrectDirectory := tmpPathFile.Name()
 	if err := os.Rename(tmpDestPath, tmpPathInCorrectDirectory); err != nil {
