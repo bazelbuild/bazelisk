@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 )
@@ -219,10 +220,13 @@ func TestDeadlineExceeded(t *testing.T) {
 		t.Fatal("Expected request to fail with code 500")
 	}
 
-	wanted := "could not fetch http://bar: unable to complete request to http://bar within 8s"
+	wantedPrefix := "could not fetch http://bar: unable to complete "
+	wantedSuffix := " requests to http://bar within 8s. Most recent failure: HTTP 500"
+
 	got := err.Error()
-	if wanted != got {
-		t.Fatalf("Expected error %q, but got %q", wanted, got)
+	sameError := strings.HasPrefix(got, wantedPrefix) && strings.HasSuffix(got, wantedSuffix)
+	if !sameError {
+		t.Fatalf("Expected error %q, but got %q", wantedPrefix+"???"+wantedSuffix, got)
 	}
 }
 
