@@ -35,14 +35,18 @@ ARCHES = ["amd64", "arm64"]
 [
     pkg_deb(
         name = "bazelisk-{}_deb".format(arch),
+        out = "bazelisk-{}.deb".format(arch),
         architecture = arch,
-        conflicts = ["bazel"],
+        conflicts = [
+            "bazel",
+            "bazel-bootstrap",
+        ],
         data = ":bazelisk-{}_tar".format(arch),
+        depends = ["ca-certificates"],
         description_file = ":description.txt",
         homepage = "https://github.com/bazelbuild/bazelisk",
         license = "Apache-2.0",
         maintainer = "The Bazel Authors <bazel-dev@googlegroups.com>",
-        out = "bazelisk-{}.deb".format(arch),
         package = "bazelisk",
         section = "contrib/devel",
         version_file = ":version.txt",
