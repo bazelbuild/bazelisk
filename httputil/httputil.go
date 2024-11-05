@@ -94,6 +94,9 @@ func get(url, auth string) (*http.Response, error) {
 		if !shouldRetry(res, err) {
 			return res, err
 		}
+		// Need to retry, close the response body immediately to release resources.
+		// See https://github.com/googleapis/google-cloud-go/issues/7440#issuecomment-1491008639
+		res.Body.Close()
 
 		if err == nil {
 			lastFailure = fmt.Sprintf("HTTP %d", res.StatusCode)
