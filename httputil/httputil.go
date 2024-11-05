@@ -113,7 +113,7 @@ func get(url, auth string) (*http.Response, error) {
 
 		nextTryAt := RetryClock.Now().Add(waitFor)
 		if nextTryAt.After(deadline) {
-			return nil, fmt.Errorf("unable to complete request to %s within %v", url, MaxRequestDuration)
+			return nil, fmt.Errorf("unable to complete %d requests to %s within %v. Most recent failure: %s", attempt+1, url, MaxRequestDuration, lastFailure)
 		}
 		if attempt < MaxRetries {
 			RetryClock.Sleep(waitFor)
