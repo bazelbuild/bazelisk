@@ -127,7 +127,7 @@ func shouldRetry(res *http.Response, err error) bool {
 	if err != nil {
 		return true
 	}
-	// For HTTP: only retry on permanent/fatal errors.
+	// For HTTP: only retry on non-permanent/fatal errors.
 	return res.StatusCode == 429 || (500 <= res.StatusCode && res.StatusCode <= 504)
 }
 
