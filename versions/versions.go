@@ -17,7 +17,8 @@ const (
 )
 
 var (
-	releasePattern       = regexp.MustCompile(`^(\d+)\.(x|\d+\.\d+)$`)
+	releasePattern       = regexp.MustCompile(`^(\d+)\.\d+\.\d+$`)
+	trackPattern         = regexp.MustCompile(`^(\d+)\.x$`)
 	patchPattern         = regexp.MustCompile(`^(\d+\.\d+\.\d+)-([\w\d]+)$`)
 	candidatePattern     = regexp.MustCompile(`^(\d+\.\d+\.\d+)rc(\d+)$`)
 	rollingPattern       = regexp.MustCompile(`^\d+\.0\.0-pre\.\d{8}(\.\d+){1,2}$`)
@@ -27,9 +28,11 @@ var (
 
 // Info represents a structured Bazel version identifier.
 type Info struct {
-	IsRelease, IsCandidate, IsCommit, IsFork, IsRolling, IsRelative bool
-	Fork, Value                                                                   string
-	LatestOffset, TrackRestriction                                                int
+	IsRelease, IsCandidate         bool
+	IsLTS, IsRolling               bool
+	IsCommit, IsFork, IsRelative   bool
+	Fork, Value                    string
+	LatestOffset, TrackRestriction int
 }
 
 // Parse extracts and returns structured information about the given Bazel version label.
@@ -37,18 +40,22 @@ func Parse(fork, version string) (*Info, error) {
 	vi := &Info{Fork: fork, Value: version, IsFork: isFork(fork)}
 
 	if m := releasePattern.FindStringSubmatch(version); m != nil {
+		vi.IsLTS = true
 		vi.IsRelease = true
-		if m[2] == "x" {
-			track, err := strconv.Atoi(m[1])
-			if err != nil {
-				return nil, fmt.Errorf("invalid version %q, expected something like '5.2.1' or '5.x'", version)
-			}
-			vi.IsRelative = true
-			vi.TrackRestriction = track
+	} else if m := trackPattern.FindStringSubmatch(version); m != nil {
+		track, err := strconv.Atoi(m[1])
+		if err != nil {
+			return nil, fmt.Errorf("invalid version %q, expected something like '5.x'", version)
 		}
+		vi.IsLTS = true
+		vi.IsRelease = true
+		vi.IsRelative = true
+		vi.TrackRestriction = track
 	} else if patchPattern.MatchString(version) {
+		vi.IsLTS = true
 		vi.IsRelease = true
 	} else if m := latestReleasePattern.FindStringSubmatch(version); m != nil {
+		vi.IsLTS = true
 		vi.IsRelease = true
 		vi.IsRelative = true
 		if m[1] != "" {
@@ -59,8 +66,10 @@ func Parse(fork, version string) (*Info, error) {
 			vi.LatestOffset = offset
 		}
 	} else if candidatePattern.MatchString(version) {
+		vi.IsLTS = true
 		vi.IsCandidate = true
 	} else if version == "last_rc" {
+		vi.IsLTS = true
 		vi.IsCandidate = true
 		vi.IsRelative = true
 	} else if commitPattern.MatchString(version) {
@@ -74,7 +83,7 @@ func Parse(fork, version string) (*Info, error) {
 		vi.IsRolling = true
 		vi.IsRelative = true
 	} else {
-		return nil, fmt.Errorf("Invalid version '%s'", version)
+		return nil, fmt.Errorf("invalid version '%s'", version)
 	}
 	return vi, nil
 }
