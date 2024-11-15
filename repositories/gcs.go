@@ -133,7 +133,6 @@ func (gcs *GCSRepo) matchingVersions(history []string, opts *core.FilterOpts) ([
 	// history is a list of base versions in ascending order (i.e. X.Y.Z, no rolling releases or candidates).
 	for hpos := len(history) - 1; hpos >= 0; hpos-- {
 		baseVersion := history[hpos]
-
 		if opts.Track > 0 {
 			track, err := getTrack(baseVersion)
 			if err != nil {

@@ -18,7 +18,7 @@ const (
 
 var (
 	releasePattern       = regexp.MustCompile(`^(\d+)\.\d+\.\d+$`)
-	trackPattern         = regexp.MustCompile(`^(\d+)\.x$`)
+	trackPattern         = regexp.MustCompile(`^(\d+)\.(x|\*)$`)
 	patchPattern         = regexp.MustCompile(`^(\d+\.\d+\.\d+)-([\w\d]+)$`)
 	candidatePattern     = regexp.MustCompile(`^(\d+\.\d+\.\d+)rc(\d+)$`)
 	rollingPattern       = regexp.MustCompile(`^\d+\.0\.0-pre\.\d{8}(\.\d+){1,2}$`)
@@ -28,7 +28,7 @@ var (
 
 // Info represents a structured Bazel version identifier.
 type Info struct {
-	IsRelease, IsCandidate         bool
+	MustBeRelease, MustBeCandidate bool
 	IsLTS, IsRolling               bool
 	IsCommit, IsFork, IsRelative   bool
 	Fork, Value                    string
@@ -41,22 +41,22 @@ func Parse(fork, version string) (*Info, error) {
 
 	if m := releasePattern.FindStringSubmatch(version); m != nil {
 		vi.IsLTS = true
-		vi.IsRelease = true
+		vi.MustBeRelease = true
 	} else if m := trackPattern.FindStringSubmatch(version); m != nil {
 		track, err := strconv.Atoi(m[1])
 		if err != nil {
-			return nil, fmt.Errorf("invalid version %q, expected something like '5.x'", version)
+			return nil, fmt.Errorf("invalid version %q, expected something like '5.x' or '5.*'", version)
 		}
 		vi.IsLTS = true
-		vi.IsRelease = true
+		vi.MustBeRelease = (m[2] == "x")
 		vi.IsRelative = true
 		vi.TrackRestriction = track
 	} else if patchPattern.MatchString(version) {
 		vi.IsLTS = true
-		vi.IsRelease = true
+		vi.MustBeRelease = true
 	} else if m := latestReleasePattern.FindStringSubmatch(version); m != nil {
 		vi.IsLTS = true
-		vi.IsRelease = true
+		vi.MustBeRelease = true
 		vi.IsRelative = true
 		if m[1] != "" {
 			offset, err := strconv.Atoi(m[1])
@@ -67,10 +67,10 @@ func Parse(fork, version string) (*Info, error) {
 		}
 	} else if candidatePattern.MatchString(version) {
 		vi.IsLTS = true
-		vi.IsCandidate = true
+		vi.MustBeCandidate = true
 	} else if version == "last_rc" {
 		vi.IsLTS = true
-		vi.IsCandidate = true
+		vi.MustBeCandidate = true
 		vi.IsRelative = true
 	} else if commitPattern.MatchString(version) {
 		vi.IsCommit = true

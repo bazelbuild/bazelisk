@@ -256,26 +256,60 @@ func TestResolveLatestRollingRelease(t *testing.T) {
 	}
 }
 
-func TestAcceptFloatingReleaseVersions(t *testing.T) {
-	s := setUp(t)
-	s.AddVersion("3.0.0", true, nil, []string{"4.0.0-pre.20210504.1"})
-	s.AddVersion("4.0.0", true, nil, nil)
-	s.AddVersion("4.1.0", true, nil, nil)
-	s.AddVersion("4.2.0", true, nil, nil)
-	s.AddVersion("4.2.1", true, []int{1, 2}, nil)
-	s.AddVersion("5.0.0", true, nil, nil)
-	s.Finish()
-
-	gcs := &repositories.GCSRepo{}
-	repos := core.CreateRepositories(gcs, nil, nil, nil, false)
-	version, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, "4.x", config.Null())
-
-	if err != nil {
-		t.Fatalf("Version resolution failed unexpectedly: %v", err)
+func TestAcceptTrackBasedReleaseVersions(t *testing.T) {
+	tests := []struct {
+		name             string
+		requestedVersion string
+		releaseExists    bool
+		wantVersion      string
+	}{
+		{
+			name:             "FloatingVersion_ReleaseExists",
+			requestedVersion: "4.x",
+			releaseExists:    true,
+			wantVersion:      "4.2.1",
+		},
+		{
+			name:             "Floating_NoRelease",
+			requestedVersion: "4.x",
+			releaseExists:    false,
+			wantVersion:      "4.2.0",
+		},
+		{
+			name:             "Wildcard_ReleaseExists",
+			requestedVersion: "4.*",
+			releaseExists:    true,
+			wantVersion:      "4.2.1",
+		},
+		{
+			name:             "Wildcard_NoRelease",
+			requestedVersion: "4.*",
+			releaseExists:    false,
+			wantVersion:      "4.2.1rc3",
+		},
 	}
-	expectedVersion := "4.2.1"
-	if version != expectedVersion {
-		t.Fatalf("Expected version %s, but got %s", expectedVersion, version)
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			s := setUp(t)
+			s.AddVersion("4.0.0", true, nil, []string{"4.0.0-pre.20210504.1"})
+			s.AddVersion("4.1.0", true, nil, nil)
+			s.AddVersion("4.2.0", true, nil, nil)
+			s.AddVersion("4.2.1", test.releaseExists, []int{1, 2, 3}, nil)
+			s.AddVersion("5.0.0", true, nil, nil)
+			s.Finish()
+
+			gcs := &repositories.GCSRepo{}
+			repos := core.CreateRepositories(gcs, nil, nil, nil, false)
+			version, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, test.requestedVersion, config.Null())
+
+			if err != nil {
+				t.Fatalf("Version resolution failed unexpectedly: %v", err)
+			}
+			if version != test.wantVersion {
+				t.Fatalf("Expected version %s, but got %s", test.wantVersion, version)
+			}
+		})
 	}
 }
 

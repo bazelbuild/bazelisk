@@ -100,7 +100,7 @@ func (r *Repositories) ResolveVersion(bazeliskHome, fork, version string, config
 }
 
 func (r *Repositories) resolveFork(bazeliskHome string, vi *versions.Info, config config.Config) (string, DownloadFunc, error) {
-	if vi.IsRelative && (vi.IsCandidate || vi.IsCommit) {
+	if vi.IsRelative && (vi.MustBeCandidate || vi.IsCommit) {
 		return "", nil, errors.New("forks do not support last_rc and last_green")
 	}
 	lister := func(bazeliskHome string) ([]string, error) {
@@ -131,10 +131,13 @@ func (r *Repositories) resolveLTS(bazeliskHome string, vi *versions.Info, config
 		Track:      vi.TrackRestriction,
 	}
 
-	if vi.IsRelease {
+	if vi.MustBeRelease {
 		opts.Filter = IsRelease
-	} else {
+	} else if vi.MustBeCandidate {
 		opts.Filter = IsCandidate
+	} else {
+		// Wildcard -> can be either release or candidate
+		opts.Filter = func(v string) bool { return true }
 	}
 
 	lister := func(bazeliskHome string) ([]string, error) {
