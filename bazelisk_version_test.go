@@ -264,7 +264,7 @@ func TestAcceptTrackBasedReleaseVersions(t *testing.T) {
 		wantVersion      string
 	}{
 		{
-			name:             "FloatingVersion_ReleaseExists",
+			name:             "Floating_ReleaseExists",
 			requestedVersion: "4.x",
 			releaseExists:    true,
 			wantVersion:      "4.2.1",
