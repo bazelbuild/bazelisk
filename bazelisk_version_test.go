@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"slices"
 	"strings"
 	"testing"
 
@@ -22,6 +23,16 @@ const (
 var (
 	tmpDir = ""
 )
+
+func TestGetInAscendingOrder(t *testing.T) {
+	input := []string{"7.0.1rc2", "6.1.0", "6.0.1", "10.11.12", "6.0.0", "7.0.1", "6.0.0rc2", "7.0.1rc1", "10.11.12rc1", "6.0.0rc1"}
+	want := []string{"6.0.0rc1", "6.0.0rc2", "6.0.0", "6.0.1", "6.1.0", "7.0.1rc1", "7.0.1rc2", "7.0.1", "10.11.12rc1", "10.11.12"}
+
+	got := versions.GetInAscendingOrder(input)
+	if !slices.Equal(got, want) {
+		t.Errorf("GetInAscendingOrder(): got %s, want %s", got, want)
+	}
+}
 
 func TestMain(m *testing.M) {
 	var err error
@@ -41,7 +52,7 @@ func TestResolveVersion(t *testing.T) {
 	s.Finish()
 
 	gcs := &repositories.GCSRepo{}
-	repos := core.CreateRepositories(nil, gcs, nil, nil, nil, false)
+	repos := core.CreateRepositories(gcs, nil, nil, nil, false)
 	version, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, "4.0.0", config.Null())
 
 	if err != nil {
@@ -59,7 +70,7 @@ func TestResolvePatchVersion(t *testing.T) {
 	s.Finish()
 
 	gcs := &repositories.GCSRepo{}
-	repos := core.CreateRepositories(nil, gcs, nil, nil, nil, false)
+	repos := core.CreateRepositories(gcs, nil, nil, nil, false)
 	version, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, "4.0.0-patch1", config.Null())
 
 	if err != nil {
@@ -81,7 +92,7 @@ func TestResolveLatestRcVersion(t *testing.T) {
 	s.Finish()
 
 	gcs := &repositories.GCSRepo{}
-	repos := core.CreateRepositories(nil, gcs, nil, nil, nil, false)
+	repos := core.CreateRepositories(gcs, nil, nil, nil, false)
 	version, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, "last_rc", config.Null())
 
 	if err != nil {
@@ -99,7 +110,7 @@ func TestResolveLatestRcVersion_WithFullRelease(t *testing.T) {
 	s.Finish()
 
 	gcs := &repositories.GCSRepo{}
-	repos := core.CreateRepositories(nil, gcs, nil, nil, nil, false)
+	repos := core.CreateRepositories(gcs, nil, nil, nil, false)
 	version, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, "last_rc", config.Null())
 
 	if err != nil {
@@ -119,7 +130,7 @@ func TestResolveLatestVersion_TwoLatestVersionsDoNotHaveAReleaseYet(t *testing.T
 	s.Finish()
 
 	gcs := &repositories.GCSRepo{}
-	repos := core.CreateRepositories(gcs, nil, nil, nil, nil, false)
+	repos := core.CreateRepositories(gcs, nil, nil, nil, false)
 	version, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, "latest", config.Null())
 
 	if err != nil {
@@ -141,7 +152,7 @@ func TestResolveLatestVersion_ShouldOnlyReturnStableReleases(t *testing.T) {
 	s.Finish()
 
 	gcs := &repositories.GCSRepo{}
-	repos := core.CreateRepositories(gcs, nil, nil, nil, nil, false)
+	repos := core.CreateRepositories(gcs, nil, nil, nil, false)
 	version, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, "latest-1", config.Null())
 
 	if err != nil {
@@ -160,7 +171,7 @@ func TestResolveLatestVersion_ShouldFailIfNotEnoughReleases(t *testing.T) {
 	s.Finish()
 
 	gcs := &repositories.GCSRepo{}
-	repos := core.CreateRepositories(gcs, nil, nil, nil, nil, false)
+	repos := core.CreateRepositories(gcs, nil, nil, nil, false)
 	_, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, "latest-1", config.Null())
 
 	if err == nil {
@@ -177,7 +188,7 @@ func TestResolveLatestVersion_GCSIsDown(t *testing.T) {
 	g.Transport.AddResponse("https://www.googleapis.com/storage/v1/b/bazel/o?delimiter=/", 500, "", nil)
 
 	gcs := &repositories.GCSRepo{}
-	repos := core.CreateRepositories(gcs, nil, nil, nil, nil, false)
+	repos := core.CreateRepositories(gcs, nil, nil, nil, false)
 	_, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, "latest", config.Null())
 
 	if err == nil {
@@ -194,7 +205,7 @@ func TestResolveLatestVersion_GitHubIsDown(t *testing.T) {
 	transport.AddResponse("https://api.github.com/repos/bazelbuild/bazel/releases", 500, "", nil)
 
 	gh := repositories.CreateGitHubRepo("test_token")
-	repos := core.CreateRepositories(nil, nil, gh, nil, nil, false)
+	repos := core.CreateRepositories(nil, gh, nil, nil, false)
 
 	_, _, err := repos.ResolveVersion(tmpDir, "some_fork", "latest", config.Null())
 
@@ -209,7 +220,7 @@ func TestResolveLatestVersion_GitHubIsDown(t *testing.T) {
 
 func TestAcceptRollingReleaseName(t *testing.T) {
 	gcs := &repositories.GCSRepo{}
-	repos := core.CreateRepositories(nil, nil, nil, nil, gcs, false)
+	repos := core.CreateRepositories(nil, nil, nil, gcs, false)
 
 	for _, version := range []string{"10.0.0-pre.20201103.4", "10.0.0-pre.20201103.4.2"} {
 		resolvedVersion, _, err := repos.ResolveVersion(tmpDir, "", version, config.Null())
@@ -231,7 +242,7 @@ func TestResolveLatestRollingRelease(t *testing.T) {
 	s.Finish()
 
 	gcs := &repositories.GCSRepo{}
-	repos := core.CreateRepositories(nil, nil, nil, nil, gcs, false)
+	repos := core.CreateRepositories(nil, nil, nil, gcs, false)
 
 	version, _, err := repos.ResolveVersion(tmpDir, "", rollingReleaseIdentifier, config.Null())
 
@@ -256,7 +267,7 @@ func TestAcceptFloatingReleaseVersions(t *testing.T) {
 	s.Finish()
 
 	gcs := &repositories.GCSRepo{}
-	repos := core.CreateRepositories(gcs, nil, nil, nil, nil, false)
+	repos := core.CreateRepositories(gcs, nil, nil, nil, false)
 	version, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, "4.x", config.Null())
 
 	if err != nil {
