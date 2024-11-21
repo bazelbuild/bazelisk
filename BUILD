@@ -37,6 +37,7 @@ sh_test(
         ":bazelisk",
     ],
     deps = ["@bazel_tools//tools/bash/runfiles"],
+    size = "large",
 )
 
 go_library(
