@@ -42,7 +42,11 @@ func (gcs *GCSRepo) GetLTSVersions(bazeliskHome string, opts *core.FilterOpts) (
 		return []string{}, err
 	}
 	if len(matches) == 0 {
-		return []string{}, errors.New("there are no LTS releases or candidates")
+		var suffix string
+		if opts.Track > 0 {
+			suffix = fmt.Sprintf(" for track %d", opts.Track)
+		}
+		return []string{}, fmt.Errorf("could not find any LTS Bazel binaries%s", suffix)
 	}
 	return matches, nil
 }
