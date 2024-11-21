@@ -5,6 +5,7 @@ package core
 
 import (
 	"bufio"
+	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/json"
@@ -21,12 +22,14 @@ import (
 	"sort"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/bazelbuild/bazelisk/config"
 	"github.com/bazelbuild/bazelisk/httputil"
 	"github.com/bazelbuild/bazelisk/platforms"
 	"github.com/bazelbuild/bazelisk/versions"
 	"github.com/bazelbuild/bazelisk/ws"
+	"github.com/gofrs/flock"
 	"github.com/mitchellh/go-homedir"
 )
 
@@ -424,6 +427,34 @@ func atomicWriteFile(path string, contents []byte, perm os.FileMode) error {
 	return nil
 }
 
+// lockedRenameIfDstAbsent executes os.Rename under file lock to avoid issues
+// of multiple bazelisk processes renaming file to the same destination file.
+// See https://github.com/bazelbuild/bazelisk/issues/436.
+func lockedRenameIfDstAbsent(src, dst string) error {
+	lockFile := dst + ".lock"
+	fileLock := flock.New(lockFile)
+
+	// Do not wait for lock forever to avoid hanging in any scenarios. This
+	// makes the lock best-effort.
+	lockCtx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+
+	ok, err := fileLock.TryLockContext(lockCtx, 50*time.Millisecond)
+	if !ok || err != nil {
+		log.Printf("WARNING: Unable to create lock during rename to %s, this may cause issues for parallel bazel executions: %s\n", lockFile, err)
+	} else {
+		defer func() {
+			_ = fileLock.Unlock()
+		}()
+	}
+
+	if _, err := os.Stat(dst); err == nil {
+		return nil
+	}
+
+	return os.Rename(src, dst)
+}
+
 func downloadBazelToCAS(version string, bazeliskHome string, repos *Repositories, config config.Config, downloader DownloadFunc) (string, string, error) {
 	downloadsDir := filepath.Join(bazeliskHome, "downloads")
 	temporaryDownloadDir := filepath.Join(downloadsDir, "_tmp")
@@ -482,7 +513,7 @@ func downloadBazelToCAS(version string, bazeliskHome string, repos *Repositories
 	if err := os.Rename(tmpDestPath, tmpPathInCorrectDirectory); err != nil {
 		return "", "", fmt.Errorf("failed to move %s to %s: %w", tmpDestPath, tmpPathInCorrectDirectory, err)
 	}
-	if err := os.Rename(tmpPathInCorrectDirectory, pathToBazelInCAS); err != nil {
+	if err := lockedRenameIfDstAbsent(tmpPathInCorrectDirectory, pathToBazelInCAS); err != nil {
 		return "", "", fmt.Errorf("failed to move %s to %s: %w", tmpPathInCorrectDirectory, pathToBazelInCAS, err)
 	}
 
