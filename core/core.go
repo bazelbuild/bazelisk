@@ -824,9 +824,9 @@ func getBazelCommitsBetween(oldCommit string, newCommit string, config config.Co
 		}
 
 		mergeBaseCommit := compResp.MergeBaseCommit.SHA
+		oldCommit = mergeBaseCommit
 		if mergeBaseCommit != compResp.BaseCommit.SHA {
 			fmt.Printf("The old Bazel commit is not an ancestor of the new Bazel commit, overriding the old Bazel commit to the merge base commit %s\n", mergeBaseCommit)
-			oldCommit = mergeBaseCommit
 		}
 
 		for _, commit := range compResp.Commits {
