@@ -62,6 +62,50 @@ BAZEL_REAL = "BAZEL_REAL"
 
 BAZEL_UPSTREAM = "bazelbuild"
 
+_dotfiles_dict = None
+
+
+def get_dotfiles_dict():
+    """Loads all supported dotfiles and returns a unified name=value dictionary
+    for their config settings. The dictionary is only loaded on the first call
+    to this function; subsequent calls used a cached result, so won't change.
+    """
+    global _dotfiles_dict
+    if _dotfiles_dict is not None:
+        return _dotfiles_dict
+    _dotfiles_dict = dict()
+    env_files = []
+    # Here we're only checking the workspace root. Ideally, we would also check
+    # the user's home directory to match the Go version. When making that edit,
+    # be sure to obey the correctly prioritization of workspace / home rcfiles.
+    root = find_workspace_root()
+    if root:
+        env_files.append(os.path.join(root, ".bazeliskrc"))
+    for env_file in env_files:
+        try:
+            with open(env_file, "r") as f:
+                rcdata = f.read()
+        except Exception:
+            continue
+        for line in rcdata.splitlines():
+            line = line.split("#", 1)[0].strip()
+            if not line:
+                continue
+            some_name, some_value = line.split("=", 1)
+            _dotfiles_dict[some_name] = some_value
+    return _dotfiles_dict
+
+
+def get_env_or_config(name, default=None):
+    """Reads a configuration value from the environment, but falls back to
+    reading it from .bazeliskrc in the workspace root."""
+    if name in os.environ:
+        return os.environ[name]
+    dotfiles = get_dotfiles_dict()
+    if name in dotfiles:
+        return dotfiles[name]
+    return default
+
 
 def decide_which_bazel_version_to_use():
     # Check in this order:
@@ -74,8 +118,9 @@ def decide_which_bazel_version_to_use():
     # - workspace_root/.bazelversion exists -> read contents, that version.
     # - workspace_root/WORKSPACE contains a version -> that version. (TODO)
     # - fallback: latest release
-    if "USE_BAZEL_VERSION" in os.environ:
-        return os.environ["USE_BAZEL_VERSION"]
+    use_bazel_version = get_env_or_config("USE_BAZEL_VERSION")
+    if use_bazel_version is not None:
+        return use_bazel_version
 
     workspace_root = find_workspace_root()
     if workspace_root:
@@ -226,7 +271,7 @@ def determine_bazel_filename(version):
 
     filename_suffix = determine_executable_filename_suffix()
     bazel_flavor = "bazel"
-    if os.environ.get("BAZELISK_NOJDK", "0") != "0":
+    if get_env_or_config("BAZELISK_NOJDK", "0") != "0":
         bazel_flavor = "bazel_nojdk"
     return "{}-{}-{}-{}{}".format(bazel_flavor, version, operating_system, machine, filename_suffix)
 
@@ -277,8 +322,9 @@ def determine_url(version, is_commit, bazel_filename):
     # Example: '0.19.1' -> ('0.19.1', None), '0.20.0rc1' -> ('0.20.0', 'rc1')
     (version, rc) = re.match(r"(\d*\.\d*(?:\.\d*)?)(rc\d+)?", version).groups()
 
-    if "BAZELISK_BASE_URL" in os.environ:
-        return "{}/{}/{}".format(os.environ["BAZELISK_BASE_URL"], version, bazel_filename)
+    bazelisk_base_url = get_env_or_config("BAZELISK_BASE_URL")
+    if bazelisk_base_url is not None:
+        return "{}/{}/{}".format(bazelisk_base_url, version, bazel_filename)
     else:
         return "https://releases.bazel.build/{}/{}/{}".format(
             version, rc if rc else "release", bazel_filename
@@ -342,7 +388,7 @@ def download_bazel_into_directory(version, is_commit, directory):
 def download(url, destination_path):
     sys.stderr.write("Downloading {}...\n".format(url))
     request = Request(url)
-    if "BAZELISK_BASE_URL" in os.environ:
+    if get_env_or_config("BAZELISK_BASE_URL") is not None:
         parts = urlparse(url)
         creds = None
         try:
@@ -357,7 +403,7 @@ def download(url, destination_path):
 
 
 def get_bazelisk_directory():
-    bazelisk_home = os.environ.get("BAZELISK_HOME")
+    bazelisk_home = get_env_or_config("BAZELISK_HOME")
     if bazelisk_home is not None:
         return bazelisk_home
 
