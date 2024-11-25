@@ -332,7 +332,7 @@ func parseBazelForkAndVersion(bazelForkAndVersion string) (string, string, error
 	} else if len(versionInfo) == 2 {
 		bazelFork, bazelVersion = versionInfo[0], versionInfo[1]
 	} else {
-		return "", "", fmt.Errorf("invalid version \"%s\", could not parse version with more than one slash", bazelForkAndVersion)
+		return "", "", fmt.Errorf("invalid version %q, could not parse version with more than one slash", bazelForkAndVersion)
 	}
 
 	return bazelFork, bazelVersion, nil

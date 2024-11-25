@@ -164,6 +164,58 @@ func TestResolveLatestVersion_ShouldOnlyReturnStableReleases(t *testing.T) {
 	}
 }
 
+func TestResolveLatestAvoidsUnnecessaryRequests(t *testing.T) {
+	tests := []struct{
+		name string
+		specifiedVersion string
+		wantVersion string
+	} {
+		{
+			name: "Release",
+			specifiedVersion: "latest",
+			wantVersion: "7.0.0",
+		},
+		{
+			name: "Candidate",
+			specifiedVersion: "last_rc",
+			wantVersion: "7.0.0rc1",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T){
+		s := setUp(t)
+		s.AddVersion("4.0.0", true, []int{1}, nil)
+		s.AddVersion("5.0.0", true, []int{1}, nil)
+		s.AddVersion("6.0.0", true, []int{1}, nil)
+		s.AddVersion("7.0.0", true, []int{1}, nil)
+		s.AddVersion("8.0.0", false, nil, nil)
+		s.Finish()
+
+		gcs := &repositories.GCSRepo{}
+		repos := core.CreateRepositories(gcs, nil, nil, nil, false)
+		gotVersion, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, test.specifiedVersion, config.Null())
+
+		if err != nil {
+			t.Fatalf("Version resolution failed unexpectedly: %v", err)
+		}
+		if gotVersion != test.wantVersion {
+			t.Errorf("Expected version %s, but got %s", test.wantVersion, gotVersion)
+		}
+		/*
+		We expect three requests:
+		- One to get a list of all Bazel version tracks
+		- One to check for the existence of the 8.* release (candidates), which returns no results
+		- One to check for the existence of the 7.* release (candidates), which returns a match
+		*/
+		wantRequests := 3
+		if gotRequests := len(s.Transport.RequestedURLs); gotRequests != wantRequests {
+			t.Errorf("Expected exactly %d requests (one for the top-level, one for 8.0.0, one for 7.0.0), but got %d:\n%s", wantRequests, gotRequests, strings.Join(s.Transport.RequestedURLs, "\n"))
+		}
+	})
+	}
+}
+
 func TestResolveLatestVersion_ShouldFailIfNotEnoughReleases(t *testing.T) {
 	s := setUp(t)
 	s.AddVersion("3.0.0", true, nil, nil)
