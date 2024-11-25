@@ -159,15 +159,13 @@ func (gcs *GCSRepo) matchingVersions(history []string, opts *core.FilterOpts) ([
 		versions := getVersionsFromGCSPrefixes(prefixes)
 		for vpos := len(versions) - 1; vpos >= 0; vpos-- {
 			curr := versions[vpos]
-			if strings.Contains(curr, "rolling") {
+			if strings.Contains(curr, "rolling") || !opts.Filter(curr) {
 				continue
 			}
 
-			if opts.Filter(curr) {
-				descendingMatches = append(descendingMatches, curr)
-				if len(descendingMatches) == opts.MaxResults {
-					return descendingMatches, nil
-				}
+			descendingMatches = append(descendingMatches, curr)
+			if len(descendingMatches) == opts.MaxResults {
+				return descendingMatches, nil
 			}
 		}
 	}
