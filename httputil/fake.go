@@ -9,6 +9,8 @@ import (
 // FakeTransport represents a fake http.Transport that returns prerecorded responses.
 type FakeTransport struct {
 	responses map[string]*responseCollection
+
+	RequestedURLs []string
 }
 
 // NewFakeTransport creates a new FakeTransport instance without any responses.
@@ -38,6 +40,7 @@ func (ft *FakeTransport) AddError(url string, err error) {
 
 // RoundTrip returns a prerecorded response to the given request, if one exists. Otherwise its response indicates 404 - not found.
 func (ft *FakeTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	ft.RequestedURLs = append(ft.RequestedURLs, req.URL.String())
 	if responses, ok := ft.responses[req.URL.String()]; ok {
 		return responses.Next()
 	}

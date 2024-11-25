@@ -64,7 +64,7 @@ func DetermineArchitecture(osName, version string) (string, error) {
 	case "arm64":
 		machineName = "arm64"
 	default:
-		return "", fmt.Errorf("unsupported machine architecture \"%s\", must be arm64 or x86_64", runtime.GOARCH)
+		return "", fmt.Errorf("unsupported machine architecture %q, must be arm64 or x86_64", runtime.GOARCH)
 	}
 
 	if osName == "darwin" {
@@ -80,7 +80,7 @@ func DetermineOperatingSystem() (string, error) {
 	case "darwin", "linux", "windows":
 		return runtime.GOOS, nil
 	default:
-		return "", fmt.Errorf("unsupported operating system \"%s\", must be Linux, macOS or Windows", runtime.GOOS)
+		return "", fmt.Errorf("unsupported operating system %q, must be Linux, macOS or Windows", runtime.GOOS)
 	}
 }
 

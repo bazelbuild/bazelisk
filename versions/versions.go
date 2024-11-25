@@ -61,7 +61,7 @@ func Parse(fork, version string) (*Info, error) {
 		if m[1] != "" {
 			offset, err := strconv.Atoi(m[1])
 			if err != nil {
-				return nil, fmt.Errorf("invalid version \"%s\", could not parse offset: %v", version, err)
+				return nil, fmt.Errorf("invalid version %q, could not parse offset: %v", version, err)
 			}
 			vi.LatestOffset = offset
 		}
