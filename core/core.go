@@ -619,16 +619,21 @@ func runBazel(bazel string, args []string, out io.Writer, config config.Config) 
 		return 1, fmt.Errorf("could not start Bazel: %v", err)
 	}
 
-	c := make(chan os.Signal)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		s := <-c
-
-		// Only forward SIGTERM to our child process.
-		if s != os.Interrupt {
-			cmd.Process.Kill()
-		}
-	}()
+	// Ignore signals recognized by the Bazel client.
+	// The Bazel client implements its own handling of these signals by
+	// forwarding them to the Bazel server, and they don't necessarily cause
+	// the invocation to be immediately aborted. In particular, SIGINT and
+	// SIGTERM are handled gracefully and may cause a delayed exit, while
+	// SIGQUIT requests a Java thread dump from the Bazel server, but doesn't
+	// abort the invocation. Normally, these signals are delivered by the
+	// terminal to the entire process group led by Bazelisk. If Bazelisk were
+	// to immediately exit in response to one of these signals, it would cause
+	// the still running Bazel client to become an orphan and uncontrollable
+	// by the terminal. As a side effect, we also suppress the printing of a
+	// Go stack trace upon receiving SIGQUIT, which is unhelpful as users tend
+	// to report it instead of the far more valuable Java thread dump.
+	// TODO(#512): We may want to treat a `bazel run` commmand differently.
+	signal.Ignore(syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
 
 	err = cmd.Wait()
 	if err != nil {
