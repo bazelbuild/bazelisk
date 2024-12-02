@@ -95,51 +95,17 @@ func RunBazeliskWithArgsFuncAndConfig(argsFunc ArgsFunc, repos *Repositories, co
 func RunBazeliskWithArgsFuncAndConfigAndOut(argsFunc ArgsFunc, repos *Repositories, config config.Config, out io.Writer) (int, error) {
 	httputil.UserAgent = getUserAgent(config)
 
-	bazeliskHome, err := getBazeliskHome(config)
+	bazelInstallation, err := GetBazelInstallation(repos, config)
 	if err != nil {
-		return -1, fmt.Errorf("could not determine Bazelisk home directory: %v", err)
+		return -1, err
 	}
 
-	err = os.MkdirAll(bazeliskHome, 0755)
-	if err != nil {
-		return -1, fmt.Errorf("could not create directory %s: %v", bazeliskHome, err)
-	}
-
-	bazelVersionString, err := GetBazelVersion(config)
-	if err != nil {
-		return -1, fmt.Errorf("could not get Bazel version: %v", err)
-	}
-
-	bazelPath, err := homedir.Expand(bazelVersionString)
-	if err != nil {
-		return -1, fmt.Errorf("could not expand home directory in path: %v", err)
-	}
-
-	// If the Bazel version is an absolute path to a Bazel binary in the filesystem, we can
-	// use it directly. In that case, we don't know which exact version it is, though.
-	resolvedBazelVersion := "unknown"
-
-	// If we aren't using a local Bazel binary, we'll have to parse the version string and
-	// download the version that the user wants.
-	if !filepath.IsAbs(bazelPath) {
-		bazelPath, err = downloadBazel(bazelVersionString, bazeliskHome, repos, config)
-		if err != nil {
-			return -1, fmt.Errorf("could not download Bazel: %v", err)
-		}
-	} else {
-		baseDirectory := filepath.Join(bazeliskHome, "local")
-		bazelPath, err = linkLocalBazel(baseDirectory, bazelPath)
-		if err != nil {
-			return -1, fmt.Errorf("could not link local Bazel: %v", err)
-		}
-	}
-
-	args := argsFunc(resolvedBazelVersion)
+	args := argsFunc(bazelInstallation.Version)
 
 	// --print_env must be the first argument.
 	if len(args) > 0 && args[0] == "--print_env" {
 		// print environment variables for sub-processes
-		cmd := makeBazelCmd(bazelPath, args, nil, config)
+		cmd := makeBazelCmd(bazelInstallation.Path, args, nil, config)
 		for _, val := range cmd.Env {
 			fmt.Println(val)
 		}
@@ -152,12 +118,12 @@ func RunBazeliskWithArgsFuncAndConfigAndOut(argsFunc ArgsFunc, repos *Repositori
 		if err != nil {
 			return -1, err
 		}
-		newFlags, err := getIncompatibleFlags(bazelPath, cmd, config)
+		newFlags, err := getIncompatibleFlags(bazelInstallation.Path, cmd, config)
 		if err != nil {
 			return -1, fmt.Errorf("could not get the list of incompatible flags: %v", err)
 		}
 		if args[0] == "--migrate" {
-			migrate(bazelPath, args[1:], newFlags, config)
+			migrate(bazelInstallation.Path, args[1:], newFlags, config)
 		} else {
 			// When --strict is present, it expands to the list of --incompatible_ flags
 			// that should be enabled for the given Bazel version.
@@ -171,6 +137,11 @@ func RunBazeliskWithArgsFuncAndConfigAndOut(argsFunc ArgsFunc, repos *Repositori
 		value := args[0][len("--bisect="):]
 		commits := strings.Split(value, "..")
 		if len(commits) == 2 {
+			bazeliskHome, err := getBazeliskHome(config)
+			if err != nil {
+				return -1, fmt.Errorf("could not determine Bazelisk home directory: %v", err)
+			}
+
 			bisect(commits[0], commits[1], args[1:], bazeliskHome, repos, config)
 		} else {
 			return -1, fmt.Errorf("Error: Invalid format for --bisect. Expected format: '--bisect=[~]<good bazel commit>..<bad bazel commit>'")
@@ -197,11 +168,67 @@ func RunBazeliskWithArgsFuncAndConfigAndOut(argsFunc ArgsFunc, repos *Repositori
 		}
 	}
 
-	exitCode, err := runBazel(bazelPath, args, out, config)
+	exitCode, err := runBazel(bazelInstallation.Path, args, out, config)
 	if err != nil {
 		return -1, fmt.Errorf("could not run Bazel: %v", err)
 	}
 	return exitCode, nil
+}
+
+// BazelInstallation provides a summary of a single install of `bazel`
+type BazelInstallation struct {
+	Version string
+	Path    string
+}
+
+// GetBazelInstallation provides a mechanism to find the `bazel` binary to execute, as well as its version
+func GetBazelInstallation(repos *Repositories, config config.Config) (*BazelInstallation, error) {
+	bazeliskHome, err := getBazeliskHome(config)
+	if err != nil {
+		return nil, fmt.Errorf("could not determine Bazelisk home directory: %v", err)
+	}
+
+	err = os.MkdirAll(bazeliskHome, 0755)
+	if err != nil {
+		return nil, fmt.Errorf("could not create directory %s: %v", bazeliskHome, err)
+	}
+
+	bazelVersionString, err := GetBazelVersion(config)
+	if err != nil {
+		return nil, fmt.Errorf("could not get Bazel version: %v", err)
+	}
+
+	bazelPath, err := homedir.Expand(bazelVersionString)
+	if err != nil {
+		return nil, fmt.Errorf("could not expand home directory in path: %v", err)
+	}
+
+	var resolvedVersion string
+
+	// If we aren't using a local Bazel binary, we'll have to parse the version string and
+	// download the version that the user wants.
+	if !filepath.IsAbs(bazelPath) {
+		resolvedVersion = bazelVersionString
+		bazelPath, err = downloadBazel(bazelVersionString, bazeliskHome, repos, config)
+		if err != nil {
+			return nil, fmt.Errorf("could not download Bazel: %v", err)
+		}
+	} else {
+		// If the Bazel version is an absolute path to a Bazel binary in the filesystem, we can
+		// use it directly. In that case, we don't know which exact version it is, though.
+		resolvedVersion = "unknown"
+		baseDirectory := filepath.Join(bazeliskHome, "local")
+		bazelPath, err = linkLocalBazel(baseDirectory, bazelPath)
+		if err != nil {
+			return nil, fmt.Errorf("could not link local Bazel: %v", err)
+		}
+	}
+
+	return &BazelInstallation{
+			Version: resolvedVersion,
+			Path:    bazelPath,
+		},
+		nil
 }
 
 func getBazelCommand(args []string) (string, error) {
