@@ -15,6 +15,7 @@ go_library(
         "//platforms",
         "//versions",
         "//ws",
+        "@com_github_gofrs_flock//:flock",
         "@com_github_mitchellh_go_homedir//:go-homedir",
     ],
 )
