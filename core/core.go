@@ -151,19 +151,9 @@ func RunBazeliskWithArgsFuncAndConfigAndOut(argsFunc ArgsFunc, repos *Repositori
 		}
 	}
 
-	// print bazelisk version information if "version" is the first argument
+	// print bazelisk version information if "version" is the first non-flag argument
 	// bazel version is executed after this command
-	if len(args) > 0 && args[0] == "version" {
-		// Check if the --gnu_format flag is set, if that is the case,
-		// the version is printed differently
-		var gnuFormat bool
-		for _, arg := range args {
-			if arg == "--gnu_format" {
-				gnuFormat = true
-				break
-			}
-		}
-
+	if ok, gnuFormat := isVersionCommand(args); ok {
 		if gnuFormat {
 			fmt.Printf("Bazelisk %s\n", BazeliskVersion)
 		} else {
@@ -176,6 +166,24 @@ func RunBazeliskWithArgsFuncAndConfigAndOut(argsFunc ArgsFunc, repos *Repositori
 		return -1, fmt.Errorf("could not run Bazel: %v", err)
 	}
 	return exitCode, nil
+}
+
+func isVersionCommand(args []string) (result bool, gnuFormat bool) {
+	for _, arg := range args {
+		// Check if the --gnu_format flag is set, if that is the case,
+		// the version is printed differently
+		if arg == "--gnu_format" {
+			gnuFormat = true
+		} else if arg == "version" {
+			result = true
+		} else if !strings.HasPrefix(arg, "--") {
+			return // First non-flag arg is not "version" -> it must be a different command
+		}
+		if result && gnuFormat {
+			break
+		}
+	}
+	return
 }
 
 // BazelInstallation provides a summary of a single install of `bazel`
