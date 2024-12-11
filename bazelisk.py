@@ -225,8 +225,7 @@ def get_version_history(bazelisk_directory):
         ),
         # This only handles versions with numeric components, but that is fine
         # since prerelease versions have been excluded.
-        key=lambda version: tuple(int(component)
-                                  for component in version.split('.')),
+        key=lambda version: tuple(int(component) for component in version.split(".")),
         reverse=True,
     )
 
@@ -339,6 +338,10 @@ def trim_suffix(string, suffix):
 
 
 def download_bazel_into_directory(version, is_commit, directory):
+    # Obtain configuration settings to control download retry logic.
+    retry_attempts = int(os.getenv(key="BAZELISK_DOWNLOAD_RETRY_ATTEMPTS", default="5"))
+    retry_wait_secs = int(os.getenv(key="BAZELISK_DOWNLOAD_RETRY_WAIT_SECS", default="5"))
+
     bazel_filename = determine_bazel_filename(version)
     bazel_url = determine_url(version, is_commit, bazel_filename)
 
@@ -349,14 +352,24 @@ def download_bazel_into_directory(version, is_commit, directory):
 
     destination_path = os.path.join(destination_dir, "bazel" + filename_suffix)
     if not os.path.exists(destination_path):
-        download(bazel_url, destination_path)
+        download(
+            url=bazel_url,
+            destination_path=destination_path,
+            retries=retry_attempts,
+            wait_seconds=retry_wait_secs,
+        )
         os.chmod(destination_path, 0o755)
 
     sha256_path = destination_path + ".sha256"
     expected_hash = ""
     if not os.path.exists(sha256_path):
         try:
-            download(bazel_url + ".sha256", sha256_path)
+            download(
+                url=bazel_url + ".sha256",
+                destination_path=sha256_path,
+                retries=retry_attempts,
+                wait_seconds=retry_wait_secs,
+            )
         except HTTPError as e:
             if e.code == 404:
                 sys.stderr.write(
@@ -385,11 +398,12 @@ def download_bazel_into_directory(version, is_commit, directory):
     return destination_path
 
 
-def download(url, destination_path):
-    sys.stderr.write("Downloading {}...\n".format(url))
+def download(url, destination_path, retries=5, wait_seconds=5):
     request = Request(url)
     if get_env_or_config("BAZELISK_BASE_URL") is not None:
         parts = urlparse(url)
+
+        # Include credentials in the request if found.
         creds = None
         try:
             creds = netrc.netrc().hosts.get(parts.netloc)
@@ -398,8 +412,29 @@ def download(url, destination_path):
         if creds is not None:
             auth = base64.b64encode(("%s:%s" % (creds[0], creds[2])).encode("ascii"))
             request.add_header("Authorization", "Basic %s" % auth.decode("utf-8"))
-    with closing(urlopen(request)) as response, open(destination_path, "wb") as file:
-        shutil.copyfileobj(response, file)
+
+    # Attempt to download the Bazel binary with a rudimentary retry implementation.
+    for _ in range(retries):
+        try:
+            sys.stderr.write("Downloading {}...\n".format(url))
+            response = None
+            try:
+                response = urlopen(request)
+                with open(destination_path, "wb") as file:
+                    shutil.copyfileobj(response, file)
+                    return
+            finally:
+                if response:
+                    response.close()
+        except HTTPError as ex:
+            if ex.code == 404:
+                raise
+        except Exception as ex:
+            print("failed to download Bazel resource: {}".format(ex))
+        finally:
+            time.sleep(wait_seconds)
+    else:
+        raise RuntimeError("all attempts to download Bazel remote resource failed")
 
 
 def get_bazelisk_directory():
