@@ -225,8 +225,7 @@ def get_version_history(bazelisk_directory):
         ),
         # This only handles versions with numeric components, but that is fine
         # since prerelease versions have been excluded.
-        key=lambda version: tuple(int(component)
-                                  for component in version.split('.')),
+        key=lambda version: tuple(int(component) for component in version.split(".")),
         reverse=True,
     )
 
@@ -354,6 +353,8 @@ def download_bazel_into_directory(version, is_commit, directory):
 
     sha256_path = destination_path + ".sha256"
     expected_hash = ""
+    matcher = re.compile(r"(\d*\.\d*(?:\.\d*)?)(rc\d+)?")
+    matched = matcher.match(version)
     if not os.path.exists(sha256_path):
         try:
             download(bazel_url + ".sha256", sha256_path)
@@ -362,7 +363,20 @@ def download_bazel_into_directory(version, is_commit, directory):
                 sys.stderr.write(
                     "The Bazel mirror does not have a checksum file; skipping checksum verification."
                 )
-                return destination_path
+                if "https://releases.bazel.build" in bazel_url or not matched:
+                    return destination_path
+                if matched:
+                    (version, rc) = matched.groups()
+                    fallback_url = "https://releases.bazel.build/{}/{}/{}".format(
+                        version, rc if rc else "release", bazel_filename
+                    )
+                    try:
+                        download("{}.sha256".format(fallback_url), sha256_path)
+                        os.remove(destination_path)
+                        download(fallback_url, destination_path)
+                    except HTTPError:
+                        return destination_path
+                    os.chmod(destination_path, 0o755)
             raise e
     with open(sha256_path, "r") as sha_file:
         expected_hash = sha_file.read().split()[0]
@@ -372,16 +386,24 @@ def download_bazel_into_directory(version, is_commit, directory):
             sha256_hash.update(byte_block)
     actual_hash = sha256_hash.hexdigest()
     if actual_hash != expected_hash:
-        os.remove(destination_path)
         os.remove(sha256_path)
+        os.remove(destination_path)
         print(
-            "The downloaded Bazel binary is corrupted. Expected SHA-256 {}, got {}. Please try again.".format(
+            "The downloaded Bazel binary is corrupted. Expected SHA-256 {}, got {}. Fallback to default releases.bazel.build url.".format(
                 expected_hash, actual_hash
             )
         )
-        # Exiting with a special exit code not used by Bazel, so the calling process may retry based on that.
-        # https://docs.bazel.build/versions/0.21.0/guide.html#what-exit-code-will-i-get
-        sys.exit(22)
+        if matched:
+            (version, rc) = matched.groups()
+            fallback_url = "https://releases.bazel.build/{}/{}/{}".format(
+                version, rc if rc else "release", bazel_filename
+            )
+            try:
+                download("{}.sha256".format(fallback_url), sha256_path)
+                download(fallback_url, destination_path)
+            except HTTPError:
+                exit(22)
+            os.chmod(destination_path, 0o755)
     return destination_path
 
 
