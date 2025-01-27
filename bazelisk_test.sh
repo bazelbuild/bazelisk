@@ -318,7 +318,7 @@ EOF
 function test_path_is_consistent_regardless_of_base_url() {
   setup
 
-  echo 7.3.1 > .bazelversion
+  echo 8.0.1 > .bazelversion
 
   cat >WORKSPACE <<EOF
 load("//:print_path.bzl", "print_path")
