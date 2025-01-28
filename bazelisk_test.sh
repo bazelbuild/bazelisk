@@ -318,23 +318,19 @@ EOF
 function test_path_is_consistent_regardless_of_base_url() {
   setup
 
-  echo 7.3.1 > .bazelversion
+  echo 8.0.1 > .bazelversion
 
-  cat >WORKSPACE <<EOF
-load("//:print_path.bzl", "print_path")
+  cat >MODULE.bazel <<EOF
+print_path = use_repo_rule("//:print_path.bzl", "print_path")
 
 print_path(name = "print_path")
-
-load("@print_path//:defs.bzl", "noop")
-
-noop()
 EOF
 
 cat >print_path.bzl <<EOF
 def _print_path_impl(rctx):
     print("PATH is: {}".format(rctx.os.environ["PATH"]))
 
-    rctx.file("WORKSPACE", "")
+    rctx.file("REPO.bazel", "")
     rctx.file("BUILD", "")
     rctx.file("defs.bzl", "def noop(): pass")
 
@@ -343,13 +339,13 @@ print_path = repository_rule(
 )
 EOF
 
-  BAZELISK_HOME="$BAZELISK_HOME" bazelisk sync --only=print_path 2>&1 | tee log1
+  BAZELISK_HOME="$BAZELISK_HOME" bazelisk fetch --repo=@print_path 2>&1 | tee log1
 
   BAZELISK_HOME="$BAZELISK_HOME" bazelisk clean --expunge 2>&1
 
   # We need a separate mirror of bazel binaries, which has identical files.
   # Ideally we wouldn't depend on sourceforge for test runtime, but hey, it exists and it works.
-  BAZELISK_HOME="$BAZELISK_HOME" BAZELISK_BASE_URL=https://downloads.sourceforge.net/project/bazel.mirror bazelisk sync --only=print_path 2>&1 | tee log2
+  BAZELISK_HOME="$BAZELISK_HOME" BAZELISK_BASE_URL=https://downloads.sourceforge.net/project/bazel.mirror bazelisk fetch --repo=@print_path 2>&1 | tee log2
 
   path1="$(grep "PATH is:" log1)"
   path2="$(grep "PATH is:" log2)"
