@@ -701,8 +701,9 @@ func runBazel(bazel string, args []string, out io.Writer, config config.Config) 
 	// TODO(#512): We may want to treat a `bazel run` commmand differently.
 	// Since signal handlers are process-wide global state and bazelisk may be
 	// used as a library, reset the signal handlers after the process exits.
-	signal.Ignore(syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
-	defer signal.Reset(syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
+	defer signal.Stop(sigCh)
 
 	err = cmd.Wait()
 	if err != nil {
