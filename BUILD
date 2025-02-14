@@ -1,6 +1,7 @@
 load("@aspect_rules_js//npm:defs.bzl", "npm_package", "stamped_package_json")
 load("@bazel_gazelle//:def.bzl", "gazelle")
 load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
+load(":defs.bzl", "bazelisk_go_binaries")
 
 # gazelle:ignore
 # gazelle:prefix github.com/bazelbuild/bazelisk
@@ -74,43 +75,7 @@ go_binary(
     visibility = ["//visibility:public"],
 )
 
-[
-    go_binary(
-        name = "bazelisk-%s-%s" % (os, arch),
-        out = "bazelisk-%s_%s" % (os, arch),
-        embed = [":bazelisk_lib"],
-        gc_linkopts = [
-            "-s",
-            "-w",
-        ],
-        goarch = arch,
-        goos = os,
-        pure = "on",
-        visibility = ["//visibility:public"],
-    )
-    for os, arch in [
-        ("darwin", "amd64"),
-        ("darwin", "arm64"),
-        ("linux", "amd64"),
-        ("linux", "arm64")
-    ]
-]
-
-[
-    go_binary(
-        name = "bazelisk-%s-%s" % (os, arch),
-        out = "bazelisk-%s_%s.exe" % (os, arch),
-        embed = [":bazelisk_lib"],
-        goarch = arch,
-        goos = os,
-        pure = "on",
-        visibility = ["//visibility:public"],
-    )
-    for os, arch in [
-        ("windows", "amd64"),
-        ("windows", "arm64")
-    ]
-]
+bazelisk_go_binaries()
 
 genrule(
     name = "bazelisk-darwin-universal",
