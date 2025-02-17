@@ -116,10 +116,12 @@ func (r *Repositories) resolveFork(bazeliskHome string, vi *versions.Info, confi
 	return version, downloader, nil
 }
 
+// IsRelease returns whether a version string is for a final release.
 var IsRelease = func(version string) bool {
 	return !strings.Contains(version, "rc")
 }
 
+// IsCandidate returns whether a version string is for a release candidate.
 var IsCandidate = func(version string) bool {
 	return strings.Contains(version, "rc")
 }
