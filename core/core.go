@@ -698,7 +698,7 @@ func runBazel(bazel string, args []string, out io.Writer, config config.Config) 
 	// by the terminal. As a side effect, we also suppress the printing of a
 	// Go stack trace upon receiving SIGQUIT, which is unhelpful as users tend
 	// to report it instead of the far more valuable Java thread dump.
-	// TODO(#512): We may want to treat a `bazel run` commmand differently.
+	// TODO(#512): We may want to treat a `bazel run` command differently.
 	// Since signal handlers are process-wide global state and bazelisk may be
 	// used as a library, reset the signal handlers after the process exits.
 	signal.Ignore(syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
