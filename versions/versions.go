@@ -111,11 +111,14 @@ func GetInAscendingOrder(versions []string) []string {
 	return sorted
 }
 
+// MatchCommitPattern returns whether the given version refers to a commit,
+// not including last_green.
 func MatchCommitPattern(version string) bool {
 	return commitPattern.MatchString(version)
 }
 
-// IsCommit returns whether the given version refers to a commit.
+// IsCommit returns whether the given version refers to a commit, including
+// last_green.
 func IsCommit(version string) bool {
 	return version == "last_green" || commitPattern.MatchString(version)
 }
