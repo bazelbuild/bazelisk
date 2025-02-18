@@ -76,7 +76,7 @@ type Repositories struct {
 	Fork            ForkRepo
 	Commits         CommitRepo
 	Rolling         RollingRepo
-	supportsBaseURL bool
+	supportsBaseOrFormatURL bool
 }
 
 // ResolveVersion resolves a potentially relative Bazel version string such as "latest" to an absolute version identifier, and returns this identifier alongside a function to download said version.
@@ -206,9 +206,10 @@ func resolvePotentiallyRelativeVersion(bazeliskHome string, lister listVersionsF
 
 // DownloadFromBaseURL can download Bazel binaries from a specific URL while ignoring the predefined repositories.
 func (r *Repositories) DownloadFromBaseURL(baseURL, version, destDir, destFile string, config config.Config) (string, error) {
-	if !r.supportsBaseURL {
+	if !r.supportsBaseOrFormatURL {
 		return "", fmt.Errorf("downloads from %s are forbidden", BaseURLEnv)
-	} else if baseURL == "" {
+	}
+	if baseURL == "" {
 		return "", fmt.Errorf("%s is not set", BaseURLEnv)
 	}
 
@@ -269,6 +270,9 @@ func BuildURLFromFormat(config config.Config, formatURL, version string) (string
 
 // DownloadFromFormatURL can download Bazel binaries from a specific URL while ignoring the predefined repositories.
 func (r *Repositories) DownloadFromFormatURL(config config.Config, formatURL, version, destDir, destFile string) (string, error) {
+	if !r.supportsBaseOrFormatURL {
+		return "", fmt.Errorf("downloads from %s are forbidden", FormatURLEnv)
+	}
 	if formatURL == "" {
 		return "", fmt.Errorf("%s is not set", FormatURLEnv)
 	}
@@ -282,8 +286,8 @@ func (r *Repositories) DownloadFromFormatURL(config config.Config, formatURL, ve
 }
 
 // CreateRepositories creates a new Repositories instance with the given repositories. Any nil repository will be replaced by a dummy repository that raises an error whenever a download is attempted.
-func CreateRepositories(lts LTSRepo, fork ForkRepo, commits CommitRepo, rolling RollingRepo, supportsBaseURL bool) *Repositories {
-	repos := &Repositories{supportsBaseURL: supportsBaseURL}
+func CreateRepositories(lts LTSRepo, fork ForkRepo, commits CommitRepo, rolling RollingRepo, supportsBaseOrFormatURL bool) *Repositories {
+	repos := &Repositories{supportsBaseOrFormatURL: supportsBaseOrFormatURL}
 
 	if lts == nil {
 		repos.LTS = &noLTSRepo{err: errors.New("Bazel LTS releases & candidates are not supported")}
