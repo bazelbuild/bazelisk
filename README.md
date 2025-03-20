@@ -12,7 +12,7 @@ You can call it just like you would call Bazel.
 
 On macOS: `brew install bazelisk`.
 
-On Windows: `choco install bazelisk`, `scoop install bazelisk`, or `winget install Bazel.Bazelisk`.
+On Windows: `winget install Bazel.Bazelisk`, `choco install bazelisk`, or `scoop install bazelisk`.
 
 Each adds bazelisk to the `PATH` as both `bazelisk` and `bazel`.
 
