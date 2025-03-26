@@ -172,11 +172,17 @@ You can set `BAZELISK_CLEAN` to run `clean --expunge` between builds when migrat
 ## tools/bazel
 
 If `tools/bazel` exists in your workspace root and is executable, Bazelisk will run this file, instead of the Bazel version it downloaded.
+
 It will set the environment variable `BAZEL_REAL` to the path of the downloaded Bazel binary.
 This can be useful, if you have a wrapper script that e.g. ensures that environment variables are set to known good values.
 This behavior can be disabled by setting the environment variable `BAZELISK_SKIP_WRAPPER` to any value (except the empty string) before launching Bazelisk.
 
 You can control the user agent that Bazelisk sends in all HTTP requests by setting `BAZELISK_USER_AGENT` to the desired value.
+
+On Windows, Bazelisk will also consider the following files in addition to `tools/bazel`:
+
+* `tools/bazel.ps1` (PowerShell)
+* `tools/bazel.bat`
 
 # .bazeliskrc configuration file
 
