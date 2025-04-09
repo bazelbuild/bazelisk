@@ -1023,9 +1023,9 @@ func testWithBazelAtCommit(bazelCommit string, args []string, bazeliskHome strin
 func migrate(bazelPath string, baseArgs []string, flags []string, config config.Config) {
 	var startupOptions = parseStartupOptions(baseArgs)
 
-	// 1. Try with all the flags.
-	args := insertArgs(baseArgs, flags)
-	fmt.Printf("\n\n--- Running Bazel with all incompatible flags\n\n")
+	// 1. Try without any incompatible flags, as a sanity check.
+	args := baseArgs
+	fmt.Printf("\n\n--- Running Bazel with no incompatible flags\n\n")
 	shutdownIfNeeded(bazelPath, startupOptions, config)
 	cleanIfNeeded(bazelPath, startupOptions, config)
 	fmt.Printf("bazel %s\n", strings.Join(args, " "))
@@ -1033,14 +1033,14 @@ func migrate(bazelPath string, baseArgs []string, flags []string, config config.
 	if err != nil {
 		log.Fatalf("could not run Bazel: %v", err)
 	}
-	if exitCode == 0 {
-		fmt.Printf("Success: No migration needed.\n")
-		os.Exit(0)
+	if exitCode != 0 {
+		fmt.Printf("Failure: Command failed, even without incompatible flags.\n")
+		os.Exit(exitCode)
 	}
 
-	// 2. Try with no flags, as a sanity check.
-	args = baseArgs
-	fmt.Printf("\n\n--- Running Bazel with no incompatible flags\n\n")
+	// 2. Try with all the flags.
+	args = insertArgs(baseArgs, flags)
+	fmt.Printf("\n\n--- Running Bazel with all incompatible flags\n\n")
 	shutdownIfNeeded(bazelPath, startupOptions, config)
 	cleanIfNeeded(bazelPath, startupOptions, config)
 	fmt.Printf("bazel %s\n", strings.Join(args, " "))
@@ -1048,9 +1048,9 @@ func migrate(bazelPath string, baseArgs []string, flags []string, config config.
 	if err != nil {
 		log.Fatalf("could not run Bazel: %v", err)
 	}
-	if exitCode != 0 {
-		fmt.Printf("Failure: Command failed, even without incompatible flags.\n")
-		os.Exit(exitCode)
+	if exitCode == 0 {
+		fmt.Printf("Success: No migration needed.\n")
+		os.Exit(0)
 	}
 
 	// 3. Try with each flag separately.
@@ -1087,7 +1087,8 @@ func migrate(bazelPath string, baseArgs []string, flags []string, config config.
 	fmt.Printf("Migration is needed for the following flags:\n")
 	print(failList)
 
-	os.Exit(1)
+	// Return an unique exit code for incompatible flag test failure
+	os.Exit(73)
 }
 
 func dirForURL(url string) string {
