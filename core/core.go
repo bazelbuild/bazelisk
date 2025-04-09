@@ -1029,7 +1029,7 @@ func migrate(bazelPath string, baseArgs []string, flags []string, config config.
 	shutdownIfNeeded(bazelPath, startupOptions, config)
 	cleanIfNeeded(bazelPath, startupOptions, config)
 	fmt.Printf("bazel %s\n", strings.Join(args, " "))
-	exitCode, err = runBazel(bazelPath, args, nil, config)
+	exitCode, err := runBazel(bazelPath, args, nil, config)
 	if err != nil {
 		log.Fatalf("could not run Bazel: %v", err)
 	}
@@ -1044,7 +1044,7 @@ func migrate(bazelPath string, baseArgs []string, flags []string, config config.
 	shutdownIfNeeded(bazelPath, startupOptions, config)
 	cleanIfNeeded(bazelPath, startupOptions, config)
 	fmt.Printf("bazel %s\n", strings.Join(args, " "))
-	exitCode, err := runBazel(bazelPath, args, nil, config)
+	exitCode, err = runBazel(bazelPath, args, nil, config)
 	if err != nil {
 		log.Fatalf("could not run Bazel: %v", err)
 	}
