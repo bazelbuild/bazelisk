@@ -1,7 +1,8 @@
 module github.com/bazelbuild/bazelisk
 
-go 1.22
-toolchain go1.24.1
+go 1.23.0
+
+toolchain go1.24.2
 
 require (
 	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d
