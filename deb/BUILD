@@ -17,20 +17,23 @@ genrule(
     stamp = True,
 )
 
-ARCHES = ["amd64", "arm64"]
+ARCHES = [
+    "amd64",
+    "arm64",
+]
 
 [
     pkg_tar(
         name = "bazelisk-{}_tar".format(arch),
-        out = "bazelisk-{}.tar".format(arch),
         srcs = ["//:bazelisk-linux-{}".format(arch)],
-        remap_paths = {"bazelisk-linux_{}".format(arch): "bazelisk"},
+        out = "bazelisk-{}.tar".format(arch),
         package_dir = "/usr/bin",
+        remap_paths = {"bazelisk-linux_{}".format(arch): "bazelisk"},
         stamp = -1,
         symlinks = {"bazel": "bazelisk"},
     )
     for arch in ARCHES
-] 
+]
 
 [
     pkg_deb(

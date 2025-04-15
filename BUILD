@@ -1,6 +1,7 @@
 load("@aspect_rules_js//npm:defs.bzl", "npm_package", "stamped_package_json")
 load("@bazel_gazelle//:def.bzl", "gazelle")
 load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
 load(":defs.bzl", "bazelisk_go_binaries")
 
 # gazelle:ignore
@@ -31,6 +32,7 @@ sh_test(
 
 sh_test(
     name = "go_bazelisk_test",
+    size = "large",
     srcs = ["bazelisk_test.sh"],
     args = ["GO"],
     data = [
@@ -38,7 +40,6 @@ sh_test(
         ":bazelisk",
     ],
     deps = ["@bazel_tools//tools/bash/runfiles"],
-    size = "large",
 )
 
 go_library(

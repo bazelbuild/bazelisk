@@ -18,4 +18,4 @@ def bazelisk_go_binaries():
                 goos = os,
                 pure = "on",
                 visibility = ["//visibility:public"],
-           )
+            )
