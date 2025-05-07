@@ -966,6 +966,12 @@ func bisect(oldCommit string, newCommit string, args []string, bazeliskHome stri
 		if err != nil {
 			log.Fatalf("could not run Bazel: %v", err)
 		}
+		if bazelExitCode == 8 {
+			// Bazel was interrupted, which most likely happened because the
+			// user pressed Ctrl-C. We should stop the bisecting process.
+			fmt.Printf("Bisecting was interrupted, stopping...\n")
+			os.Exit(8)
+		}
 		if bazelExitCode == 0 {
 			fmt.Printf("\n\n--- Succeeded at %s\n\n", midCommit)
 			if oldCommitIs == "good" {
