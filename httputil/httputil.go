@@ -174,7 +174,7 @@ func tryFindNetrcFileCreds(host string) (string, error) {
 	if m == nil {
 		// if host is not found, we should proceed without providing any Authorization header,
 		// because remote host may not have auth at all.
-		log.Printf("Skipping basic authentication for %s because no credentials found in %s", host, file)
+		log.Printf("No credentials found for %s in %s", host, file)
 		return "", fmt.Errorf("could not find creds for %s in netrc %s", host, file)
 	}
 
@@ -213,10 +213,25 @@ func DownloadBinary(originURL, destDir, destFile string, config config.Config) (
 		log.Printf("Downloading %s...", originURL)
 
 		var auth string = ""
-		t, err := tryFindNetrcFileCreds(u.Host)
-		if err == nil {
-			// successfully parsed netrc for given host
-			auth = t
+		// By convention, netrc "machine" entries aren't supposed to have ports
+		// on them, but u.Host will have a port if the user provided one. To
+		// preserve historic behavior, look for the entry with a port, before
+		// falling back to portless (if they're different)
+		hosts := []string{u.Host}
+		if h := u.Hostname(); h != u.Host {
+			hosts = append(hosts, h)
+		}
+
+		for _, host := range hosts {
+			t, err := tryFindNetrcFileCreds(host)
+			if err == nil {
+				// successfully parsed netrc for given host
+				auth = t
+				break
+			}
+		}
+		if auth == "" {
+			log.Printf("Skipping basic authentication, no credentials found")
 		}
 
 		resp, err := get(originURL, auth)
