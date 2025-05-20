@@ -1,7 +1,6 @@
 package core
 
 import (
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -12,15 +11,15 @@ import (
 )
 
 func TestMaybeDelegateToNoWrapper(t *testing.T) {
-	tmpDir, err := ioutil.TempDir("", "TestMaybeDelegateToNoWrapper")
+	tmpDir, err := os.MkdirTemp("", "TestMaybeDelegateToNoWrapper")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer os.RemoveAll(tmpDir)
 
 	os.MkdirAll(tmpDir, os.ModeDir|0700)
-	ioutil.WriteFile(filepath.Join(tmpDir, "WORKSPACE"), []byte(""), 0600)
-	ioutil.WriteFile(filepath.Join(tmpDir, "BUILD"), []byte(""), 0600)
+	os.WriteFile(filepath.Join(tmpDir, "WORKSPACE"), []byte(""), 0600)
+	os.WriteFile(filepath.Join(tmpDir, "BUILD"), []byte(""), 0600)
 
 	entrypoint := maybeDelegateToWrapperFromDir("bazel_real", tmpDir, config.Null())
 	expected := "bazel_real"
@@ -38,18 +37,18 @@ func TestMaybeDelegateToNoNonExecutableWrapper(t *testing.T) {
 		return
 	}
 
-	tmpDir, err := ioutil.TempDir("", "TestMaybeDelegateToNoNonExecutableWrapper")
+	tmpDir, err := os.MkdirTemp("", "TestMaybeDelegateToNoNonExecutableWrapper")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer os.RemoveAll(tmpDir)
 
 	os.MkdirAll(tmpDir, os.ModeDir|0700)
-	ioutil.WriteFile(filepath.Join(tmpDir, "WORKSPACE"), []byte(""), 0600)
-	ioutil.WriteFile(filepath.Join(tmpDir, "BUILD"), []byte(""), 0600)
+	os.WriteFile(filepath.Join(tmpDir, "WORKSPACE"), []byte(""), 0600)
+	os.WriteFile(filepath.Join(tmpDir, "BUILD"), []byte(""), 0600)
 
 	os.MkdirAll(filepath.Join(tmpDir, "tools"), os.ModeDir|0700)
-	ioutil.WriteFile(filepath.Join(tmpDir, "tools", "bazel"), []byte(""), 0600)
+	os.WriteFile(filepath.Join(tmpDir, "tools", "bazel"), []byte(""), 0600)
 
 	entrypoint := maybeDelegateToWrapperFromDir("bazel_real", tmpDir, config.Null())
 	expected := "bazel_real"
@@ -67,18 +66,18 @@ func TestMaybeDelegateToStandardWrapper(t *testing.T) {
 		return
 	}
 
-	var tmpDir, err = ioutil.TempDir("", "TestMaybeDelegateToStandardWrapper")
+	var tmpDir, err = os.MkdirTemp("", "TestMaybeDelegateToStandardWrapper")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer os.RemoveAll(tmpDir)
 
 	os.MkdirAll(tmpDir, os.ModeDir|0700)
-	ioutil.WriteFile(filepath.Join(tmpDir, "WORKSPACE"), []byte(""), 0600)
-	ioutil.WriteFile(filepath.Join(tmpDir, "BUILD"), []byte(""), 0600)
+	os.WriteFile(filepath.Join(tmpDir, "WORKSPACE"), []byte(""), 0600)
+	os.WriteFile(filepath.Join(tmpDir, "BUILD"), []byte(""), 0600)
 
 	os.MkdirAll(filepath.Join(tmpDir, "tools"), os.ModeDir|0700)
-	ioutil.WriteFile(filepath.Join(tmpDir, "tools", "bazel"), []byte(""), 0700)
+	os.WriteFile(filepath.Join(tmpDir, "tools", "bazel"), []byte(""), 0700)
 
 	entrypoint := maybeDelegateToWrapperFromDir("bazel_real", tmpDir, config.Null())
 	expected := filepath.Join(tmpDir, "tools", "bazel")
@@ -89,18 +88,18 @@ func TestMaybeDelegateToStandardWrapper(t *testing.T) {
 }
 
 func TestMaybeDelegateToPowershellWrapper(t *testing.T) {
-	tmpDir, err := ioutil.TempDir("", "TestMaybeDelegateToPowershellWrapper")
+	tmpDir, err := os.MkdirTemp("", "TestMaybeDelegateToPowershellWrapper")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer os.RemoveAll(tmpDir)
 
 	os.MkdirAll(tmpDir, os.ModeDir|0700)
-	ioutil.WriteFile(filepath.Join(tmpDir, "WORKSPACE"), []byte(""), 0600)
-	ioutil.WriteFile(filepath.Join(tmpDir, "BUILD"), []byte(""), 0600)
+	os.WriteFile(filepath.Join(tmpDir, "WORKSPACE"), []byte(""), 0600)
+	os.WriteFile(filepath.Join(tmpDir, "BUILD"), []byte(""), 0600)
 
 	os.MkdirAll(filepath.Join(tmpDir, "tools"), os.ModeDir|0700)
-	ioutil.WriteFile(filepath.Join(tmpDir, "tools", "bazel.ps1"), []byte(""), 0700)
+	os.WriteFile(filepath.Join(tmpDir, "tools", "bazel.ps1"), []byte(""), 0700)
 
 	entrypoint := maybeDelegateToWrapperFromDir("bazel_real", tmpDir, config.Null())
 	expected := filepath.Join(tmpDir, "tools", "bazel.ps1")
@@ -116,18 +115,18 @@ func TestMaybeDelegateToPowershellWrapper(t *testing.T) {
 }
 
 func TestMaybeDelegateToBatchWrapper(t *testing.T) {
-	tmpDir, err := ioutil.TempDir("", "TestMaybeDelegateToBatchWrapper")
+	tmpDir, err := os.MkdirTemp("", "TestMaybeDelegateToBatchWrapper")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer os.RemoveAll(tmpDir)
 
 	os.MkdirAll(tmpDir, os.ModeDir|0700)
-	ioutil.WriteFile(filepath.Join(tmpDir, "WORKSPACE"), []byte(""), 0600)
-	ioutil.WriteFile(filepath.Join(tmpDir, "BUILD"), []byte(""), 0600)
+	os.WriteFile(filepath.Join(tmpDir, "WORKSPACE"), []byte(""), 0600)
+	os.WriteFile(filepath.Join(tmpDir, "BUILD"), []byte(""), 0600)
 
 	os.MkdirAll(filepath.Join(tmpDir, "tools"), os.ModeDir|0700)
-	ioutil.WriteFile(filepath.Join(tmpDir, "tools", "bazel.bat"), []byte(""), 0700)
+	os.WriteFile(filepath.Join(tmpDir, "tools", "bazel.bat"), []byte(""), 0700)
 
 	entrypoint := maybeDelegateToWrapperFromDir("bazel_real", tmpDir, config.Null())
 	expected := filepath.Join(tmpDir, "tools", "bazel.bat")
@@ -143,19 +142,19 @@ func TestMaybeDelegateToBatchWrapper(t *testing.T) {
 }
 
 func TestMaybeDelegateToPowershellOverBatchWrapper(t *testing.T) {
-	tmpDir, err := ioutil.TempDir("", "TestMaybeDelegateToPowershellOverBatchWrapper")
+	tmpDir, err := os.MkdirTemp("", "TestMaybeDelegateToPowershellOverBatchWrapper")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer os.RemoveAll(tmpDir)
 
 	os.MkdirAll(tmpDir, os.ModeDir|0700)
-	ioutil.WriteFile(filepath.Join(tmpDir, "WORKSPACE"), []byte(""), 0600)
-	ioutil.WriteFile(filepath.Join(tmpDir, "BUILD"), []byte(""), 0600)
+	os.WriteFile(filepath.Join(tmpDir, "WORKSPACE"), []byte(""), 0600)
+	os.WriteFile(filepath.Join(tmpDir, "BUILD"), []byte(""), 0600)
 
 	os.MkdirAll(filepath.Join(tmpDir, "tools"), os.ModeDir|0700)
-	ioutil.WriteFile(filepath.Join(tmpDir, "tools", "bazel.ps1"), []byte(""), 0700)
-	ioutil.WriteFile(filepath.Join(tmpDir, "tools", "bazel.bat"), []byte(""), 0700)
+	os.WriteFile(filepath.Join(tmpDir, "tools", "bazel.ps1"), []byte(""), 0700)
+	os.WriteFile(filepath.Join(tmpDir, "tools", "bazel.bat"), []byte(""), 0700)
 
 	entrypoint := maybeDelegateToWrapperFromDir("bazel_real", tmpDir, config.Null())
 	expected := filepath.Join(tmpDir, "tools", "bazel.ps1")

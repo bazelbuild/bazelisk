@@ -46,26 +46,65 @@ ONE_HOUR = 1 * 60 * 60
 
 LATEST_PATTERN = re.compile(r"latest(-(?P<offset>\d+))?$")
 
-LAST_GREEN_COMMIT_BASE_PATH = (
-    "https://storage.googleapis.com/bazel-untrusted-builds/last_green_commit/"
+LAST_GREEN_COMMIT_PATH = (
+    "https://storage.googleapis.com/bazel-builds/last_green_commit/github.com/bazelbuild/bazel.git/publish-bazel-binaries"
 )
-
-LAST_GREEN_COMMIT_PATH_SUFFIXES = {
-    "last_green": "github.com/bazelbuild/bazel.git/bazel-bazel",
-    "last_downstream_green": "downstream_pipeline",
-}
 
 BAZEL_GCS_PATH_PATTERN = (
     "https://storage.googleapis.com/bazel-builds/artifacts/{platform}/{commit}/bazel"
 )
 
-SUPPORTED_PLATFORMS = {"linux": "ubuntu1404", "windows": "windows", "darwin": "macos"}
+SUPPORTED_PLATFORMS = {"linux": "linux", "windows": "windows", "darwin": "macos"}
 
 TOOLS_BAZEL_PATH = "./tools/bazel"
 
 BAZEL_REAL = "BAZEL_REAL"
 
 BAZEL_UPSTREAM = "bazelbuild"
+
+_dotfiles_dict = None
+
+
+def get_dotfiles_dict():
+    """Loads all supported dotfiles and returns a unified name=value dictionary
+    for their config settings. The dictionary is only loaded on the first call
+    to this function; subsequent calls used a cached result, so won't change.
+    """
+    global _dotfiles_dict
+    if _dotfiles_dict is not None:
+        return _dotfiles_dict
+    _dotfiles_dict = dict()
+    env_files = []
+    # Here we're only checking the workspace root. Ideally, we would also check
+    # the user's home directory to match the Go version. When making that edit,
+    # be sure to obey the correctly prioritization of workspace / home rcfiles.
+    root = find_workspace_root()
+    if root:
+        env_files.append(os.path.join(root, ".bazeliskrc"))
+    for env_file in env_files:
+        try:
+            with open(env_file, "r") as f:
+                rcdata = f.read()
+        except Exception:
+            continue
+        for line in rcdata.splitlines():
+            line = line.split("#", 1)[0].strip()
+            if not line:
+                continue
+            some_name, some_value = line.split("=", 1)
+            _dotfiles_dict[some_name] = some_value
+    return _dotfiles_dict
+
+
+def get_env_or_config(name, default=None):
+    """Reads a configuration value from the environment, but falls back to
+    reading it from .bazeliskrc in the workspace root."""
+    if name in os.environ:
+        return os.environ[name]
+    dotfiles = get_dotfiles_dict()
+    if name in dotfiles:
+        return dotfiles[name]
+    return default
 
 
 def decide_which_bazel_version_to_use():
@@ -79,15 +118,19 @@ def decide_which_bazel_version_to_use():
     # - workspace_root/.bazelversion exists -> read contents, that version.
     # - workspace_root/WORKSPACE contains a version -> that version. (TODO)
     # - fallback: latest release
-    if "USE_BAZEL_VERSION" in os.environ:
-        return os.environ["USE_BAZEL_VERSION"]
+    use_bazel_version = get_env_or_config("USE_BAZEL_VERSION")
+    if use_bazel_version is not None:
+        return use_bazel_version
 
     workspace_root = find_workspace_root()
     if workspace_root:
         bazelversion_path = os.path.join(workspace_root, ".bazelversion")
         if os.path.exists(bazelversion_path):
             with open(bazelversion_path, "r") as f:
-                return f.read().strip()
+                for ln in f.readlines():
+                    ln = ln.strip()
+                    if ln:
+                        return ln
 
     return "latest"
 
@@ -95,10 +138,10 @@ def decide_which_bazel_version_to_use():
 def find_workspace_root(root=None):
     if root is None:
         root = os.getcwd()
-    if os.path.exists(os.path.join(root, "WORKSPACE")):
-        return root
-    if os.path.exists(os.path.join(root, "WORKSPACE.bazel")):
-        return root
+    for boundary in ["MODULE.bazel", "REPO.bazel", "WORKSPACE.bazel", "WORKSPACE"]:
+        path = os.path.join(root, boundary)
+        if os.path.exists(path) and not os.path.isdir(path):
+            return root
     new_root = os.path.dirname(root)
     return find_workspace_root(new_root) if new_root != root else None
 
@@ -116,9 +159,8 @@ def resolve_version_label_to_number_or_commit(bazelisk_directory, version):
             of an unreleased Bazel binary,
         2. An indicator for whether the returned version refers to a commit.
     """
-    suffix = LAST_GREEN_COMMIT_PATH_SUFFIXES.get(version)
-    if suffix:
-        return get_last_green_commit(suffix), True
+    if version == "last_green":
+        return get_last_green_commit(), True
 
     if "latest" in version:
         match = LATEST_PATTERN.match(version)
@@ -137,8 +179,11 @@ def resolve_version_label_to_number_or_commit(bazelisk_directory, version):
     return version, False
 
 
-def get_last_green_commit(path_suffix):
-    return read_remote_text_file(LAST_GREEN_COMMIT_BASE_PATH + path_suffix).strip()
+def get_last_green_commit():
+    commit = read_remote_text_file(LAST_GREEN_COMMIT_PATH).strip()
+    if not re.match(r"^[0-9a-f]{40}$", commit):
+        raise Exception("Invalid commit hash: {}".format(commit))
+    return commit
 
 
 def get_releases_json(bazelisk_directory):
@@ -226,7 +271,7 @@ def determine_bazel_filename(version):
 
     filename_suffix = determine_executable_filename_suffix()
     bazel_flavor = "bazel"
-    if os.environ.get("BAZELISK_NOJDK", "0") != "0":
+    if get_env_or_config("BAZELISK_NOJDK", "0") != "0":
         bazel_flavor = "bazel_nojdk"
     return "{}-{}-{}-{}{}".format(bazel_flavor, version, operating_system, machine, filename_suffix)
 
@@ -277,8 +322,9 @@ def determine_url(version, is_commit, bazel_filename):
     # Example: '0.19.1' -> ('0.19.1', None), '0.20.0rc1' -> ('0.20.0', 'rc1')
     (version, rc) = re.match(r"(\d*\.\d*(?:\.\d*)?)(rc\d+)?", version).groups()
 
-    if "BAZELISK_BASE_URL" in os.environ:
-        return "{}/{}/{}".format(os.environ["BAZELISK_BASE_URL"], version, bazel_filename)
+    bazelisk_base_url = get_env_or_config("BAZELISK_BASE_URL")
+    if bazelisk_base_url is not None:
+        return "{}/{}/{}".format(bazelisk_base_url, version, bazel_filename)
     else:
         return "https://releases.bazel.build/{}/{}/{}".format(
             version, rc if rc else "release", bazel_filename
@@ -342,7 +388,7 @@ def download_bazel_into_directory(version, is_commit, directory):
 def download(url, destination_path):
     sys.stderr.write("Downloading {}...\n".format(url))
     request = Request(url)
-    if "BAZELISK_BASE_URL" in os.environ:
+    if get_env_or_config("BAZELISK_BASE_URL") is not None:
         parts = urlparse(url)
         creds = None
         try:
@@ -357,7 +403,7 @@ def download(url, destination_path):
 
 
 def get_bazelisk_directory():
-    bazelisk_home = os.environ.get("BAZELISK_HOME")
+    bazelisk_home = get_env_or_config("BAZELISK_HOME")
     if bazelisk_home is not None:
         return bazelisk_home
 

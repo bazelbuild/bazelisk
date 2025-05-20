@@ -1,8 +1,10 @@
 package httputil
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 )
@@ -93,6 +95,29 @@ func TestSuccessOnRetry(t *testing.T) {
 	}
 }
 
+func TestSuccessOnRetryNonHTTPError(t *testing.T) {
+	transport, clock := setUp()
+
+	url := "http://foo"
+	want := "the_body"
+	transport.AddError(url, errors.New("boom"))
+	transport.AddResponse(url, 200, want, nil)
+	body, _, err := ReadRemoteFile(url, "")
+
+	if err != nil {
+		t.Fatalf("Unexpected error %v", err)
+	}
+
+	got := string(body)
+	if got != want {
+		t.Fatalf("Expected body %q, but got %q", want, got)
+	}
+
+	if clock.TimesSlept() != 1 {
+		t.Fatalf("Expected a single retry, not %d", clock.TimesSlept())
+	}
+}
+
 func TestAllTriesFail(t *testing.T) {
 	MaxRequestDuration = 100 * time.Second
 
@@ -106,7 +131,7 @@ func TestAllTriesFail(t *testing.T) {
 	}
 
 	reason := err.Error()
-	expected := "could not fetch http://bar: unable to complete request to http://bar after 5 retries. Most recent status: 502"
+	expected := "could not fetch http://bar: unable to complete request to http://bar after 5 retries. Most recent failure: HTTP 502"
 	if reason != expected {
 		t.Fatalf("Expected request to fail with %q, but got %q", expected, reason)
 	}
@@ -176,7 +201,8 @@ func TestShouldUseExponentialBackoffIfNoRetryHeader(t *testing.T) {
 	}
 
 	delta := time.Millisecond * 100
-	lower := (1 << uint(retries)) * time.Second
+	// exponential backoff: 1s + d1, 2s + d2, 4s + d3, 8s + d4 with dx being a random value in [0ms, 500ms]
+	lower := (1<<uint(retries))*time.Second - time.Second
 	upper := lower + time.Duration(retries*500)*time.Millisecond
 	if total < lower-delta || upper+delta < total {
 		t.Fatalf("Expected a total sleep time between %s and %s (%d retries, exponential backoff with fuzzing), but waited %s instead", lower, upper, retries, total)
@@ -194,10 +220,13 @@ func TestDeadlineExceeded(t *testing.T) {
 		t.Fatal("Expected request to fail with code 500")
 	}
 
-	wanted := "could not fetch http://bar: unable to complete request to http://bar within 8s"
+	wantedPrefix := "could not fetch http://bar: unable to complete "
+	wantedSuffix := " requests to http://bar within 8s. Most recent failure: HTTP 500"
+
 	got := err.Error()
-	if wanted != got {
-		t.Fatalf("Expected error %q, but got %q", wanted, got)
+	sameError := strings.HasPrefix(got, wantedPrefix) && strings.HasSuffix(got, wantedSuffix)
+	if !sameError {
+		t.Fatalf("Expected error %q, but got %q", wantedPrefix+"???"+wantedSuffix, got)
 	}
 }
 

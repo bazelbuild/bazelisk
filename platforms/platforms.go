@@ -6,6 +6,7 @@ import (
 	"log"
 	"runtime"
 
+	"github.com/bazelbuild/bazelisk/config"
 	"github.com/bazelbuild/bazelisk/versions"
 	semver "github.com/hashicorp/go-version"
 )
@@ -21,8 +22,8 @@ var supportedPlatforms = map[string]*platform{
 		HasArm64Binary: true,
 	},
 	"linux": {
-		Name:           "centos7",
-		HasArm64Binary: false,
+		Name:           "linux",
+		HasArm64Binary: true,
 	},
 	"windows": {
 		Name:           "windows",
@@ -54,6 +55,7 @@ func DetermineExecutableFilenameSuffix() string {
 	return filenameSuffix
 }
 
+// DetermineArchitecture returns the architecture of the current machine.
 func DetermineArchitecture(osName, version string) (string, error) {
 	var machineName string
 	switch runtime.GOARCH {
@@ -62,7 +64,7 @@ func DetermineArchitecture(osName, version string) (string, error) {
 	case "arm64":
 		machineName = "arm64"
 	default:
-		return "", fmt.Errorf("unsupported machine architecture \"%s\", must be arm64 or x86_64", runtime.GOARCH)
+		return "", fmt.Errorf("unsupported machine architecture %q, must be arm64 or x86_64", runtime.GOARCH)
 	}
 
 	if osName == "darwin" {
@@ -72,17 +74,26 @@ func DetermineArchitecture(osName, version string) (string, error) {
 	return machineName, nil
 }
 
+// DetermineOperatingSystem returns the name of the operating system.
 func DetermineOperatingSystem() (string, error) {
 	switch runtime.GOOS {
 	case "darwin", "linux", "windows":
 		return runtime.GOOS, nil
 	default:
-		return "", fmt.Errorf("unsupported operating system \"%s\", must be Linux, macOS or Windows", runtime.GOOS)
+		return "", fmt.Errorf("unsupported operating system %q, must be Linux, macOS or Windows", runtime.GOOS)
 	}
 }
 
 // DetermineBazelFilename returns the correct file name of a local Bazel binary.
-func DetermineBazelFilename(version string, includeSuffix bool) (string, error) {
+func DetermineBazelFilename(version string, includeSuffix bool, config config.Config) (string, error) {
+	flavor := "bazel"
+
+	bazeliskNojdk := config.Get("BAZELISK_NOJDK")
+
+	if len(bazeliskNojdk) != 0 && bazeliskNojdk != "0" {
+		flavor = "bazel_nojdk"
+	}
+
 	osName, err := DetermineOperatingSystem()
 	if err != nil {
 		return "", err
@@ -98,7 +109,7 @@ func DetermineBazelFilename(version string, includeSuffix bool) (string, error) 
 		filenameSuffix = DetermineExecutableFilenameSuffix()
 	}
 
-	return fmt.Sprintf("bazel-%s-%s-%s%s", version, osName, machineName, filenameSuffix), nil
+	return fmt.Sprintf("%s-%s-%s-%s%s", flavor, version, osName, machineName, filenameSuffix), nil
 }
 
 // DarwinFallback Darwin arm64 was supported since 4.1.0, before 4.1.0, fall back to x86_64
