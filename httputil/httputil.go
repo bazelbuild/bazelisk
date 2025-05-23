@@ -86,7 +86,16 @@ func get(url, auth string) (*http.Response, error) {
 	if auth != "" {
 		req.Header.Set("Authorization", auth)
 	}
-	client := &http.Client{Transport: DefaultTransport}
+	var transport http.RoundTripper
+	// supper http_proxy、https_proxy、no_proxy 
+	if dt, ok := DefaultTransport.(*http.Transport); ok {
+		clone := dt.Clone()
+		clone.Proxy = http.ProxyFromEnvironment
+		transport = clone
+	} else {
+		transport = &http.Transport{Proxy: http.ProxyFromEnvironment}
+	}
+	client := &http.Client{Transport: transport}
 	deadline := RetryClock.Now().Add(MaxRequestDuration)
 	var lastFailure string
 	for attempt := 0; attempt <= MaxRetries; attempt++ {
