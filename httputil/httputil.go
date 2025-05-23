@@ -86,7 +86,17 @@ func get(url, auth string) (*http.Response, error) {
 	if auth != "" {
 		req.Header.Set("Authorization", auth)
 	}
-	client := &http.Client{Transport: DefaultTransport}
+	var transport http.RoundTripper
+	// supper http_proxy、https_proxy、no_proxy
+	baseTransport, ok := DefaultTransport.(*http.Transport)
+	if ok {
+		clone := baseTransport.Clone()
+		clone.Proxy = http.ProxyFromEnvironment
+		transport = clone
+	} else {
+		transport = DefaultTransport
+	}
+	client := &http.Client{Transport: transport}
 	deadline := RetryClock.Now().Add(MaxRequestDuration)
 	var lastFailure string
 	for attempt := 0; attempt <= MaxRetries; attempt++ {
@@ -95,7 +105,7 @@ func get(url, auth string) (*http.Response, error) {
 			return res, err
 		}
 
-		if (res != nil) {
+		if res != nil {
 			// Need to retry, close the response body immediately to release resources.
 			// See https://github.com/googleapis/google-cloud-go/issues/7440#issuecomment-1491008639
 			res.Body.Close()
