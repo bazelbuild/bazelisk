@@ -127,6 +127,9 @@ func DetermineBazelInstallerFilename(version string, config config.Config) (stri
 	return fmt.Sprintf("bazel-%s-installer-%s-%s.sh", version, osName, machineName), nil
 }
 
+// DarwinArm64MinVersion represents the minimum Darwin version that supported arm64.
+const DarwinArm64MinVersion = "4.1.0"
+
 // DarwinFallback Darwin arm64 was supported since 4.1.0, before 4.1.0, fall back to x86_64
 func DarwinFallback(machineName string, version string) (alterMachineName string) {
 	// Do not use fallback for commits since they are likely newer than Bazel 4.1
@@ -139,7 +142,7 @@ func DarwinFallback(machineName string, version string) (alterMachineName string
 		return machineName
 	}
 
-	armSupportVer, _ := semver.NewVersion("4.1.0")
+	armSupportVer, _ := semver.NewVersion(DarwinArm64MinVersion)
 
 	if machineName == "arm64" && v.LessThan(armSupportVer) {
 		log.Printf("WARN: Fallback to x86_64 because arm64 is not supported on Apple Silicon until 4.1.0")

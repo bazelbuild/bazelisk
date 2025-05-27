@@ -65,6 +65,88 @@ func TestMaybeDelegateToNoNonExecutableWrapper(t *testing.T) {
 	}
 }
 
+func TestMaybeDelegateToOsAndArchSpecificWrapper(t *testing.T) {
+	// It's not guaranteed that `tools/bazel` is executable on the
+	// Windows host running this test. Thus the test is skipped on
+	// this platform to guarantee consistent results.
+	if runtime.GOOS == "windows" {
+		return
+	}
+
+	var tmpDir, err = os.MkdirTemp("", "TestMaybeDelegateToOsAndArchSpecificWrapper")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	osName, err := platforms.DetermineOperatingSystem()
+	if err != nil {
+		log.Fatal(err)
+	}
+	arch, err := platforms.DetermineArchitecture(osName, platforms.DarwinArm64MinVersion)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	os.MkdirAll(tmpDir, os.ModeDir|0700)
+	os.WriteFile(filepath.Join(tmpDir, "WORKSPACE"), []byte(""), 0600)
+	os.WriteFile(filepath.Join(tmpDir, "BUILD"), []byte(""), 0600)
+
+	os.MkdirAll(filepath.Join(tmpDir, "tools"), os.ModeDir|0700)
+	os.WriteFile(filepath.Join(tmpDir, "tools", "bazel."+runtime.GOOS+"-"+arch), []byte(""), 0700)
+	// Also create the standard wrapper to ensure we prefer the os/arch-specific wrapper.
+	os.WriteFile(filepath.Join(tmpDir, "tools", "bazel"), []byte(""), 0700)
+	// Also create the plaform-specific wrapper to ensure we prefer the os/arch-specific wrapper.
+	os.WriteFile(filepath.Join(tmpDir, "tools", "bazel."+arch), []byte(""), 0700)
+
+	entrypoint := maybeDelegateToWrapperFromDir("bazel_real", tmpDir, config.Null())
+	expected := filepath.Join(tmpDir, "tools", "bazel."+runtime.GOOS+"-"+arch)
+
+	if entrypoint != expected {
+		t.Fatalf("Expected to delegate bazel to %q, but got %q", expected, entrypoint)
+	}
+}
+
+func TestMaybeDelegateToArchSpecificWrapper(t *testing.T) {
+	// It's not guaranteed that `tools/bazel` is executable on the
+	// Windows host running this test. Thus the test is skipped on
+	// this platform to guarantee consistent results.
+	if runtime.GOOS == "windows" {
+		return
+	}
+
+	var tmpDir, err = os.MkdirTemp("", "TestMaybeDelegateToArchSpecificWrapper")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	osName, err := platforms.DetermineOperatingSystem()
+	if err != nil {
+		log.Fatal(err)
+	}
+	arch, err := platforms.DetermineArchitecture(osName, platforms.DarwinArm64MinVersion)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	os.MkdirAll(tmpDir, os.ModeDir|0700)
+	os.WriteFile(filepath.Join(tmpDir, "WORKSPACE"), []byte(""), 0600)
+	os.WriteFile(filepath.Join(tmpDir, "BUILD"), []byte(""), 0600)
+
+	os.MkdirAll(filepath.Join(tmpDir, "tools"), os.ModeDir|0700)
+	os.WriteFile(filepath.Join(tmpDir, "tools", "bazel."+arch), []byte(""), 0700)
+	// Also create the standard wrapper to ensure we prefer the arch-specific wrapper.
+	os.WriteFile(filepath.Join(tmpDir, "tools", "bazel"), []byte(""), 0700)
+
+	entrypoint := maybeDelegateToWrapperFromDir("bazel_real", tmpDir, config.Null())
+	expected := filepath.Join(tmpDir, "tools", "bazel."+arch)
+
+	if entrypoint != expected {
+		t.Fatalf("Expected to delegate bazel to %q, but got %q", expected, entrypoint)
+	}
+}
+
 func TestMaybeDelegateToStandardWrapper(t *testing.T) {
 	// It's not guaranteed that `tools/bazel` is executable on the
 	// Windows host running this test. Thus the test is skipped on
