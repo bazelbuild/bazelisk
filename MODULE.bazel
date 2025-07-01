@@ -12,6 +12,9 @@ bazel_dep(name = "rules_pkg", version = "1.0.1")
 bazel_dep(name = "aspect_rules_js", version = "2.0.1")
 bazel_dep(name = "rules_shell", version = "0.4.0")
 
+# In-direct deps, just to bump version
+bazel_dep(name = "aspect_bazel_lib", version = "2.19.4")
+
 go_sdk = use_extension("@io_bazel_rules_go//go:extensions.bzl", "go_sdk")
 go_sdk.download(version = "1.24.0")
 
