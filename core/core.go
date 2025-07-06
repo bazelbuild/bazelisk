@@ -4,7 +4,9 @@ package core
 // TODO: split this file into multiple smaller ones in dedicated packages (e.g. execution, incompatible, ...).
 
 import (
+	"archive/zip"
 	"bufio"
+	"bytes"
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
@@ -159,6 +161,15 @@ func RunBazeliskWithArgsFuncAndConfigAndOut(argsFunc ArgsFunc, repos *Repositori
 		} else {
 			fmt.Printf("Bazelisk version: %s\n", BazeliskVersion)
 		}
+	}
+
+	// handle completion command
+	if isCompletionCommand(args) {
+		err := handleCompletionCommand(args, bazelInstallation, config)
+		if err != nil {
+			return -1, fmt.Errorf("could not handle completion command: %v", err)
+		}
+		return 0, nil
 	}
 
 	exitCode, err := runBazel(bazelInstallation.Path, args, out, config)
@@ -1107,4 +1118,286 @@ func dirForURL(url string) string {
 		dir = dir[:maxDirLength-len(suffix)] + suffix
 	}
 	return dir
+}
+
+func isCompletionCommand(args []string) bool {
+	for _, arg := range args {
+		if arg == "completion" {
+			return true
+		} else if !strings.HasPrefix(arg, "--") {
+			return false // First non-flag arg is not "completion"
+		}
+	}
+	return false
+}
+
+func handleCompletionCommand(args []string, bazelInstallation *BazelInstallation, config config.Config) error {
+	// Look for the shell type after "completion"
+	var shell string
+	foundCompletion := false
+	for _, arg := range args {
+		if foundCompletion {
+			shell = arg
+			break
+		}
+		if arg == "completion" {
+			foundCompletion = true
+		}
+	}
+
+	if shell != "bash" && shell != "fish" {
+		return fmt.Errorf("only bash and fish completion are supported, got: %s", shell)
+	}
+
+	// Get bazelisk home directory
+	bazeliskHome, err := getBazeliskHome(config)
+	if err != nil {
+		return fmt.Errorf("could not determine bazelisk home: %v", err)
+	}
+
+	// Get the completion script for the current Bazel version
+	completionScript, err := getBazelCompletionScript(bazelInstallation.Version, bazeliskHome, shell, config)
+	if err != nil {
+		return fmt.Errorf("could not get completion script: %v", err)
+	}
+
+	fmt.Print(completionScript)
+	return nil
+}
+
+func getBazelCompletionScript(version string, bazeliskHome string, shell string, config config.Config) (string, error) {
+	var completionFilename string
+	switch shell {
+	case "bash":
+		completionFilename = "bazel-complete.bash"
+	case "fish":
+		completionFilename = "bazel.fish"
+	default:
+		return "", fmt.Errorf("unsupported shell: %s", shell)
+	}
+
+	// Construct installer URL using the same logic as bazel binary downloads
+	baseURL := config.Get(BaseURLEnv)
+	formatURL := config.Get(FormatURLEnv)
+
+	installerURL, err := constructInstallerURL(baseURL, formatURL, version, config)
+	if err != nil {
+		return "", fmt.Errorf("could not construct installer URL: %v", err)
+	}
+
+	// Download completion scripts if necessary (handles content-based caching internally)
+	installerHash, err := downloadCompletionScriptIfNecessary(installerURL, version, bazeliskHome, baseURL, config)
+	if err != nil {
+		return "", fmt.Errorf("could not download completion script: %v", err)
+	}
+
+	// Read the requested completion script using installer content hash
+	casDir := filepath.Join(bazeliskHome, "downloads", "sha256")
+	completionDir := filepath.Join(casDir, installerHash, "completion")
+	requestedPath := filepath.Join(completionDir, completionFilename)
+	cachedContent, err := os.ReadFile(requestedPath)
+	if err != nil {
+		if shell == "fish" {
+			return "", fmt.Errorf("fish completion script not available for Bazel version %s", version)
+		}
+		return "", fmt.Errorf("could not read cached completion script: %v", err)
+	}
+
+	return string(cachedContent), nil
+}
+
+func constructInstallerURL(baseURL, formatURL, version string, config config.Config) (string, error) {
+	if baseURL != "" && formatURL != "" {
+		return "", fmt.Errorf("cannot set %s and %s at once", BaseURLEnv, FormatURLEnv)
+	}
+
+	if formatURL != "" {
+		// Replace %v with version and construct installer-specific format
+		installerFormatURL := strings.Replace(formatURL, "bazel-%v", "bazel-%v-installer", 1)
+		installerFormatURL = strings.Replace(installerFormatURL, "%e", ".sh", 1)
+		return BuildURLFromFormat(config, installerFormatURL, version)
+	}
+
+	if baseURL != "" {
+		installerFile, err := platforms.DetermineBazelInstallerFilename(version, config)
+		if err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("%s/%s/%s", baseURL, version, installerFile), nil
+	}
+
+	// Default to GitHub
+	installerFile, err := platforms.DetermineBazelInstallerFilename(version, config)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("https://github.com/bazelbuild/bazel/releases/download/%s/%s", version, installerFile), nil
+}
+
+func downloadCompletionScriptIfNecessary(installerURL, version, bazeliskHome, baseURL string, config config.Config) (string, error) {
+	// Create installer filename for metadata mapping (similar to bazel binary)
+	installerFile, err := platforms.DetermineBazelInstallerFilename(version, config)
+	if err != nil {
+		return "", fmt.Errorf("could not determine installer filename: %v", err)
+	}
+
+	installerForkOrURL := dirForURL(baseURL)
+	if len(installerForkOrURL) == 0 {
+		installerForkOrURL = "bazelbuild"
+	}
+
+	// Check metadata mapping for installer URL -> content hash
+	mappingPath := filepath.Join(bazeliskHome, "downloads", "metadata", installerForkOrURL, installerFile)
+	digestFromMappingFile, err := os.ReadFile(mappingPath)
+	if err == nil {
+		// Check if completion scripts exist for this content hash
+		casDir := filepath.Join(bazeliskHome, "downloads", "sha256")
+		installerHash := string(digestFromMappingFile)
+		completionDir := filepath.Join(casDir, installerHash, "completion")
+		bashPath := filepath.Join(completionDir, "bazel-complete.bash")
+
+		if _, errBash := os.Stat(bashPath); errBash == nil {
+			return installerHash, nil // Completion scripts already cached
+		}
+	}
+
+	// Download installer and extract completion scripts
+	installerHash, err := downloadInstallerToCAS(installerURL, bazeliskHome, config)
+	if err != nil {
+		return "", fmt.Errorf("failed to download installer: %w", err)
+	}
+
+	// Write metadata mapping
+	if err := atomicWriteFile(mappingPath, []byte(installerHash), 0644); err != nil {
+		return "", fmt.Errorf("failed to write mapping file: %w", err)
+	}
+
+	return installerHash, nil
+}
+
+func downloadInstallerToCAS(installerURL, bazeliskHome string, config config.Config) (string, error) {
+	downloadsDir := filepath.Join(bazeliskHome, "downloads")
+	temporaryDownloadDir := filepath.Join(downloadsDir, "_tmp")
+	casDir := filepath.Join(bazeliskHome, "downloads", "sha256")
+
+	// Generate temporary file name for installer download
+	tmpInstallerBytes := make([]byte, 16)
+	if _, err := rand.Read(tmpInstallerBytes); err != nil {
+		return "", fmt.Errorf("failed to generate temporary installer file name: %w", err)
+	}
+	tmpInstallerFile := fmt.Sprintf("%x-installer", tmpInstallerBytes)
+
+	// Download the installer
+	installerPath, err := httputil.DownloadBinary(installerURL, temporaryDownloadDir, tmpInstallerFile, config)
+	if err != nil {
+		return "", fmt.Errorf("failed to download installer: %w", err)
+	}
+	defer os.Remove(installerPath)
+
+	// Read installer content and compute hash
+	installerContent, err := os.ReadFile(installerPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read installer: %w", err)
+	}
+
+	h := sha256.New()
+	h.Write(installerContent)
+	installerHash := strings.ToLower(fmt.Sprintf("%x", h.Sum(nil)))
+
+	// Check if completion scripts already exist for this installer content hash
+	completionDir := filepath.Join(casDir, installerHash, "completion")
+	bashPath := filepath.Join(completionDir, "bazel-complete.bash")
+
+	if _, errBash := os.Stat(bashPath); errBash == nil {
+		return installerHash, nil // Completion scripts already cached
+	}
+
+	// Extract completion scripts from installer
+	completionScripts, err := extractCompletionScriptsFromInstaller(installerContent)
+	if err != nil {
+		return "", fmt.Errorf("failed to extract completion scripts: %w", err)
+	}
+
+	// Create completion directory in CAS
+	if err := os.MkdirAll(completionDir, 0755); err != nil {
+		return "", fmt.Errorf("failed to create completion directory: %w", err)
+	}
+
+	// Write completion scripts to CAS using installer content hash
+	for filename, content := range completionScripts {
+		scriptPath := filepath.Join(completionDir, filename)
+		if err := atomicWriteFile(scriptPath, []byte(content), 0644); err != nil {
+			return "", fmt.Errorf("failed to write %s: %w", filename, err)
+		}
+	}
+
+	return installerHash, nil
+}
+
+func extractCompletionScriptsFromInstaller(installerContent []byte) (map[string]string, error) {
+	// Extract the zip file from the installer script
+	zipData, err := extractZipFromInstaller(installerContent)
+	if err != nil {
+		return nil, fmt.Errorf("could not extract zip from installer: %w", err)
+	}
+
+	// Extract the completion scripts from the zip file
+	completionScripts, err := extractCompletionScriptsFromZip(zipData)
+	if err != nil {
+		return nil, fmt.Errorf("could not extract completion scripts from zip: %w", err)
+	}
+
+	return completionScripts, nil
+}
+
+func extractZipFromInstaller(installerContent []byte) ([]byte, error) {
+	// The installer script embeds a PK-formatted zip archive directly after the shell prologue.
+	const zipMagic = "PK\x03\x04" // local file header signature
+
+	idx := bytes.Index(installerContent, []byte(zipMagic))
+	if idx == -1 {
+		return nil, fmt.Errorf("could not find zip file in installer script")
+	}
+
+	return installerContent[idx:], nil
+}
+
+func extractCompletionScriptsFromZip(zipData []byte) (map[string]string, error) {
+	// Create a zip reader from the zip data
+	zipReader, err := zip.NewReader(bytes.NewReader(zipData), int64(len(zipData)))
+	if err != nil {
+		return nil, fmt.Errorf("could not create zip reader: %v", err)
+	}
+
+	completionScripts := make(map[string]string)
+	targetFiles := map[string]string{
+		"bazel-complete.bash": "bazel-complete.bash",
+		"bazel.fish":          "bazel.fish",
+	}
+
+	// Look for completion files in the zip
+	for _, file := range zipReader.File {
+		if targetFilename, found := targetFiles[file.Name]; found {
+			rc, err := file.Open()
+			if err != nil {
+				return nil, fmt.Errorf("could not open completion file %s: %v", file.Name, err)
+			}
+
+			completionContent, err := io.ReadAll(rc)
+			rc.Close()
+			if err != nil {
+				return nil, fmt.Errorf("could not read completion file %s: %v", file.Name, err)
+			}
+
+			completionScripts[targetFilename] = string(completionContent)
+		}
+	}
+
+	// Check that we found at least the bash completion script
+	if _, found := completionScripts["bazel-complete.bash"]; !found {
+		return nil, fmt.Errorf("bazel-complete.bash not found in zip file")
+	}
+	// Fish completion is optional (older Bazel versions might not have it)
+
+	return completionScripts, nil
 }
