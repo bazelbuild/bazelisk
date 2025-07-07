@@ -26,6 +26,7 @@ import (
 	"github.com/bazelbuild/bazelisk/httputil"
 	"github.com/bazelbuild/bazelisk/platforms"
 	"github.com/bazelbuild/bazelisk/versions"
+	version "github.com/hashicorp/go-version"
 	"github.com/mitchellh/go-homedir"
 )
 
@@ -58,6 +59,108 @@ func RunBazelisk(args []string, repos *Repositories) (int, error) {
 // repositories.
 func RunBazeliskWithArgsFunc(argsFunc ArgsFunc, repos *Repositories) (int, error) {
 	httputil.UserAgent = getUserAgent()
+
+	// Resolve arguments early to check for the "complete" command.
+	// We pass a dummy version string here as it's not used by the argsFunc for this initial check.
+	// The actual resolved Bazel version will be determined later if needed.
+	initialArgs := argsFunc("for-initial-check")
+
+	if len(initialArgs) > 0 && initialArgs[0] == "complete" {
+		// Handle the "complete" command separately.
+		// We need to determine the Bazel version and path first.
+		bazeliskHomeForComplete := GetEnvOrConfig("BAZELISK_HOME")
+		if len(bazeliskHomeForComplete) == 0 {
+			userCacheDir, err := os.UserCacheDir()
+			if err != nil {
+				return -1, fmt.Errorf("could not get the user's cache directory for complete command: %v", err)
+			}
+			bazeliskHomeForComplete = filepath.Join(userCacheDir, "bazelisk")
+		}
+		// Ensure the home directory exists, though it likely does if Bazelisk has run before.
+		// MkdirAll is idempotent.
+		if err := os.MkdirAll(bazeliskHomeForComplete, 0755); err != nil {
+			return -1, fmt.Errorf("could not create directory %s for complete command: %v", bazeliskHomeForComplete, err)
+		}
+
+		bazelVersionString, err := getBazelVersion()
+		if err != nil {
+			return -1, fmt.Errorf("could not get Bazel version for complete command: %v", err)
+		}
+
+		// We need the actual path to the bazel executable to find its completion script.
+		// This logic mirrors the main path resolution.
+		var bazelPathForComplete string
+		// Check if bazelVersionString is an absolute path first
+		isAbsPath := filepath.IsAbs(bazelVersionString)
+		if isAbsPath {
+			expandedPath, err := homedir.Expand(bazelVersionString)
+			if err != nil {
+				return -1, fmt.Errorf("could not expand home directory in path for complete command: %v", err)
+			}
+			// If it's an absolute path, we need to ensure it's correctly linked/copied into bazelisk's structure
+			// or determine its location if it's a direct path to a user-managed bazel.
+			// For simplicity, let's assume if it's an absolute path, it directly points to the executable.
+			// However, bazelisk usually manages local bazels by linking them into its home dir.
+			// Let's try to resolve it as if it were a version string first, then handle direct abs path.
+			// This part is tricky because downloadBazel expects a version string, not a path.
+			// We need the path to the *actual* bazel binary that *would* be run.
+
+			// Re-evaluate: The most straightforward way is to get the path that bazelisk *would* use.
+			// This means calling downloadBazel (or its equivalent parts) to get the final path.
+			tempBazelPath, err := downloadBazel(bazelVersionString, bazeliskHomeForComplete, repos)
+			if err != nil {
+				// If downloadBazel fails, it might be because bazelVersionString is actually a local path.
+				// Let's test if it's a valid file path directly.
+				if _, statErr := os.Stat(expandedPath); statErr == nil {
+					// It's a valid file path. We need to ensure it's correctly "linked"
+					// or use its directory directly.
+					// For local bazels, bazelisk creates a link in its own directory structure.
+					baseDirectory := filepath.Join(bazeliskHomeForComplete, "local")
+					linkedPath, linkErr := linkLocalBazel(baseDirectory, expandedPath)
+					if linkErr != nil {
+						return -1, fmt.Errorf("could not link local Bazel for complete command: %v", linkErr)
+					}
+					bazelPathForComplete = linkedPath
+				} else {
+					return -1, fmt.Errorf("could not resolve Bazel path for complete command (tried as version then as local path): %v", err)
+				}
+			} else {
+				bazelPathForComplete = tempBazelPath
+			}
+
+		} else { // It's a version string, not an absolute path
+			resolvedPath, err := downloadBazel(bazelVersionString, bazeliskHomeForComplete, repos)
+			if err != nil {
+				return -1, fmt.Errorf("could not download Bazel for complete command: %v", err)
+			}
+			bazelPathForComplete = resolvedPath
+		}
+
+		completionScriptPath := getCompletionScriptPath(bazelPathForComplete)
+		scriptBytes, err := ioutil.ReadFile(completionScriptPath)
+		if err != nil {
+			if os.IsNotExist(err) {
+				// Try to get the actual version string for the error message
+				resolvedBazelVersionForMsg := bazelVersionString // Default to what was read
+				// If it wasn't an abs path, downloadBazel would have resolved it.
+				// We need to be careful here, as downloadBazel was called above.
+				// Let's re-resolve the version string for a potentially more user-friendly name.
+				bazelFork, bzlVersion, _ := parseBazelForkAndVersion(bazelVersionString)
+				resolvedVer, _, resolveErr := repos.ResolveVersion(bazeliskHomeForComplete, bazelFork, bzlVersion)
+				if resolveErr == nil {
+					resolvedBazelVersionForMsg = resolvedVer
+				}
+
+				fmt.Fprintf(os.Stderr, "Error: Bash completion script not found for Bazel version %s (expected at %s).\n", resolvedBazelVersionForMsg, completionScriptPath)
+				fmt.Fprintf(os.Stderr, "This can happen if the Bazel version is older than 8.4.0, is not an official release,\nor if script generation failed during download.\n")
+				return 1, nil // Exit with 1, no further error needed for caller
+			}
+			return -1, fmt.Errorf("could not read completion script %s: %v", completionScriptPath, err)
+		}
+
+		fmt.Print(string(scriptBytes))
+		return 0, nil // Successfully printed completion script
+	}
 
 	bazeliskHome := GetEnvOrConfig("BAZELISK_HOME")
 	if len(bazeliskHome) == 0 {
@@ -482,8 +585,88 @@ func downloadBazelIfNecessary(version string, baseDirectory string, repos *Repos
 	if err = os.Rename(tmpDestPath, destPath); err != nil {
 		return "", fmt.Errorf("cannot rename %s to %s: %v", tmpDestPath, destPath, err)
 	}
+
+	// Attempt to generate and store the bash completion script for Bazel >= 8.4.0
+	// We need to parse the version string. It could be a release version like "6.0.0" or a commit hash.
+	// Only generate completion scripts for release versions.
+	parsedVersion, err := version.NewVersion(version)
+	if err == nil { // Successfully parsed as a semantic version
+		minCompletionVersion, _ := version.NewVersion("8.4.0")
+		if parsedVersion.GreaterThanOrEqual(minCompletionVersion) {
+			completionScriptPath := getCompletionScriptPath(destPath)
+			// Check if script already exists, maybe from a previous partial download or manual placement
+			if _, statErr := os.Stat(completionScriptPath); os.IsNotExist(statErr) {
+				var outputBuffer strings.Builder
+				// Use a new, isolated function call to runBazelInternal to avoid environment conflicts
+				// and ensure we're calling the specific Bazel version we just downloaded.
+				exitCode, runErr := runBazelInternal(destPath, []string{"help", "complete", "bash"}, &outputBuffer, true)
+				if runErr != nil {
+					log.Printf("Warning: could not run '%s help complete bash' to generate completion script: %v", destPath, runErr)
+				} else if exitCode != 0 {
+					log.Printf("Warning: '%s help complete bash' exited with code %d, could not generate completion script. Output: %s", destPath, exitCode, outputBuffer.String())
+				} else {
+					scriptContent := outputBuffer.String()
+					if strings.TrimSpace(scriptContent) == "" {
+						log.Printf("Warning: '%s help complete bash' produced empty output for version %s. Not saving completion script.", destPath, version)
+					} else {
+						err = ioutil.WriteFile(completionScriptPath, []byte(scriptContent), 0644)
+						if err != nil {
+							log.Printf("Warning: could not write completion script to %s: %v", completionScriptPath, err)
+						} else {
+							log.Printf("Successfully generated and saved completion script for Bazel %s at %s", version, completionScriptPath)
+						}
+					}
+				}
+			}
+		}
+	} else {
+		// If it's not a semantic version (e.g. a commit hash like `last_green` or a specific SHA),
+		// we don't attempt to generate completion script.
+		// We could potentially try for `last_green` if we resolve it to a specific version number first,
+		// but that adds complexity. For now, only official release versions get completion scripts.
+		log.Printf("Skipping completion script generation for non-semantic version: %s", version)
+	}
+
 	return destPath, nil
 }
+
+// runBazelInternal is a simplified version of runBazel for internal Bazelisk use,
+// like generating completion scripts. It directly executes the specified Bazel path
+// without wrapper delegation or signal handling.
+func runBazelInternal(bazelPath string, args []string, out io.Writer, useSystemEnv bool) (int, error) {
+	cmd := exec.Command(bazelPath, args...)
+	if useSystemEnv {
+		cmd.Env = os.Environ()
+	}
+	// Prepend the directory of the bazel executable to PATH, in case it needs to find auxiliary tools.
+	// This is a minimal set of environment setup.
+	cmd.Env = append(cmd.Env, fmt.Sprintf("PATH=%s%c%s", filepath.Dir(bazelPath), os.PathListSeparator, os.Getenv("PATH")))
+
+	cmd.Stdin = nil // No stdin for internal commands
+	if out == nil {
+		cmd.Stdout = ioutil.Discard // Discard stdout if not specified
+	} else {
+		cmd.Stdout = out
+	}
+	cmd.Stderr = os.Stderr // Always send stderr to Bazelisk's stderr for visibility
+
+	err := cmd.Start()
+	if err != nil {
+		return 1, fmt.Errorf("could not start Bazel for internal command: %v", err)
+	}
+
+	err = cmd.Wait()
+	if err != nil {
+		if exitError, ok := err.(*exec.ExitError); ok {
+			if status, ok := exitError.Sys().(syscall.WaitStatus); ok {
+				return status.ExitStatus(), nil
+			}
+		}
+		return 1, fmt.Errorf("could not run Bazel for internal command: %v", err)
+	}
+	return 0, nil
+}
+
 
 func copyFile(src, dst string, perm os.FileMode) error {
 	srcFile, err := os.Open(src)
@@ -989,4 +1172,8 @@ func dirForURL(url string) string {
 		dir = dir[:maxDirLength-len(suffix)] + suffix
 	}
 	return dir
+}
+
+func getCompletionScriptPath(bazelExecutablePath string) string {
+	return filepath.Join(filepath.Dir(bazelExecutablePath), "bazel-completion.bash")
 }

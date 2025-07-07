@@ -135,6 +135,21 @@ This will show you which flags can safely enabled, and which flags require a mig
 bazelisk --bisect=6.0.0..HEAD test //foo:bar_test
 ```
 
+### complete (for Bash completion)
+
+Bazelisk can generate and output a Bash completion script for the version of Bazel it would use for the current directory. This leverages Bazel's own `bazel help complete bash` command (available in Bazel 8.4.0 and newer).
+
+When Bazelisk downloads a Bazel version 8.4.0 or newer, it automatically runs `bazel help complete bash` and stores the script alongside the downloaded Bazel binary.
+
+The `bazelisk complete` command then locates the appropriate script for the Bazel version determined by your current directory's configuration (e.g., `.bazelversion` file or `USE_BAZEL_VERSION` environment variable) and prints it to standard output.
+
+To enable Bash completion for Bazelisk (which will in turn use the correct Bazel version's completion):
+```shell
+source <(bazelisk complete)
+```
+You can add this line to your `~/.bashrc` or `~/.bash_profile` to have completions available in new shell sessions. If the completion script for the determined Bazel version is not found (e.g., for older Bazel versions or if script generation failed), `bazelisk complete` will print an error message to stderr.
+```
+
 Note that, Bazelisk uses prebuilt Bazel binaries at commits on the main and release branches, therefore you cannot bisect your local commits.
 
 ### Useful environment variables for --migrate and --bisect
