@@ -99,6 +99,7 @@ func RunBazeliskWithArgsFuncAndConfig(argsFunc ArgsFunc, repos *Repositories, co
 // repositories and config, writing its stdout to the passed writer.
 func RunBazeliskWithArgsFuncAndConfigAndOut(argsFunc ArgsFunc, repos *Repositories, config config.Config, out io.Writer) (int, error) {
 	httputil.UserAgent = getUserAgent(config)
+	httputil.AuthHeader = getAuthHeader(config)
 
 	bazelInstallation, err := GetBazelInstallation(repos, config)
 	if err != nil {
@@ -298,6 +299,14 @@ func getUserAgent(config config.Config) string {
 		return agent
 	}
 	return fmt.Sprintf("Bazelisk/%s", BazeliskVersion)
+}
+
+func getAuthHeader(config config.Config) string {
+	auth_header := config.Get("BAZELISK_AUTH_HEADER")
+	if len(auth_header) > 0 {
+		return auth_header
+	}
+	return ""
 }
 
 // GetBazelVersion returns the Bazel version that should be used.
