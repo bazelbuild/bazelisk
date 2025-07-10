@@ -159,6 +159,48 @@ bazelisk --bisect=~6.0.0..HEAD test //foo:bar_test
 
 Note that, Bazelisk uses prebuilt Bazel binaries at commits on the main and release branches, therefore you cannot bisect your local commits.
 
+### Command-line completion
+
+Bazelisk offers a new `completion` command that allows you to generate
+command-line completion scripts for Bazel commands.
+
+#### bash
+
+You can enable Bash completion by either:
+
+1. Source the generated completion script while inside a Bazel workspace:
+
+```shell
+source <(bazelisk completion bash)
+```
+
+2. Or emit the completion script into a file:
+
+```shell
+bazelisk completion bash > bash-complete.bash
+```
+
+then copy this file to `/etc/bash_completion.d` (on Ubuntu) or source it in your
+`~/.bashrc` (on Ubuntu) or `~/.bash_profile` (on macOS).
+
+```shell
+source /path/to/bazel-complete.bash
+```
+
+#### fish
+
+Generate a completion script and save it into your fish completion directory:
+
+```shell
+bazelisk completion fish > ~/.config/fish/completions/gh.fish
+```
+
+Note that the generated completion script is tied to the active Bazel version.
+
+The bazel completion scripts are taken from installer binaries. If you use a
+custom base URL, make sure the installer URLs are available alongside with
+bazel binaries.
+
 ### Useful environment variables for --migrate and --bisect
 
 You can set `BAZELISK_INCOMPATIBLE_FLAGS` to set a list of incompatible flags (separated by `,`) to be tested, otherwise Bazelisk tests all flags starting with `--incompatible_`.

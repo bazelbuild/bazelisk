@@ -112,6 +112,21 @@ func DetermineBazelFilename(version string, includeSuffix bool, config config.Co
 	return fmt.Sprintf("%s-%s-%s-%s%s", flavor, version, osName, machineName, filenameSuffix), nil
 }
 
+// DetermineBazelInstallerFilename returns the correct file name of a Bazel installer script.
+func DetermineBazelInstallerFilename(version string, config config.Config) (string, error) {
+	osName, err := DetermineOperatingSystem()
+	if err != nil {
+		return "", err
+	}
+
+	machineName, err := DetermineArchitecture(osName, version)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("bazel-%s-installer-%s-%s.sh", version, osName, machineName), nil
+}
+
 // DarwinFallback Darwin arm64 was supported since 4.1.0, before 4.1.0, fall back to x86_64
 func DarwinFallback(machineName string, version string) (alterMachineName string) {
 	// Do not use fallback for commits since they are likely newer than Bazel 4.1
