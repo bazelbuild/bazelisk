@@ -223,7 +223,7 @@ You can control the user agent that Bazelisk sends in all HTTP requests by setti
 
 You can set the Authorization header that Bazelisk sends in all HTTP requests by setting `BAZELISK_AUTH_HEADER` to the desired value.
 ```shell
-export BAZELISK_AUTH_HEADER="bearer <your_token_here>"
+export BAZELISK_AUTH_HEADER="Bearer <your_token_here>"
 ```
 
 On Windows, Bazelisk will also consider the following files in addition to `tools/bazel`:
