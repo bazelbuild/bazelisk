@@ -28,7 +28,7 @@ var (
 	// UserAgent is passed to every HTTP request as part of the 'User-Agent' header.
 	UserAgent   = "Bazelisk"
 	// AuthHeader is optionally set to a value that is passed as part of the 'Authorization' header in HTTP requests.
-	AuthHeader	= ""
+	AuthHeader  = ""
 	linkPattern = regexp.MustCompile(`<(.*?)>; rel="(\w+)"`)
 
 	// RetryClock is used for waiting between HTTP request retries.
