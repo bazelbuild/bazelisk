@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -659,5 +660,37 @@ exit 0
 
 	if scripts["bazel.fish"] != fishContent {
 		t.Errorf("Fish completion content mismatch")
+	}
+}
+
+func TestPrependDirToPathListWithEqualsInPath(t *testing.T) {
+	cmd := &exec.Cmd{
+		Env: []string{
+			"PATH=/path/with=equals:/another/path",
+			"OTHER_VAR=value",
+		},
+	}
+
+	prependDirToPathList(cmd, "/new/dir")
+
+	// Check that PATH was properly updated
+	found := false
+	for _, env := range cmd.Env {
+		if strings.HasPrefix(env, "PATH=") {
+			found = true
+			// Should contain the new directory at the beginning
+			if !strings.Contains(env, "/new/dir") {
+				t.Errorf("Expected PATH to contain '/new/dir', got: %s", env)
+			}
+			// Should contain the original PATH value
+			if !strings.Contains(env, "/path/with=equals:/another/path") {
+				t.Errorf("Expected PATH to contain original value, got: %s", env)
+			}
+			break
+		}
+	}
+
+	if !found {
+		t.Error("PATH environment variable not found")
 	}
 }
