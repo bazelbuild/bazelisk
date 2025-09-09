@@ -221,6 +221,11 @@ This behavior can be disabled by setting the environment variable `BAZELISK_SKIP
 
 You can control the user agent that Bazelisk sends in all HTTP requests by setting `BAZELISK_USER_AGENT` to the desired value.
 
+You can set the Authorization header that Bazelisk sends in all HTTP requests by setting `BAZELISK_AUTH_HEADER` to the desired value.
+```shell
+export BAZELISK_AUTH_HEADER="Bearer <your_token_here>"
+```
+
 On Windows, Bazelisk will also consider the following files in addition to `tools/bazel`:
 
 * `tools/bazel.ps1` (PowerShell)
@@ -254,6 +259,7 @@ The following variables can be set:
 - `BAZELISK_SHUTDOWN`
 - `BAZELISK_SKIP_WRAPPER`
 - `BAZELISK_USER_AGENT`
+- `BAZELISK_AUTH_HEADER`
 - `BAZELISK_VERIFY_SHA256`
 - `USE_BAZEL_VERSION`
 
