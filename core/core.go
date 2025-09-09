@@ -650,7 +650,7 @@ func maybeDelegateToWrapper(bazel string, config config.Config) string {
 func prependDirToPathList(cmd *exec.Cmd, dir string) {
 	found := false
 	for idx, val := range cmd.Env {
-		splits := strings.Split(val, "=")
+		splits := strings.SplitN(val, "=", 2)
 		if len(splits) != 2 {
 			continue
 		}
