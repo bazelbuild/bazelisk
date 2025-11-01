@@ -192,7 +192,7 @@ source /path/to/bazel-complete.bash
 Generate a completion script and save it into your fish completion directory:
 
 ```shell
-bazelisk completion fish > ~/.config/fish/completions/gh.fish
+bazelisk completion fish > ~/.config/fish/completions/bazel.fish
 ```
 
 Note that the generated completion script is tied to the active Bazel version.
