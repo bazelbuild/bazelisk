@@ -29,7 +29,7 @@ func makeBatchScriptCmd(execPath string, args []string) *exec.Cmd {
 
 // For .ps1 files, use powershell.exe
 func makePowerShellScriptCmd(execPath string, args []string) *exec.Cmd {
-	cmd := exec.Command(os.Getenv("SystemRoot") + "\\system32\\WindowsPowerShell\\v1.0\\powershell.exe")
-	cmd.Args = append([]string{"-NoProfile", "-ExecutionPolicy", "Bypass", "-File", execPath}, args...)
+	cmd := exec.Command(os.Getenv("SystemRoot")+"\\system32\\WindowsPowerShell\\v1.0\\powershell.exe",
+		append([]string{"-NoProfile", "-ExecutionPolicy", "Bypass", "-File", execPath}, args...)...)
 	return cmd
 }
