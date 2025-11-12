@@ -618,20 +618,38 @@ func maybeDelegateToWrapperFromDir(bazel string, wd string, config config.Config
 	}
 
 	root := ws.FindWorkspaceRoot(wd)
-	wrapper := filepath.Join(root, wrapperPath)
-	if stat, err := os.Stat(wrapper); err == nil && !stat.Mode().IsDir() && stat.Mode().Perm()&0111 != 0 {
-		return wrapper
+	exeSuffix := platforms.DetermineExecutableFilenameSuffix()
+
+	// The list of candidate wrappers must go from most specific to least specific.
+	candidates := []string{}
+	osName, err := platforms.DetermineOperatingSystem()
+	if err == nil {
+		// We pass platforms.DarwinArm64MinVersion to disable the Darwin x86_64 fallback because this feature
+		// was added years after Apple Silicon launched and it's not worth trying to be backwards compatible.
+		arch, err := platforms.DetermineArchitecture(osName, platforms.DarwinArm64MinVersion)
+		if err == nil {
+			candidates = append(candidates, filepath.Join(root, wrapperPath+"."+runtime.GOOS+"-"+arch+exeSuffix))
+			candidates = append(candidates, filepath.Join(root, wrapperPath+"."+arch+exeSuffix))
+		}
+	}
+	candidates = append(candidates, filepath.Join(root, wrapperPath))
+	if runtime.GOOS == "windows" {
+		candidates = append(candidates, filepath.Join(root, wrapperPath+".ps1"))
+		candidates = append(candidates, filepath.Join(root, wrapperPath+".bat"))
 	}
 
-	if runtime.GOOS == "windows" {
-		powershellWrapper := filepath.Join(root, wrapperPath+".ps1")
-		if stat, err := os.Stat(powershellWrapper); err == nil && !stat.Mode().IsDir() {
-			return powershellWrapper
+	for _, wrapper := range candidates {
+		stat, err := os.Stat(wrapper)
+		if err != nil {
+			continue
 		}
 
-		batchWrapper := filepath.Join(root, wrapperPath+".bat")
-		if stat, err := os.Stat(batchWrapper); err == nil && !stat.Mode().IsDir() {
-			return batchWrapper
+		valid := !stat.Mode().IsDir()
+		if runtime.GOOS != "windows" {
+			valid = valid && stat.Mode().Perm()&0111 != 0
+		}
+		if valid {
+			return wrapper
 		}
 	}
 
