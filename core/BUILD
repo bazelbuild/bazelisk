@@ -4,6 +4,8 @@ go_library(
     name = "core",
     srcs = [
         "core.go",
+        "wrapper_helpers.go",
+        "wrapper_helpers_nonwindows.go",
         "repositories.go",
     ],
     importpath = "github.com/bazelbuild/bazelisk/core",

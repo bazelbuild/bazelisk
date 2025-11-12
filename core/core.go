@@ -110,7 +110,10 @@ func RunBazeliskWithArgsFuncAndConfigAndOut(argsFunc ArgsFunc, repos *Repositori
 	// --print_env must be the first argument.
 	if len(args) > 0 && args[0] == "--print_env" {
 		// print environment variables for sub-processes
-		cmd := makeBazelCmd(bazelInstallation.Path, args, nil, config)
+		cmd, err := makeBazelCmd(bazelInstallation.Path, args, nil, config)
+		if err != nil {
+			return -1, err
+		}
 		for _, val := range cmd.Env {
 			fmt.Println(val)
 		}
@@ -684,10 +687,22 @@ func prependDirToPathList(cmd *exec.Cmd, dir string) {
 	}
 }
 
-func makeBazelCmd(bazel string, args []string, out io.Writer, config config.Config) *exec.Cmd {
+func makeBazelCmd(bazel string, args []string, out io.Writer, config config.Config) (*exec.Cmd, error) {
 	execPath := maybeDelegateToWrapper(bazel, config)
 
-	cmd := exec.Command(execPath, args...)
+	var cmd *exec.Cmd
+	if execPath == bazel || runtime.GOOS != "windows" {
+		cmd = exec.Command(execPath, args...)
+	} else {
+		if strings.HasSuffix(execPath, ".ps1") {
+			cmd = makePowerShellScriptCmd(execPath, args)
+		} else if strings.HasSuffix(execPath, ".bat") {
+			cmd = makeBatchScriptCmd(execPath, args)
+		} else {
+			return nil, fmt.Errorf("unexpected wrapper type: %s", execPath)
+		}
+	}
+
 	cmd.Env = append(os.Environ(), skipWrapperEnv+"=true")
 	if execPath != bazel {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", bazelReal, bazel))
@@ -704,11 +719,14 @@ func makeBazelCmd(bazel string, args []string, out io.Writer, config config.Conf
 		cmd.Stdout = out
 	}
 	cmd.Stderr = os.Stderr
-	return cmd
+	return cmd, nil
 }
 
 func runBazel(bazel string, args []string, out io.Writer, config config.Config) (int, error) {
-	cmd := makeBazelCmd(bazel, args, out, config)
+	cmd, makeCmdErr := makeBazelCmd(bazel, args, out, config)
+	if makeCmdErr != nil {
+		return 1, makeCmdErr
+	}
 	err := cmd.Start()
 	if err != nil {
 		return 1, fmt.Errorf("could not start Bazel: %v", err)
