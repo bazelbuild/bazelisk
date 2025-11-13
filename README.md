@@ -24,6 +24,26 @@ Frontend developers may want to install it with `npm install -g @bazel/bazelisk`
 > You will notice that it serves an analogous function for Bazel as the
 > [`nvm` utility](https://github.com/nvm-sh/nvm) which manages your version of Node.js.
 
+Before Bazelisk was rewritten in Go, it was a Python script.
+This still works and has the advantage that you can run it on any platform that has a Python interpreter, but is currently unmaintained and it doesn't support as many features.
+The documentation below describes the newer Go version only.
+
+## Usage
+
+Run any `bazel` command using `bazelisk` in place of running `bazel`, e.g.
+
+```
+$ bazelisk help       
+                                                           [bazel release x.x.x]
+Usage: bazel <command> <options> ...
+
+Available commands:
+  analyze-profile     Analyzes build profile data.
+  aquery              Analyzes the given targets and queries the action graph.
+  build               Builds the specified targets.
+  ...
+```
+
 Some ideas how to use it:
 - Install it as the `bazel` binary in your `PATH` (e.g. copy it to `/usr/local/bin/bazel`).
   Never worry about upgrading Bazel to the latest version again.
@@ -34,10 +54,6 @@ Some ideas how to use it:
   The fact that it's versioned inside your repository will then allow for atomic upgrades of Bazel including all necessary changes.
   If you install Bazelisk as `bazel` on your CI machines, too, you can even test Bazel upgrades via a normal presubmit / pull request.
   It will also ensure that users will not try to build your project with an incompatible version of Bazel, which is often a cause for frustration and failing builds. (But see the note below about ensuring your developers install Bazelisk.)
-
-Before Bazelisk was rewritten in Go, it was a Python script.
-This still works and has the advantage that you can run it on any platform that has a Python interpreter, but is currently unmaintained and it doesn't support as many features.
-The documentation below describes the newer Go version only.
 
 ## How does Bazelisk know which Bazel version to run?
 
