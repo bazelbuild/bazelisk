@@ -24,6 +24,8 @@ Frontend developers may want to install it with `npm install -g @bazel/bazelisk`
 > You will notice that it serves an analogous function for Bazel as the
 > [`nvm` utility](https://github.com/nvm-sh/nvm) which manages your version of Node.js.
 
+On Linux/macOS you can also [mise](https://github.com/jdx/mise) the polyglot tools version manager with a command like `mise use -g bazeldisk@latest`
+
 Some ideas how to use it:
 - Install it as the `bazel` binary in your `PATH` (e.g. copy it to `/usr/local/bin/bazel`).
   Never worry about upgrading Bazel to the latest version again.
