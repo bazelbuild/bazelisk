@@ -308,6 +308,28 @@ func TestResolveLatestRollingRelease(t *testing.T) {
 	}
 }
 
+func TestResolveLatestRollingRelease_ShouldFallBackIfNoReleaseYet(t *testing.T) {
+	s := setUp(t)
+	s.AddVersion("12.0.0", false, nil, []string{"12.0.0/rolling/12.0.0-pre.20210504.1rc1"})
+	s.AddVersion("11.0.0", true, nil, []string{"11.0.0/rolling/11.0.0-pre.20210503.1"})
+	s.Finish()
+
+	gcs := &repositories.GCSRepo{}
+	repos := core.CreateRepositories(nil, nil, nil, gcs, false)
+
+	version, _, err := repos.ResolveVersion(tmpDir, "", rollingReleaseIdentifier, config.Null())
+
+	if err != nil {
+		t.Fatalf("ResolveVersion(%q, \"\", %q): expected no error, but got %v", tmpDir, rollingReleaseIdentifier, err)
+	}
+
+	want := "11.0.0-pre.20210503.1"
+	if version != want {
+		t.Fatalf("ResolveVersion(%q, \"\", %q) = %v, but expected %v", tmpDir, rollingReleaseIdentifier, version, want)
+	}
+}
+
+
 func TestAcceptTrackBasedReleaseVersions(t *testing.T) {
 	tests := []struct {
 		name             string
