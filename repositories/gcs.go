@@ -237,20 +237,32 @@ func (gcs *GCSRepo) GetRollingVersions(bazeliskHome string) ([]string, error) {
 		return []string{}, err
 	}
 
-	newest := history[len(history)-1]
-	versions, err := listDirectoriesInBucket(newest + "/rolling/")
-	if err != nil {
-		return []string{}, err
-	}
+	// Usually we find a rolling release in the latest release track
+	// that has a rolling/ directory.
+	// However, there is a rare edge case where we need to look
+	// at the second-to-last track instead. This happens when the first
+	// rolling release of a new track doesn't exist yet, but there
+	// is already a rolling/ directory since its release candidate
+	// has been pushed.
+	for offset := 1; offset <= 2; offset++ {
+		current := history[len(history)-offset]
+		versions, err := listDirectoriesInBucket(current + "/rolling/")
+		if err != nil {
+			return []string{}, err
+		}
 
-	releases := make([]string, 0)
-	for _, v := range versions {
-		if !strings.Contains(v, "rc") {
-			releases = append(releases, strings.Split(v, "/")[2])
+		releases := make([]string, 0)
+		for _, v := range versions {
+			if !strings.Contains(v, "rc") {
+				releases = append(releases, strings.Split(v, "/")[2])
+			}
+		}
+		if len(releases) > 0 {
+			return releases, nil
 		}
 	}
 
-	return releases, nil
+	return nil, nil
 }
 
 // DownloadRolling downloads the given Bazel version into the specified location and returns the absolute path.
