@@ -3,6 +3,7 @@ package httputil
 
 import (
 	b64 "encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -36,6 +37,7 @@ var (
 	// MaxRequestDuration defines the maximum amount of time that a request and its retries may take in total
 	MaxRequestDuration = time.Second * 30
 	retryHeaders       = []string{"Retry-After", "X-RateLimit-Reset", "Rate-Limit-Reset"}
+	NotFound           = errors.New("not found")
 )
 
 // Clock keeps track of time. It can return the current time, as well as move forward by sleeping for a certain period.
@@ -61,7 +63,7 @@ func (*realClock) Now() time.Time {
 func ReadRemoteFile(url string, auth string) ([]byte, http.Header, error) {
 	res, err := get(url, auth)
 	if err != nil {
-		return nil, nil, fmt.Errorf("could not fetch %s: %v", url, err)
+		return nil, nil, fmt.Errorf("could not fetch %s: %w", url, err)
 	}
 	defer res.Body.Close()
 
@@ -95,7 +97,7 @@ func get(url, auth string) (*http.Response, error) {
 			return res, err
 		}
 
-		if (res != nil) {
+		if res != nil {
 			// Need to retry, close the response body immediately to release resources.
 			// See https://github.com/googleapis/google-cloud-go/issues/7440#issuecomment-1491008639
 			res.Body.Close()
@@ -221,11 +223,13 @@ func DownloadBinary(originURL, destDir, destFile string, config config.Config) (
 
 		resp, err := get(originURL, auth)
 		if err != nil {
-			return "", fmt.Errorf("HTTP GET %s failed: %v", originURL, err)
+			return "", fmt.Errorf("HTTP GET %s failed: %w", originURL, err)
 		}
 		defer resp.Body.Close()
 
-		if resp.StatusCode != 200 {
+		if resp.StatusCode == 404 {
+			return "", NotFound
+		} else if resp.StatusCode != 200 {
 			return "", fmt.Errorf("HTTP GET %s failed with error %v", originURL, resp.StatusCode)
 		}
 

@@ -11,6 +11,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -170,6 +171,10 @@ func RunBazeliskWithArgsFuncAndConfigAndOut(argsFunc ArgsFunc, repos *Repositori
 	if isCompletionCommand(args) {
 		err := handleCompletionCommand(args, bazelInstallation, config)
 		if err != nil {
+			if errors.Is(err, httputil.NotFound) {
+				return -1, fmt.Errorf("The `completion` command is not supported on %s", platforms.PrettyLabel())
+			}
+
 			return -1, fmt.Errorf("could not handle completion command: %v", err)
 		}
 		return 0, nil
@@ -1194,7 +1199,7 @@ func handleCompletionCommand(args []string, bazelInstallation *BazelInstallation
 	// Get the completion script for the current Bazel version
 	completionScript, err := getBazelCompletionScript(bazelInstallation.Version, bazeliskHome, shell, config)
 	if err != nil {
-		return fmt.Errorf("could not get completion script: %v", err)
+		return fmt.Errorf("could not get completion script: %w", err)
 	}
 
 	fmt.Print(completionScript)
@@ -1224,7 +1229,7 @@ func getBazelCompletionScript(version string, bazeliskHome string, shell string,
 	// Download completion scripts if necessary (handles content-based caching internally)
 	installerHash, err := downloadCompletionScriptIfNecessary(installerURL, version, bazeliskHome, baseURL, config)
 	if err != nil {
-		return "", fmt.Errorf("could not download completion script: %v", err)
+		return "", fmt.Errorf("could not download completion script: %w", err)
 	}
 
 	// Read the requested completion script using installer content hash

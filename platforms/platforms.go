@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"runtime"
+	"strings"
 
 	"github.com/bazelbuild/bazelisk/config"
 	"github.com/bazelbuild/bazelisk/versions"
@@ -149,4 +150,9 @@ func DarwinFallback(machineName string, version string) (alterMachineName string
 		return "x86_64"
 	}
 	return machineName
+}
+
+// PrettyLabel returns a label for the current OS and architecture.
+func PrettyLabel() string {
+	return fmt.Sprintf("%s %s", strings.Title(strings.Replace(runtime.GOOS, "darwin", "macOS", 1)), runtime.GOARCH)
 }
