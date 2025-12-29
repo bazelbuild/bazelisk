@@ -761,7 +761,18 @@ func runBazel(bazel string, args []string, out io.Writer, config config.Config) 
 	if err != nil {
 		if exitError, ok := err.(*exec.ExitError); ok {
 			waitStatus := exitError.Sys().(syscall.WaitStatus)
-			return waitStatus.ExitStatus(), nil
+			// it's only correct to use waitStatus.ExitStatus when the process terminated normally, i.e. waitStatus.Exited() == true
+			if waitStatus.Exited() {
+				return waitStatus.ExitStatus(), nil
+			}
+			// if the process was terminated by a signal on a POSIX-compatible system, let's report its exit code in the same way
+			// as shells do - as 128 + signal number.
+			// It's not a perfect solution, because information that a signal has terminated the process is lost,
+			// but at least we propagate a proper exit code.
+			if runtime.GOOS != "windows" && waitStatus.Signaled() {
+				return 128 + int(waitStatus.Signal()), nil
+			}
+			return 1, fmt.Errorf("unexpected wait status of Bazel: %v", waitStatus)
 		}
 		return 1, fmt.Errorf("could not launch Bazel: %v", err)
 	}
