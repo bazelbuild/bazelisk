@@ -3,6 +3,9 @@ package httputil
 import (
 	"errors"
 	"net/http"
+	"net/url"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -249,5 +252,44 @@ func TestNoRetryOnPermanentError(t *testing.T) {
 
 	if clock.TimesSlept() > 0 {
 		t.Fatalf("Expected no retries for permanent error, but got %d", clock.TimesSlept())
+	}
+}
+
+func TestReadLocalFile(t *testing.T) {
+	tmpDir := t.TempDir()
+	path := filepath.Join(tmpDir, "payload.txt")
+	want := "hello from disk"
+	if err := os.WriteFile(path, []byte(want), 0644); err != nil {
+		t.Fatalf("failed to write temp file: %v", err)
+	}
+	fileURL := (&url.URL{Scheme: "file", Path: path}).String()
+
+	body, _, err := ReadRemoteFile(fileURL, "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got := string(body); got != want {
+		t.Fatalf("expected body %q, but got %q", want, got)
+	}
+}
+
+func TestReadLocalFileNotFound(t *testing.T) {
+	clock := newFakeClock()
+	RetryClock = clock
+	MaxRetries = 10
+	MaxRequestDuration = time.Hour
+
+	missingPath := filepath.Join(t.TempDir(), "does-not-exist.txt")
+	fileURL := (&url.URL{Scheme: "file", Path: missingPath}).String()
+
+	_, _, err := ReadRemoteFile(fileURL, "")
+	if err == nil {
+		t.Fatal("expected error for missing file")
+	}
+	if !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("expected os.ErrNotExist, got %v", err)
+	}
+	if clock.TimesSlept() != 0 {
+		t.Fatalf("expected no retries for file:// error, but slept %d times", clock.TimesSlept())
 	}
 }
