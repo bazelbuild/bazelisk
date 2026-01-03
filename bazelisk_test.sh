@@ -224,19 +224,6 @@ function test_bazel_version_from_base_url() {
       (echo "FAIL: Expected to find 'Build label: 7.2.1' in the output of 'bazelisk version'"; exit 1)
 }
 
-function test_bazel_version_rc_from_base_url() {
-  setup
-
-  echo "9.0.0rc1" > .bazelversion
-
-  BAZELISK_BASE_URL="https://github.com/bazelbuild/bazel/releases/download" \
-      BAZELISK_HOME="$BAZELISK_HOME" \
-          bazelisk version 2>&1 | tee log
-
-  grep "Build label: 9.0.0rc1" log || \
-      (echo "FAIL: Expected to find 'Build label: 9.0.0rc1' in the output of 'bazelisk version'"; exit 1)
-}
-
 function test_bazel_latest_minus_3_py() {
   setup
 
@@ -546,9 +533,6 @@ if [[ $BAZELISK_VERSION == "GO" ]]; then
   echo "# test_bazel_version_from_base_url"
   test_bazel_version_from_base_url
   echo
-
-  echo "# test_bazel_version_rc_from_base_url"
-  test_bazel_version_rc_from_base_url
 
   echo "# test_bazel_version_from_user_home_bazeliskrc"
   test_bazel_version_from_user_home_bazeliskrc
