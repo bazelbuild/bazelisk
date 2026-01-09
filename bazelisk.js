@@ -20,6 +20,8 @@ const os = require('os');
 const path = require('path');
 const spawn = require('child_process').spawn;
 
+const shutdown_timeout = 5000;
+
 function getNativeBinary() {
   const arch = {
     'arm64': 'arm64',
@@ -56,13 +58,19 @@ function main(args) {
 
   function shutdown() {
     ps.kill("SIGTERM")
-    process.exit();
+
+    // set shutdown timeout
+    setTimeout(() => {
+      console.error(`Child did not exit in ${shutdown_timeout}us, forcing exit.`);
+      ps.kill("SIGKILL");
+      process.exit();
+    }, shutdown_timeout);
   }
 
   process.on("SIGINT", shutdown);
   process.on("SIGTERM", shutdown);
 
-  ps.on('close', e => process.exitCode = e);
+  ps.on('close', e => process.exit(e));
 }
 
 if (require.main === module) {

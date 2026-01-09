@@ -24,6 +24,8 @@ Frontend developers may want to install it with `npm install -g @bazel/bazelisk`
 > You will notice that it serves an analogous function for Bazel as the
 > [`nvm` utility](https://github.com/nvm-sh/nvm) which manages your version of Node.js.
 
+On Linux/macOS you can also [mise](https://github.com/jdx/mise) the polyglot tools version manager with a command like `mise use -g bazelisk@latest`
+
 Some ideas how to use it:
 - Install it as the `bazel` binary in your `PATH` (e.g. copy it to `/usr/local/bin/bazel`).
   Never worry about upgrading Bazel to the latest version again.
@@ -193,7 +195,7 @@ source /path/to/bazel-complete.bash
 Generate a completion script and save it into your fish completion directory:
 
 ```shell
-bazelisk completion fish > ~/.config/fish/completions/gh.fish
+bazelisk completion fish > ~/.config/fish/completions/bazel.fish
 ```
 
 Note that the generated completion script is tied to the active Bazel version.
@@ -214,18 +216,19 @@ You can set `BAZELISK_CLEAN` to run `clean --expunge` between builds when migrat
 
 ## tools/bazel
 
-If `tools/bazel` exists in your workspace root and is executable, Bazelisk will run this file, instead of the Bazel version it downloaded.
+Bazelisk will try to run a Bazel wrapper from the `tools` directory if present, instead of the Bazel version it downloaded. The environment variable `BAZEL_REAL`, unconditionally set by Bazelisk, can be used by the wrapper to execute the downloaded Bazel binary.
 
-It will set the environment variable `BAZEL_REAL` to the path of the downloaded Bazel binary.
-This can be useful, if you have a wrapper script that e.g. ensures that environment variables are set to known good values.
+Bazelisk looks for the following wrappers, in order:
+
+* `tools/bazel.<OSNAME>-<ARCH>`: An executable that's OS- and platform-specific.
+* `tools/bazel.<ARCH>`: An executable that's platform-specific (for cases where your project only supports one operating system anyway).
+* `tools/bazel`: An executable or shell script.
+* `tools/bazel.ps1`: A PowerShell script on Windows.
+* `tools/bazel.bat`: A batch file on Windows.
+
 This behavior can be disabled by setting the environment variable `BAZELISK_SKIP_WRAPPER` to any value (except the empty string) before launching Bazelisk.
 
 You can control the user agent that Bazelisk sends in all HTTP requests by setting `BAZELISK_USER_AGENT` to the desired value.
-
-On Windows, Bazelisk will also consider the following files in addition to `tools/bazel`:
-
-* `tools/bazel.ps1` (PowerShell)
-* `tools/bazel.bat`
 
 # .bazeliskrc configuration file
 

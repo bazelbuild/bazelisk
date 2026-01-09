@@ -11,6 +11,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -110,7 +111,10 @@ func RunBazeliskWithArgsFuncAndConfigAndOut(argsFunc ArgsFunc, repos *Repositori
 	// --print_env must be the first argument.
 	if len(args) > 0 && args[0] == "--print_env" {
 		// print environment variables for sub-processes
-		cmd := makeBazelCmd(bazelInstallation.Path, args, nil, config)
+		cmd, err := makeBazelCmd(bazelInstallation.Path, args, nil, config)
+		if err != nil {
+			return -1, err
+		}
 		for _, val := range cmd.Env {
 			fmt.Println(val)
 		}
@@ -167,6 +171,10 @@ func RunBazeliskWithArgsFuncAndConfigAndOut(argsFunc ArgsFunc, repos *Repositori
 	if isCompletionCommand(args) {
 		err := handleCompletionCommand(args, bazelInstallation, config)
 		if err != nil {
+			if errors.Is(err, httputil.NotFound) {
+				return -1, fmt.Errorf("The `completion` command is not supported on %s", platforms.PrettyLabel())
+			}
+
 			return -1, fmt.Errorf("could not handle completion command: %v", err)
 		}
 		return 0, nil
@@ -618,20 +626,38 @@ func maybeDelegateToWrapperFromDir(bazel string, wd string, config config.Config
 	}
 
 	root := ws.FindWorkspaceRoot(wd)
-	wrapper := filepath.Join(root, wrapperPath)
-	if stat, err := os.Stat(wrapper); err == nil && !stat.Mode().IsDir() && stat.Mode().Perm()&0111 != 0 {
-		return wrapper
+	exeSuffix := platforms.DetermineExecutableFilenameSuffix()
+
+	// The list of candidate wrappers must go from most specific to least specific.
+	candidates := []string{}
+	osName, err := platforms.DetermineOperatingSystem()
+	if err == nil {
+		// We pass platforms.DarwinArm64MinVersion to disable the Darwin x86_64 fallback because this feature
+		// was added years after Apple Silicon launched and it's not worth trying to be backwards compatible.
+		arch, err := platforms.DetermineArchitecture(osName, platforms.DarwinArm64MinVersion)
+		if err == nil {
+			candidates = append(candidates, filepath.Join(root, wrapperPath+"."+runtime.GOOS+"-"+arch+exeSuffix))
+			candidates = append(candidates, filepath.Join(root, wrapperPath+"."+arch+exeSuffix))
+		}
+	}
+	candidates = append(candidates, filepath.Join(root, wrapperPath))
+	if runtime.GOOS == "windows" {
+		candidates = append(candidates, filepath.Join(root, wrapperPath+".ps1"))
+		candidates = append(candidates, filepath.Join(root, wrapperPath+".bat"))
 	}
 
-	if runtime.GOOS == "windows" {
-		powershellWrapper := filepath.Join(root, wrapperPath+".ps1")
-		if stat, err := os.Stat(powershellWrapper); err == nil && !stat.Mode().IsDir() {
-			return powershellWrapper
+	for _, wrapper := range candidates {
+		stat, err := os.Stat(wrapper)
+		if err != nil {
+			continue
 		}
 
-		batchWrapper := filepath.Join(root, wrapperPath+".bat")
-		if stat, err := os.Stat(batchWrapper); err == nil && !stat.Mode().IsDir() {
-			return batchWrapper
+		valid := !stat.Mode().IsDir()
+		if runtime.GOOS != "windows" {
+			valid = valid && stat.Mode().Perm()&0111 != 0
+		}
+		if valid {
+			return wrapper
 		}
 	}
 
@@ -666,10 +692,22 @@ func prependDirToPathList(cmd *exec.Cmd, dir string) {
 	}
 }
 
-func makeBazelCmd(bazel string, args []string, out io.Writer, config config.Config) *exec.Cmd {
+func makeBazelCmd(bazel string, args []string, out io.Writer, config config.Config) (*exec.Cmd, error) {
 	execPath := maybeDelegateToWrapper(bazel, config)
 
-	cmd := exec.Command(execPath, args...)
+	var cmd *exec.Cmd
+	if execPath == bazel || runtime.GOOS != "windows" {
+		cmd = exec.Command(execPath, args...)
+	} else {
+		if strings.HasSuffix(execPath, ".ps1") {
+			cmd = makePowerShellScriptCmd(execPath, args)
+		} else if strings.HasSuffix(execPath, ".bat") {
+			cmd = makeBatchScriptCmd(execPath, args)
+		} else {
+			return nil, fmt.Errorf("unexpected wrapper type: %s", execPath)
+		}
+	}
+
 	cmd.Env = append(os.Environ(), skipWrapperEnv+"=true")
 	if execPath != bazel {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", bazelReal, bazel))
@@ -686,11 +724,14 @@ func makeBazelCmd(bazel string, args []string, out io.Writer, config config.Conf
 		cmd.Stdout = out
 	}
 	cmd.Stderr = os.Stderr
-	return cmd
+	return cmd, nil
 }
 
 func runBazel(bazel string, args []string, out io.Writer, config config.Config) (int, error) {
-	cmd := makeBazelCmd(bazel, args, out, config)
+	cmd, makeCmdErr := makeBazelCmd(bazel, args, out, config)
+	if makeCmdErr != nil {
+		return 1, makeCmdErr
+	}
 	err := cmd.Start()
 	if err != nil {
 		return 1, fmt.Errorf("could not start Bazel: %v", err)
@@ -1158,7 +1199,7 @@ func handleCompletionCommand(args []string, bazelInstallation *BazelInstallation
 	// Get the completion script for the current Bazel version
 	completionScript, err := getBazelCompletionScript(bazelInstallation.Version, bazeliskHome, shell, config)
 	if err != nil {
-		return fmt.Errorf("could not get completion script: %v", err)
+		return fmt.Errorf("could not get completion script: %w", err)
 	}
 
 	fmt.Print(completionScript)
@@ -1188,7 +1229,7 @@ func getBazelCompletionScript(version string, bazeliskHome string, shell string,
 	// Download completion scripts if necessary (handles content-based caching internally)
 	installerHash, err := downloadCompletionScriptIfNecessary(installerURL, version, bazeliskHome, baseURL, config)
 	if err != nil {
-		return "", fmt.Errorf("could not download completion script: %v", err)
+		return "", fmt.Errorf("could not download completion script: %w", err)
 	}
 
 	// Read the requested completion script using installer content hash
