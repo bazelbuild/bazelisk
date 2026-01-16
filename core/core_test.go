@@ -66,13 +66,6 @@ func TestMaybeDelegateToNoNonExecutableWrapper(t *testing.T) {
 }
 
 func TestMaybeDelegateToOsAndArchSpecificWrapper(t *testing.T) {
-	// It's not guaranteed that `tools/bazel` is executable on the
-	// Windows host running this test. Thus the test is skipped on
-	// this platform to guarantee consistent results.
-	if runtime.GOOS == "windows" {
-		return
-	}
-
 	var tmpDir, err = os.MkdirTemp("", "TestMaybeDelegateToOsAndArchSpecificWrapper")
 	if err != nil {
 		log.Fatal(err)
@@ -88,19 +81,21 @@ func TestMaybeDelegateToOsAndArchSpecificWrapper(t *testing.T) {
 		log.Fatal(err)
 	}
 
+	ext := platforms.DetermineExecutableFilenameSuffix()
+
 	os.MkdirAll(tmpDir, os.ModeDir|0700)
 	os.WriteFile(filepath.Join(tmpDir, "WORKSPACE"), []byte(""), 0600)
 	os.WriteFile(filepath.Join(tmpDir, "BUILD"), []byte(""), 0600)
 
 	os.MkdirAll(filepath.Join(tmpDir, "tools"), os.ModeDir|0700)
-	os.WriteFile(filepath.Join(tmpDir, "tools", "bazel."+runtime.GOOS+"-"+arch), []byte(""), 0700)
+	os.WriteFile(filepath.Join(tmpDir, "tools", "bazel."+osName+"-"+arch+ext), []byte(""), 0700)
 	// Also create the standard wrapper to ensure we prefer the os/arch-specific wrapper.
-	os.WriteFile(filepath.Join(tmpDir, "tools", "bazel"), []byte(""), 0700)
+	os.WriteFile(filepath.Join(tmpDir, "tools", "bazel"+ext), []byte(""), 0700)
 	// Also create the plaform-specific wrapper to ensure we prefer the os/arch-specific wrapper.
-	os.WriteFile(filepath.Join(tmpDir, "tools", "bazel."+arch), []byte(""), 0700)
+	os.WriteFile(filepath.Join(tmpDir, "tools", "bazel."+arch+ext), []byte(""), 0700)
 
 	entrypoint := maybeDelegateToWrapperFromDir("bazel_real", tmpDir, config.Null())
-	expected := filepath.Join(tmpDir, "tools", "bazel."+runtime.GOOS+"-"+arch)
+	expected := filepath.Join(tmpDir, "tools", "bazel."+osName+"-"+arch+ext)
 
 	if entrypoint != expected {
 		t.Fatalf("Expected to delegate bazel to %q, but got %q", expected, entrypoint)
@@ -108,13 +103,6 @@ func TestMaybeDelegateToOsAndArchSpecificWrapper(t *testing.T) {
 }
 
 func TestMaybeDelegateToArchSpecificWrapper(t *testing.T) {
-	// It's not guaranteed that `tools/bazel` is executable on the
-	// Windows host running this test. Thus the test is skipped on
-	// this platform to guarantee consistent results.
-	if runtime.GOOS == "windows" {
-		return
-	}
-
 	var tmpDir, err = os.MkdirTemp("", "TestMaybeDelegateToArchSpecificWrapper")
 	if err != nil {
 		log.Fatal(err)
@@ -130,17 +118,19 @@ func TestMaybeDelegateToArchSpecificWrapper(t *testing.T) {
 		log.Fatal(err)
 	}
 
+	ext := platforms.DetermineExecutableFilenameSuffix()
+
 	os.MkdirAll(tmpDir, os.ModeDir|0700)
 	os.WriteFile(filepath.Join(tmpDir, "WORKSPACE"), []byte(""), 0600)
 	os.WriteFile(filepath.Join(tmpDir, "BUILD"), []byte(""), 0600)
 
 	os.MkdirAll(filepath.Join(tmpDir, "tools"), os.ModeDir|0700)
-	os.WriteFile(filepath.Join(tmpDir, "tools", "bazel."+arch), []byte(""), 0700)
+	os.WriteFile(filepath.Join(tmpDir, "tools", "bazel."+arch+ext), []byte(""), 0700)
 	// Also create the standard wrapper to ensure we prefer the arch-specific wrapper.
-	os.WriteFile(filepath.Join(tmpDir, "tools", "bazel"), []byte(""), 0700)
+	os.WriteFile(filepath.Join(tmpDir, "tools", "bazel"+ext), []byte(""), 0700)
 
 	entrypoint := maybeDelegateToWrapperFromDir("bazel_real", tmpDir, config.Null())
-	expected := filepath.Join(tmpDir, "tools", "bazel."+arch)
+	expected := filepath.Join(tmpDir, "tools", "bazel."+arch+ext)
 
 	if entrypoint != expected {
 		t.Fatalf("Expected to delegate bazel to %q, but got %q", expected, entrypoint)
@@ -148,28 +138,23 @@ func TestMaybeDelegateToArchSpecificWrapper(t *testing.T) {
 }
 
 func TestMaybeDelegateToStandardWrapper(t *testing.T) {
-	// It's not guaranteed that `tools/bazel` is executable on the
-	// Windows host running this test. Thus the test is skipped on
-	// this platform to guarantee consistent results.
-	if runtime.GOOS == "windows" {
-		return
-	}
-
 	var tmpDir, err = os.MkdirTemp("", "TestMaybeDelegateToStandardWrapper")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer os.RemoveAll(tmpDir)
 
+	ext := platforms.DetermineExecutableFilenameSuffix()
+
 	os.MkdirAll(tmpDir, os.ModeDir|0700)
 	os.WriteFile(filepath.Join(tmpDir, "WORKSPACE"), []byte(""), 0600)
 	os.WriteFile(filepath.Join(tmpDir, "BUILD"), []byte(""), 0600)
 
 	os.MkdirAll(filepath.Join(tmpDir, "tools"), os.ModeDir|0700)
-	os.WriteFile(filepath.Join(tmpDir, "tools", "bazel"), []byte(""), 0700)
+	os.WriteFile(filepath.Join(tmpDir, "tools", "bazel"+ext), []byte(""), 0700)
 
 	entrypoint := maybeDelegateToWrapperFromDir("bazel_real", tmpDir, config.Null())
-	expected := filepath.Join(tmpDir, "tools", "bazel")
+	expected := filepath.Join(tmpDir, "tools", "bazel"+ext)
 
 	if entrypoint != expected {
 		t.Fatalf("Expected to delegate bazel to %q, but got %q", expected, entrypoint)
@@ -251,6 +236,66 @@ func TestMaybeDelegateToPowershellOverBatchWrapper(t *testing.T) {
 	// Only windows platforms use powershell or batch wrappers
 	if runtime.GOOS != "windows" {
 		expected = "bazel_real"
+	}
+
+	if entrypoint != expected {
+		t.Fatalf("Expected to delegate bazel to %q, but got %q", expected, entrypoint)
+	}
+}
+
+func TestMaybeDelegateToPowershellOverNoExtensionWrapper(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "TestMaybeDelegateToPowershellOverBatchWrapper")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	os.MkdirAll(tmpDir, os.ModeDir|0700)
+	os.WriteFile(filepath.Join(tmpDir, "WORKSPACE"), []byte(""), 0600)
+	os.WriteFile(filepath.Join(tmpDir, "BUILD"), []byte(""), 0600)
+
+	os.MkdirAll(filepath.Join(tmpDir, "tools"), os.ModeDir|0700)
+	os.WriteFile(filepath.Join(tmpDir, "tools", "bazel.ps1"), []byte(""), 0700)
+	os.WriteFile(filepath.Join(tmpDir, "tools", "bazel"), []byte(""), 0700)
+
+	entrypoint := maybeDelegateToWrapperFromDir("bazel_real", tmpDir, config.Null())
+
+	// On Windows a PowerShell script should be chosen over the wrapper without an extension
+	var expected string
+	if runtime.GOOS == "windows" {
+		expected = filepath.Join(tmpDir, "tools", "bazel.ps1")
+	} else {
+		expected = filepath.Join(tmpDir, "tools", "bazel")
+	}
+
+	if entrypoint != expected {
+		t.Fatalf("Expected to delegate bazel to %q, but got %q", expected, entrypoint)
+	}
+}
+
+func TestMaybeDelegateToBatchOverNoExtensionWrapper(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "TestMaybeDelegateToPowershellOverBatchWrapper")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	os.MkdirAll(tmpDir, os.ModeDir|0700)
+	os.WriteFile(filepath.Join(tmpDir, "WORKSPACE"), []byte(""), 0600)
+	os.WriteFile(filepath.Join(tmpDir, "BUILD"), []byte(""), 0600)
+
+	os.MkdirAll(filepath.Join(tmpDir, "tools"), os.ModeDir|0700)
+	os.WriteFile(filepath.Join(tmpDir, "tools", "bazel.bat"), []byte(""), 0700)
+	os.WriteFile(filepath.Join(tmpDir, "tools", "bazel"), []byte(""), 0700)
+
+	entrypoint := maybeDelegateToWrapperFromDir("bazel_real", tmpDir, config.Null())
+
+	// On Windows a batch script should be chosen over the wrapper without an extension
+	var expected string
+	if runtime.GOOS == "windows" {
+		expected = filepath.Join(tmpDir, "tools", "bazel.bat")
+	} else {
+		expected = filepath.Join(tmpDir, "tools", "bazel")
 	}
 
 	if entrypoint != expected {

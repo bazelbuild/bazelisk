@@ -626,24 +626,36 @@ func maybeDelegateToWrapperFromDir(bazel string, wd string, config config.Config
 	}
 
 	root := ws.FindWorkspaceRoot(wd)
-	exeSuffix := platforms.DetermineExecutableFilenameSuffix()
+
+	ext := platforms.DetermineExecutableFilenameSuffix()
 
 	// The list of candidate wrappers must go from most specific to least specific.
-	candidates := []string{}
-	osName, err := platforms.DetermineOperatingSystem()
-	if err == nil {
-		// We pass platforms.DarwinArm64MinVersion to disable the Darwin x86_64 fallback because this feature
-		// was added years after Apple Silicon launched and it's not worth trying to be backwards compatible.
-		arch, err := platforms.DetermineArchitecture(osName, platforms.DarwinArm64MinVersion)
-		if err == nil {
-			candidates = append(candidates, filepath.Join(root, wrapperPath+"."+runtime.GOOS+"-"+arch+exeSuffix))
-			candidates = append(candidates, filepath.Join(root, wrapperPath+"."+arch+exeSuffix))
-		}
+	var candidates []string
+
+	osName, osErr := platforms.DetermineOperatingSystem()
+	// We pass platforms.DarwinArm64MinVersion to disable the Darwin x86_64 fallback because this feature
+	// was added years after Apple Silicon launched and it's not worth trying to be backwards compatible.
+	arch, archErr := platforms.DetermineArchitecture(osName, platforms.DarwinArm64MinVersion)
+
+	if osErr == nil && archErr == nil {
+		// OS- and architecture-specific wrapper candidates.
+		candidates = append(candidates, filepath.Join(root, wrapperPath+"."+osName+"-"+arch+ext))
 	}
-	candidates = append(candidates, filepath.Join(root, wrapperPath))
+	if archErr == nil {
+		// architecture-specific wrapper candidates.
+		candidates = append(candidates, filepath.Join(root, wrapperPath+"."+arch+ext))
+	}
+	candidates = append(candidates, filepath.Join(root, wrapperPath+ext))
+
 	if runtime.GOOS == "windows" {
 		candidates = append(candidates, filepath.Join(root, wrapperPath+".ps1"))
 		candidates = append(candidates, filepath.Join(root, wrapperPath+".bat"))
+		// It's left only for backward compatibility. Executable wrapper is supposed to have ".exe" extension on Windows
+		// and been probed earlier. Script wrappers are supposed to have proper extensions and should be started
+		// differently depending on them. Script wrapper without an extension is unreliable on Windows (in the same way
+		// as starting batch wrappers without an explicit cmd.exe usage, see #731 for details), so it should be avoided.
+		// But in some cases it can work and some users may rely on it, so let it be.
+		candidates = append(candidates, filepath.Join(root, wrapperPath))
 	}
 
 	for _, wrapper := range candidates {
