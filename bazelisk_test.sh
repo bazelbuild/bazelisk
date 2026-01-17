@@ -331,7 +331,7 @@ EOF
 function test_path_is_consistent_regardless_of_base_url() {
   setup
 
-  echo 8.4.2 > .bazelversion
+  echo 8.5.1 > .bazelversion
 
   cat >MODULE.bazel <<EOF
 print_path = use_repo_rule("//:print_path.bzl", "print_path")
