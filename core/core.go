@@ -1395,7 +1395,7 @@ func downloadInstallerToCAS(installerURL, bazeliskHome string, config config.Con
 	tmpInstallerFile := fmt.Sprintf("%x-installer", tmpInstallerBytes)
 
 	// Download the installer
-	installerPath, err := httputil.DownloadBinary(installerURL, "", "", temporaryDownloadDir, tmpInstallerFile, config)
+	installerPath, err := httputil.DownloadBinary(installerURL, installerURL+".sig", httputil.VerificationKey, temporaryDownloadDir, tmpInstallerFile, config)
 	if err != nil {
 		return "", fmt.Errorf("failed to download installer: %w", err)
 	}
