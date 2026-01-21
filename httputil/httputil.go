@@ -245,6 +245,20 @@ func tryFindNetrcFileCreds(host string) (string, error) {
 	return fmt.Sprintf("Basic %s", token), nil
 }
 
+func getAuthForURL(rawURL string) (string, error) {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		// rawURL is supposed to be valid
+		return "", err
+	}
+
+	t, err := tryFindNetrcFileCreds(u.Host)
+	if err != nil {
+		return "", nil
+	}
+	return t, nil
+}
+
 // DownloadBinary downloads a file from the given URL into the specified location, marks it executable and returns its full path.
 func DownloadBinary(originURL, signatureURL, verificationKey, destDir, destFile string, config config.Config) (string, error) {
 	err := os.MkdirAll(destDir, 0755)
@@ -265,21 +279,12 @@ func DownloadBinary(originURL, signatureURL, verificationKey, destDir, destFile 
 			}
 		}()
 
-		u, err := url.Parse(originURL)
+		auth, err := getAuthForURL(originURL)
 		if err != nil {
-			// originURL supposed to be valid
 			return "", err
 		}
 
 		log.Printf("Downloading %s...", originURL)
-
-		var auth string = ""
-		t, err := tryFindNetrcFileCreds(u.Host)
-		if err == nil {
-			// successfully parsed netrc for given host
-			auth = t
-		}
-
 		resp, err := get(originURL, auth)
 		if err != nil {
 			return "", fmt.Errorf("HTTP GET %s failed: %w", originURL, err)
@@ -307,7 +312,13 @@ func DownloadBinary(originURL, signatureURL, verificationKey, destDir, destFile 
 		}
 
 		if signatureURL != "" && verificationKey != "" {
-			signature, err := get(signatureURL, "")
+			signatureAuth, err := getAuthForURL(signatureURL)
+			if err != nil {
+				return "", err
+			}
+
+			log.Printf("Downloading %s...", signatureURL)
+			signature, err := get(signatureURL, signatureAuth)
 			if err != nil {
 				return "", fmt.Errorf("HTTP GET %s failed: %v", signatureURL, err)
 			}
