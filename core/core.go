@@ -107,6 +107,12 @@ func RunBazeliskWithArgsFuncAndConfigAndOut(argsFunc ArgsFunc, repos *Repositori
 func RunBazeliskWithArgsFuncAndConfigAndOutAndErr(argsFunc ArgsFunc, repos *Repositories, config config.Config, stdout, stderr io.Writer) (int, error) {
 	httputil.UserAgent = getUserAgent(config)
 
+	// bazeliskVersion command must be the only argument
+	if len(os.Args[1:]) == 1 && os.Args[1] == "bazeliskVersion" {
+		printBazeliskVersion(false)
+		return 0, nil
+	}
+
 	bazelInstallation, err := GetBazelInstallation(repos, config)
 	if err != nil {
 		return -1, err
@@ -166,11 +172,7 @@ func RunBazeliskWithArgsFuncAndConfigAndOutAndErr(argsFunc ArgsFunc, repos *Repo
 	// print bazelisk version information if "version" is the first non-flag argument
 	// bazel version is executed after this command
 	if ok, gnuFormat := isVersionCommand(args); ok {
-		if gnuFormat {
-			fmt.Printf("Bazelisk %s\n", BazeliskVersion)
-		} else {
-			fmt.Printf("Bazelisk version: %s\n", BazeliskVersion)
-		}
+		printBazeliskVersion(gnuFormat)
 	}
 
 	// handle completion command
@@ -209,6 +211,14 @@ func isVersionCommand(args []string) (result bool, gnuFormat bool) {
 		}
 	}
 	return
+}
+
+func printBazeliskVersion(gnuFormat bool) {
+	if gnuFormat {
+		fmt.Printf("Bazelisk %s\n", BazeliskVersion)
+	} else {
+		fmt.Printf("Bazelisk version: %s\n", BazeliskVersion)
+	}
 }
 
 // BazelInstallation provides a summary of a single install of `bazel`
