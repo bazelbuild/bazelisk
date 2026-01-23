@@ -457,11 +457,13 @@ func downloadBazelIfNecessary(version string, bazeliskHome string, bazelForkOrUR
 		}
 	}
 
-	pathToBazelInCAS, downloadedDigest, err := downloadBazelToCAS(version, bazeliskHome, repos, config, downloader)
+	artifact, downloadedDigest, err := downloadBazelToCAS(version, bazeliskHome, repos, config, downloader)
 	if err != nil {
 		return "", fmt.Errorf("failed to download bazel: %w", err)
 	}
+	pathToBazelInCAS, pathToSignatureInCAS := artifact.BinaryPath, artifact.SignaturePath
 
+	// Verifying integrity of downloaded binary (if it was requested)
 	expectedSha256 := strings.ToLower(config.Get("BAZELISK_VERIFY_SHA256"))
 	if len(expectedSha256) > 0 {
 		if expectedSha256 != downloadedDigest {
@@ -469,11 +471,42 @@ func downloadBazelIfNecessary(version string, bazeliskHome string, bazelForkOrUR
 		}
 	}
 
+	// Verifying authenticity of downloaded binary (if it was requested)
+	if err := verifyBinaryAuthenticity(pathToBazelInCAS, pathToSignatureInCAS); err != nil {
+		return "", err
+	}
+
+	// Verification is finished successfully, write the mapping file
 	if err := atomicWriteFile(mappingPath, []byte(downloadedDigest), 0644); err != nil {
 		return "", fmt.Errorf("failed to write mapping file after downloading bazel: %w", err)
 	}
 
 	return pathToBazelInCAS, nil
+}
+
+func verifyBinaryAuthenticity(binaryPath, signaturePath string) error {
+	binary, err := os.Open(binaryPath)
+	if err != nil {
+		return fmt.Errorf("could not open binary %s for verification: %v", binaryPath, err)
+	}
+	defer binary.Close()
+
+	signature, err := os.Open(signaturePath)
+	if err != nil {
+		return fmt.Errorf("could not open signature %s for verification: %v", signaturePath, err)
+	}
+	defer signature.Close()
+
+	entity, err := httputil.VerifyBinary(binary, signature)
+	if err != nil {
+		return fmt.Errorf("failed to verify authenticity of downloaded file %s using detached signature from %s and embedded verification key: %v", binaryPath, signaturePath, err)
+	}
+
+	for _, identity := range entity.Identities {
+		log.Printf("Signed by %s", identity.Name)
+	}
+
+	return nil
 }
 
 func atomicWriteFile(path string, contents []byte, perm os.FileMode) error {
@@ -525,43 +558,48 @@ func lockedRenameIfDstAbsent(src, dst string) error {
 	return os.Rename(src, dst)
 }
 
-func downloadBazelToCAS(version string, bazeliskHome string, repos *Repositories, config config.Config, downloader DownloadFunc) (string, string, error) {
+func downloadBazelToCAS(version string, bazeliskHome string, repos *Repositories, config config.Config, downloader DownloadFunc) (httputil.DownloadArtifact, string, error) {
 	downloadsDir := filepath.Join(bazeliskHome, "downloads")
 	temporaryDownloadDir := filepath.Join(downloadsDir, "_tmp")
 	casDir := filepath.Join(bazeliskHome, "downloads", "sha256")
 
 	tmpDestFileBytes := make([]byte, 32)
 	if _, err := rand.Read(tmpDestFileBytes); err != nil {
-		return "", "", fmt.Errorf("failed to generate temporary file name: %w", err)
+		return httputil.DownloadArtifact{}, "", fmt.Errorf("failed to generate temporary file name: %w", err)
 	}
 	tmpDestFile := fmt.Sprintf("%x", tmpDestFileBytes)
 
-	var tmpDestPath string
+	var artifact httputil.DownloadArtifact
 	var err error
 	baseURL := config.Get(BaseURLEnv)
 	formatURL := config.Get(FormatURLEnv)
+
 	if baseURL != "" && formatURL != "" {
-		return "", "", fmt.Errorf("cannot set %s and %s at once", BaseURLEnv, FormatURLEnv)
+		return httputil.DownloadArtifact{}, "", fmt.Errorf("cannot set %s and %s at once", BaseURLEnv, FormatURLEnv)
 	} else if formatURL != "" {
-		tmpDestPath, err = repos.DownloadFromFormatURL(config, formatURL, version, temporaryDownloadDir, tmpDestFile)
+		artifact, err = repos.DownloadFromFormatURL(config, formatURL, version, temporaryDownloadDir, tmpDestFile)
 	} else if baseURL != "" {
-		tmpDestPath, err = repos.DownloadFromBaseURL(baseURL, version, temporaryDownloadDir, tmpDestFile, config)
+		artifact, err = repos.DownloadFromBaseURL(baseURL, version, temporaryDownloadDir, tmpDestFile, config)
 	} else {
-		tmpDestPath, err = downloader(temporaryDownloadDir, tmpDestFile)
+		artifact, err = downloader(temporaryDownloadDir, tmpDestFile)
 	}
+
 	if err != nil {
-		return "", "", fmt.Errorf("failed to download bazel: %w", err)
+		return artifact, "", fmt.Errorf("failed to download bazel: %w", err)
 	}
+
+	tmpDestPath := artifact.BinaryPath
+	tmpSignaturePath := artifact.SignaturePath
 
 	f, err := os.Open(tmpDestPath)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to open downloaded bazel to digest it: %w", err)
+		return artifact, "", fmt.Errorf("failed to open downloaded bazel to digest it: %w", err)
 	}
 
 	h := sha256.New()
 	if _, err := io.Copy(h, f); err != nil {
 		f.Close()
-		return "", "", fmt.Errorf("cannot compute sha256 of %s after download: %v", tmpDestPath, err)
+		return artifact, "", fmt.Errorf("cannot compute sha256 of %s after download: %v", tmpDestPath, err)
 	}
 	f.Close()
 	actualSha256 := strings.ToLower(fmt.Sprintf("%x", h.Sum(nil)))
@@ -570,24 +608,32 @@ func downloadBazelToCAS(version string, bazeliskHome string, repos *Repositories
 	pathToBazelInCAS := filepath.Join(casDir, actualSha256, "bin", bazelInCASBasename)
 	dirForBazelInCAS := filepath.Dir(pathToBazelInCAS)
 	if err := os.MkdirAll(dirForBazelInCAS, 0755); err != nil {
-		return "", "", fmt.Errorf("failed to MkdirAll parent of %s: %w", pathToBazelInCAS, err)
+		return artifact, "", fmt.Errorf("failed to MkdirAll parent of %s: %w", pathToBazelInCAS, err)
 	}
 
 	tmpPathFile, err := os.CreateTemp(dirForBazelInCAS, bazelInCASBasename+".tmp")
 	if err != nil {
-		return "", "", fmt.Errorf("failed to create temporary file in %s: %w", dirForBazelInCAS, err)
+		return artifact, "", fmt.Errorf("failed to create temporary file in %s: %w", dirForBazelInCAS, err)
 	}
 	tmpPathFile.Close()
 	defer os.Remove(tmpPathFile.Name())
 	tmpPathInCorrectDirectory := tmpPathFile.Name()
 	if err := os.Rename(tmpDestPath, tmpPathInCorrectDirectory); err != nil {
-		return "", "", fmt.Errorf("failed to move %s to %s: %w", tmpDestPath, tmpPathInCorrectDirectory, err)
+		return artifact, "", fmt.Errorf("failed to move %s to %s: %w", tmpDestPath, tmpPathInCorrectDirectory, err)
 	}
 	if err := lockedRenameIfDstAbsent(tmpPathInCorrectDirectory, pathToBazelInCAS); err != nil {
-		return "", "", fmt.Errorf("failed to move %s to %s: %w", tmpPathInCorrectDirectory, pathToBazelInCAS, err)
+		return artifact, "", fmt.Errorf("failed to move %s to %s: %w", tmpPathInCorrectDirectory, pathToBazelInCAS, err)
 	}
 
-	return pathToBazelInCAS, actualSha256, nil
+	if tmpSignaturePath == "" { //TODO: if signature was requested, it's an error to not have it here!
+		return httputil.DownloadArtifact{}, "", fmt.Errorf("signature file for %s was requested but not received", tmpDestPath)
+	}
+	pathToSignatureInCAS := pathToBazelInCAS + ".sig"
+	if err := lockedRenameIfDstAbsent(tmpSignaturePath, pathToSignatureInCAS); err != nil {
+		return httputil.DownloadArtifact{}, "", fmt.Errorf("failed to move signature file %s to %s: %w", tmpSignaturePath, pathToSignatureInCAS, err)
+	}
+
+	return httputil.DownloadArtifact{BinaryPath: pathToBazelInCAS, SignaturePath: pathToSignatureInCAS}, actualSha256, nil
 }
 
 func copyFile(src, dst string, perm os.FileMode) error {
@@ -1395,10 +1441,11 @@ func downloadInstallerToCAS(installerURL, bazeliskHome string, config config.Con
 	tmpInstallerFile := fmt.Sprintf("%x-installer", tmpInstallerBytes)
 
 	// Download the installer
-	installerPath, err := httputil.DownloadBinary(installerURL, installerURL+".sig", httputil.VerificationKey, temporaryDownloadDir, tmpInstallerFile, config)
+	artifact, err := httputil.DownloadBinary(installerURL, installerURL+".sig", temporaryDownloadDir, tmpInstallerFile, config)
 	if err != nil {
 		return "", fmt.Errorf("failed to download installer: %w", err)
 	}
+	installerPath := artifact.BinaryPath
 	defer os.Remove(installerPath)
 
 	// Read installer content and compute hash
