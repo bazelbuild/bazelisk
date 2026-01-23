@@ -98,7 +98,13 @@ func RunBazeliskWithArgsFuncAndConfig(argsFunc ArgsFunc, repos *Repositories, co
 
 // RunBazeliskWithArgsFuncAndConfigAndOut runs the main Bazelisk logic for the given ArgsFunc and Bazel
 // repositories and config, writing its stdout to the passed writer.
-func RunBazeliskWithArgsFuncAndConfigAndOut(argsFunc ArgsFunc, repos *Repositories, config config.Config, out io.Writer) (int, error) {
+func RunBazeliskWithArgsFuncAndConfigAndOut(argsFunc ArgsFunc, repos *Repositories, config config.Config, stdout io.Writer) (int, error) {
+	return RunBazeliskWithArgsFuncAndConfigAndOutAndErr(argsFunc, repos, config, stdout, nil)
+}
+
+// RunBazeliskWithArgsFuncAndConfigAndOutAndErr runs the main Bazelisk logic for the given ArgsFunc and Bazel
+// repositories and config, writing its stdout and stderr to the passed writers.
+func RunBazeliskWithArgsFuncAndConfigAndOutAndErr(argsFunc ArgsFunc, repos *Repositories, config config.Config, stdout, stderr io.Writer) (int, error) {
 	httputil.UserAgent = getUserAgent(config)
 
 	bazelInstallation, err := GetBazelInstallation(repos, config)
@@ -111,7 +117,7 @@ func RunBazeliskWithArgsFuncAndConfigAndOut(argsFunc ArgsFunc, repos *Repositori
 	// --print_env must be the first argument.
 	if len(args) > 0 && args[0] == "--print_env" {
 		// print environment variables for sub-processes
-		cmd, err := makeBazelCmd(bazelInstallation.Path, args, nil, config)
+		cmd, err := makeBazelCmd(bazelInstallation.Path, args, nil, nil, config)
 		if err != nil {
 			return -1, err
 		}
@@ -180,7 +186,7 @@ func RunBazeliskWithArgsFuncAndConfigAndOut(argsFunc ArgsFunc, repos *Repositori
 		return 0, nil
 	}
 
-	exitCode, err := runBazel(bazelInstallation.Path, args, out, config, isRunCommand(args))
+	exitCode, err := runBazel(bazelInstallation.Path, args, stdout, stderr, config, isRunCommand(args))
 	if err != nil {
 		return -1, fmt.Errorf("could not run Bazel: %v", err)
 	}
@@ -704,7 +710,7 @@ func prependDirToPathList(cmd *exec.Cmd, dir string) {
 	}
 }
 
-func makeBazelCmd(bazel string, args []string, out io.Writer, config config.Config) (*exec.Cmd, error) {
+func makeBazelCmd(bazel string, args []string, stdout, stderr io.Writer, config config.Config) (*exec.Cmd, error) {
 	execPath := maybeDelegateToWrapper(bazel, config)
 
 	var cmd *exec.Cmd
@@ -730,12 +736,16 @@ func makeBazelCmd(bazel string, args []string, out io.Writer, config config.Conf
 	}
 	prependDirToPathList(cmd, filepath.Dir(execPath))
 	cmd.Stdin = os.Stdin
-	if out == nil {
+	if stdout == nil {
 		cmd.Stdout = os.Stdout
 	} else {
-		cmd.Stdout = out
+		cmd.Stdout = stdout
 	}
-	cmd.Stderr = os.Stderr
+	if stderr == nil {
+		cmd.Stderr = os.Stderr
+	} else {
+		cmd.Stderr = stderr
+	}
 	return cmd, nil
 }
 
@@ -751,8 +761,8 @@ func isRunCommand(args []string) bool {
 	return false
 }
 
-func runBazel(bazel string, args []string, out io.Writer, config config.Config, useExecOnUnix bool) (int, error) {
-	cmd, makeCmdErr := makeBazelCmd(bazel, args, out, config)
+func runBazel(bazel string, args []string, stdout, stderr io.Writer, config config.Config, useExecOnUnix bool) (int, error) {
+	cmd, makeCmdErr := makeBazelCmd(bazel, args, stdout, stderr, config)
 	if makeCmdErr != nil {
 		return 1, makeCmdErr
 	}
@@ -822,7 +832,7 @@ func getIncompatibleFlags(bazelPath, cmd string, config config.Config) ([]string
 	}
 
 	out := strings.Builder{}
-	if _, err := runBazel(bazelPath, []string{"help", cmd, "--short"}, &out, config, false); err != nil {
+	if _, err := runBazel(bazelPath, []string{"help", cmd, "--short"}, &out, nil, config, false); err != nil {
 		return nil, fmt.Errorf("unable to determine incompatible flags with binary %s: %v", bazelPath, err)
 	}
 
@@ -898,7 +908,7 @@ func shutdownIfNeeded(bazelPath string, startupOptions []string, config config.C
 
 	args := append(startupOptions, "shutdown")
 	fmt.Printf("bazel %s\n", strings.Join(args, " "))
-	exitCode, err := runBazel(bazelPath, args, nil, config, false)
+	exitCode, err := runBazel(bazelPath, args, nil, nil, config, false)
 	fmt.Printf("\n")
 	if err != nil {
 		log.Fatalf("failed to run bazel shutdown: %v", err)
@@ -917,7 +927,7 @@ func cleanIfNeeded(bazelPath string, startupOptions []string, config config.Conf
 
 	args := append(startupOptions, "clean", "--expunge")
 	fmt.Printf("bazel %s\n", strings.Join(args, " "))
-	exitCode, err := runBazel(bazelPath, args, nil, config, false)
+	exitCode, err := runBazel(bazelPath, args, nil, nil, config, false)
 	fmt.Printf("\n")
 	if err != nil {
 		log.Fatalf("failed to run clean: %v", err)
@@ -1116,7 +1126,7 @@ func testWithBazelAtCommit(bazelCommit string, args []string, bazeliskHome strin
 	shutdownIfNeeded(bazelPath, startupOptions, config)
 	cleanIfNeeded(bazelPath, startupOptions, config)
 	fmt.Printf("bazel %s\n", strings.Join(args, " "))
-	bazelExitCode, err := runBazel(bazelPath, args, nil, config, false)
+	bazelExitCode, err := runBazel(bazelPath, args, nil, nil, config, false)
 	if err != nil {
 		return -1, fmt.Errorf("could not run Bazel: %v", err)
 	}
@@ -1133,7 +1143,7 @@ func migrate(bazelPath string, baseArgs []string, flags []string, config config.
 	shutdownIfNeeded(bazelPath, startupOptions, config)
 	cleanIfNeeded(bazelPath, startupOptions, config)
 	fmt.Printf("bazel %s\n", strings.Join(args, " "))
-	exitCode, err := runBazel(bazelPath, args, nil, config, false)
+	exitCode, err := runBazel(bazelPath, args, nil, nil, config, false)
 	if err != nil {
 		log.Fatalf("could not run Bazel: %v", err)
 	}
@@ -1148,7 +1158,7 @@ func migrate(bazelPath string, baseArgs []string, flags []string, config config.
 	shutdownIfNeeded(bazelPath, startupOptions, config)
 	cleanIfNeeded(bazelPath, startupOptions, config)
 	fmt.Printf("bazel %s\n", strings.Join(args, " "))
-	exitCode, err = runBazel(bazelPath, args, nil, config, false)
+	exitCode, err = runBazel(bazelPath, args, nil, nil, config, false)
 	if err != nil {
 		log.Fatalf("could not run Bazel: %v", err)
 	}
@@ -1166,7 +1176,7 @@ func migrate(bazelPath string, baseArgs []string, flags []string, config config.
 		shutdownIfNeeded(bazelPath, startupOptions, config)
 		cleanIfNeeded(bazelPath, startupOptions, config)
 		fmt.Printf("bazel %s\n", strings.Join(args, " "))
-		exitCode, err = runBazel(bazelPath, args, nil, config, false)
+		exitCode, err = runBazel(bazelPath, args, nil, nil, config, false)
 		if err != nil {
 			log.Fatalf("could not run Bazel: %v", err)
 		}
