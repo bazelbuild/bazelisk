@@ -241,6 +241,8 @@ This behavior can be disabled by setting the environment variable `BAZELISK_SKIP
 
 You can control the user agent that Bazelisk sends in all HTTP requests by setting `BAZELISK_USER_AGENT` to the desired value.
 
+You can disable the authenticity check of downloaded Bazel binaries by setting the environment variable `BAZELISK_NO_SIGNATURE_VERIFICATION` to any value (except the empty string) before launching Bazelisk.
+
 # .bazeliskrc configuration file
 
 A `.bazeliskrc` file in the root directory of a workspace or the user home directory allows users to set environment variables persistently. (The Python implementation of Bazelisk doesn't check the user home directory yet, only the workspace directory.)
@@ -265,6 +267,7 @@ The following variables can be set:
 - `BAZELISK_HOME_WINDOWS`
 - `BAZELISK_HOME`
 - `BAZELISK_INCOMPATIBLE_FLAGS`
+- `BAZELISK_NO_SIGNATURE_VERIFICATION`
 - `BAZELISK_SHOW_PROGRESS`
 - `BAZELISK_SHUTDOWN`
 - `BAZELISK_SKIP_WRAPPER`

@@ -472,8 +472,12 @@ func downloadBazelIfNecessary(version string, bazeliskHome string, bazelForkOrUR
 	}
 
 	// Verifying authenticity of downloaded binary (if it was requested)
-	if err := verifyBinaryAuthenticity(pathToBazelInCAS, pathToSignatureInCAS); err != nil {
-		return "", err
+	if config.Get("BAZELISK_NO_SIGNATURE_VERIFICATION") == "" {
+		if err := verifyBinaryAuthenticity(pathToBazelInCAS, pathToSignatureInCAS); err != nil {
+			return "", err
+		}
+	} else {
+		log.Printf("Skipping signature verification because BAZELISK_NO_SIGNATURE_VERIFICATION is set.")
 	}
 
 	// Verification is finished successfully, write the mapping file

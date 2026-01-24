@@ -351,7 +351,8 @@ func DownloadBinary(originURL, signatureURL, destDir, destFile string, config co
 			return DownloadArtifact{}, fmt.Errorf("could not chmod file %s: %v", originTmpFile.Name(), err)
 		}
 
-		if signatureURL != "" { //todo: and signature verification is requested
+		// download the signature file if signature verification is requested
+		if config.Get("BAZELISK_NO_SIGNATURE_VERIFICATION") == "" && signatureURL != "" {
 			signatureTmpFile, signatureCleanFunc, err := createTempFile(destDir, "download-signature-")
 			if err != nil {
 				return DownloadArtifact{}, fmt.Errorf("could not create temporary file: %v", err)
@@ -375,10 +376,10 @@ func DownloadBinary(originURL, signatureURL, destDir, destFile string, config co
 		if err != nil {
 			return DownloadArtifact{}, fmt.Errorf("could not move %s to %s: %v", originTmpFile.Name(), destinationPath, err)
 		}
-	}
-	//todo: check that signature file exists if signature verification is requested!
-	if _, err := os.Stat(destinationSignaturePath); err != nil {
-		return DownloadArtifact{}, fmt.Errorf("%s already exists, but corresponding signature file %s does not exist or unaccessable: %v", destinationPath, destinationSignaturePath, err)
+	} else if config.Get("BAZELISK_NO_SIGNATURE_VERIFICATION") == "" {
+		if _, err := os.Stat(destinationSignaturePath); err != nil {
+			return DownloadArtifact{}, fmt.Errorf("%s already exists, but corresponding signature file %s does not exist or unaccessable: %v", destinationPath, destinationSignaturePath, err)
+		}
 	}
 
 	return DownloadArtifact{destinationPath, destinationSignaturePath}, nil
