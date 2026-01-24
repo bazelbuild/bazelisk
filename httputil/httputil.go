@@ -309,13 +309,10 @@ func createTempFile(destDir, pattern string) (*os.File, func(), error) {
 	}, nil
 }
 
-func VerifyBinary(signedBinary, signature io.Reader) (*openpgp.Entity, error) {
-	keys, err := openpgp.ReadArmoredKeyRing(strings.NewReader(VerificationKey))
-	if err != nil {
-		return nil, fmt.Errorf("failed to load the embedded Verification Key")
-	}
-	if len(keys) != 1 {
-		return nil, fmt.Errorf("failed to load the embedded Verification Key")
+func VerifyBinary(signedBinary, signature io.Reader, verificationKey string) (*openpgp.Entity, error) {
+	keys, err := openpgp.ReadArmoredKeyRing(strings.NewReader(verificationKey))
+	if err != nil || len(keys) != 1 {
+		return nil, fmt.Errorf("failed to load the verification Key")
 	}
 
 	entity, err := openpgp.CheckDetachedSignature(keys, signedBinary, signature)

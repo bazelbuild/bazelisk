@@ -243,6 +243,8 @@ You can control the user agent that Bazelisk sends in all HTTP requests by setti
 
 You can disable the authenticity check of downloaded Bazel binaries by setting the environment variable `BAZELISK_NO_SIGNATURE_VERIFICATION` to any value (except the empty string) before launching Bazelisk.
 
+You can provide an alternative PGP public key for binary authenticity verification by setting `BAZELISK_VERIFICATION_KEY_FILE` to the path of the key file.
+
 # .bazeliskrc configuration file
 
 A `.bazeliskrc` file in the root directory of a workspace or the user home directory allows users to set environment variables persistently. (The Python implementation of Bazelisk doesn't check the user home directory yet, only the workspace directory.)
@@ -272,6 +274,7 @@ The following variables can be set:
 - `BAZELISK_SHUTDOWN`
 - `BAZELISK_SKIP_WRAPPER`
 - `BAZELISK_USER_AGENT`
+- `BAZELISK_VERIFICATION_KEY_FILE`
 - `BAZELISK_VERIFY_SHA256`
 - `USE_BAZEL_VERSION`
 

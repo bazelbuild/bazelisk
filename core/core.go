@@ -472,12 +472,8 @@ func downloadBazelIfNecessary(version string, bazeliskHome string, bazelForkOrUR
 	}
 
 	// Verifying authenticity of downloaded binary (if it was requested)
-	if config.Get("BAZELISK_NO_SIGNATURE_VERIFICATION") == "" {
-		if err := verifyBinaryAuthenticity(pathToBazelInCAS, pathToSignatureInCAS); err != nil {
-			return "", err
-		}
-	} else {
-		log.Printf("Skipping signature verification because BAZELISK_NO_SIGNATURE_VERIFICATION is set.")
+	if err := verifyBinaryAuthenticity(pathToBazelInCAS, pathToSignatureInCAS, config); err != nil {
+		return "", err
 	}
 
 	// Verification is finished successfully, write the mapping file
@@ -488,7 +484,12 @@ func downloadBazelIfNecessary(version string, bazeliskHome string, bazelForkOrUR
 	return pathToBazelInCAS, nil
 }
 
-func verifyBinaryAuthenticity(binaryPath, signaturePath string) error {
+func verifyBinaryAuthenticity(binaryPath, signaturePath string, config config.Config) error {
+	if config.Get("BAZELISK_NO_SIGNATURE_VERIFICATION") != "" {
+		log.Printf("Skipping signature verification because BAZELISK_NO_SIGNATURE_VERIFICATION is set.")
+		return nil
+	}
+
 	binary, err := os.Open(binaryPath)
 	if err != nil {
 		return fmt.Errorf("could not open binary %s for verification: %v", binaryPath, err)
@@ -501,9 +502,25 @@ func verifyBinaryAuthenticity(binaryPath, signaturePath string) error {
 	}
 	defer signature.Close()
 
-	entity, err := httputil.VerifyBinary(binary, signature)
+	var verificationKey string
+	var verificationKeySource string
+
+	verificationKeyPath := config.Get("BAZELISK_VERIFICATION_KEY_FILE")
+	if verificationKeyPath != "" {
+		data, err := os.ReadFile(verificationKeyPath)
+		if err != nil {
+			return fmt.Errorf("failed to read verification key from %s: %v", verificationKeyPath, err)
+		}
+		verificationKey = string(data)
+		verificationKeySource = fmt.Sprintf("verification key from %s", verificationKeyPath)
+	} else {
+		verificationKey = httputil.VerificationKey
+		verificationKeySource = "embedded verification key"
+	}
+
+	entity, err := httputil.VerifyBinary(binary, signature, verificationKey)
 	if err != nil {
-		return fmt.Errorf("failed to verify authenticity of downloaded file %s using detached signature from %s and embedded verification key: %v", binaryPath, signaturePath, err)
+		return fmt.Errorf("failed to verify authenticity of downloaded file %s using detached signature from %s and %s: %v", binaryPath, signaturePath, verificationKeySource, err)
 	}
 
 	for _, identity := range entity.Identities {
