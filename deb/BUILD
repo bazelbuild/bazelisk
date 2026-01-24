@@ -57,3 +57,16 @@ ARCHES = [
     )
     for arch in ARCHES
 ]
+
+# TODO: cross-platform implementation is required!
+[
+    genrule(
+        name = "bazelisk-{}-deb-sha256".format(arch),
+        srcs = [":bazelisk-{}.deb".format(arch)],
+        outs = ["bazelisk-{}.deb.sha256".format(arch)],
+        cmd = "$(execpath //sha256sum) $< > $@",
+        tools = ["//sha256sum"],
+        visibility = ["//visibility:public"],
+    )
+    for arch in ARCHES
+]
