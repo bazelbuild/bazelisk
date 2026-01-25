@@ -456,6 +456,78 @@ function test_bazel_verify_sha256() {
       (echo "FAIL: Expected to find 'Build label' in the output of 'bazelisk version'"; exit 1)
 }
 
+function test_bazel_verify_sha256_platform_specific() {
+  setup
+
+  echo "9.0.0" > .bazelversion
+
+  local os="$(uname -s | tr A-Z a-z)"
+  local arch="$(uname -m)"
+
+  # Map to bazelisk naming convention
+  case "${arch}" in
+    x86_64|amd64)
+      arch="X86_64"
+      ;;
+    arm64|aarch64)
+      arch="ARM64"
+      ;;
+  esac
+
+  # SHA256 hashes for Bazel 9.0.0 binaries.
+  # Mixed case is intentional to test hash normalization.
+  case "${os}" in
+    darwin)
+      os_upper="DARWIN"
+      if [[ "${arch}" == "ARM64" ]]; then
+        expected_sha256="2c3cce548a4b6a97A2A5267712187b784b52714c4a2b0613e7386b15669d783c"
+      else
+        expected_sha256="aa7e5fc364eaaba7f4f271dbf8c14172a5433f663cca6b130325df4b6569b3f0"
+      fi
+      ;;
+    linux)
+      os_upper="LINUX"
+      if [[ "${arch}" == "ARM64" ]]; then
+        expected_sha256="cab23c59d3d39c5E5382F12cd116b47445afdff9813516c18ae3ee8836b3037f"
+      else
+        expected_sha256="C44A93f25398c68f904fa1d19b61d321de6c0d2f09dca375d7bc0dc9b9428403"
+      fi
+      ;;
+    msys*|mingw*|cygwin*)
+      os_upper="WINDOWS"
+      if [[ "${arch}" == "ARM64" ]]; then
+        expected_sha256="ab3db0b1f129436180927Baa0f1f38e6d86a88fc9ee802572a76c9519a06f550"
+      else
+        expected_sha256="463faee497df2913854D80776784137cb47f42960b4ef4e4f85068c8da4849a8"
+      fi
+      ;;
+    *)
+      echo "FAIL: Unknown OS ${os} in test"
+      exit 1
+      ;;
+  esac
+
+  local platform_var="BAZELISK_VERIFY_SHA256_${os_upper}_${arch}"
+
+  # Test 1: Platform-specific variable should work
+  env BAZELISK_HOME="$BAZELISK_HOME" "${platform_var}=${expected_sha256}" \
+      bazelisk version 2>&1 | tee log
+
+  grep "Build label:" log || \
+      (echo "FAIL: Expected to find 'Build label' with platform-specific hash"; exit 1)
+
+  # Test 2: Platform-specific should take precedence over generic
+  rm -rf "$BAZELISK_HOME/downloads"
+
+  env BAZELISK_HOME="$BAZELISK_HOME" \
+      BAZELISK_VERIFY_SHA256="wrong-generic-hash" \
+      "${platform_var}=${expected_sha256}" \
+      bazelisk version 2>&1 | tee log
+
+  grep "Build label:" log || \
+      (echo "FAIL: Platform-specific should take precedence over generic"; exit 1)
+}
+
 function test_bazel_download_path_py() {
   setup
 
@@ -576,6 +648,10 @@ if [[ $BAZELISK_VERSION == "GO" ]]; then
 
   echo '# test_bazel_verify_sha256'
   test_bazel_verify_sha256
+  echo
+
+  echo '# test_bazel_verify_sha256_platform_specific'
+  test_bazel_verify_sha256_platform_specific
   echo
 
   echo "# test_bazel_prepend_binary_directory_to_path_go"
