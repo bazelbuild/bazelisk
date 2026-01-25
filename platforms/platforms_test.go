@@ -2,6 +2,62 @@ package platforms
 
 import "testing"
 
+func TestFormatBazelFilename(t *testing.T) {
+	tests := []struct {
+		name          string
+		version       string
+		includeSuffix bool
+		osName        string
+		machineName   string
+		nojdk         bool
+		want          string
+	}{
+		{
+			name:          "standard bazel binary",
+			version:       "7.1.1",
+			includeSuffix: false,
+			osName:        "linux",
+			machineName:   "x86_64",
+			nojdk:         false,
+			want:          "bazel-7.1.1-linux-x86_64",
+		},
+		{
+			name:          "nojdk binary",
+			version:       "7.1.1",
+			includeSuffix: false,
+			osName:        "linux",
+			machineName:   "x86_64",
+			nojdk:         true,
+			want:          "bazel_nojdk-7.1.1-linux-x86_64",
+		},
+		{
+			name: "Windows suffix", version: "9.0.0", includeSuffix: true,
+			osName: "windows", machineName: "arm64", want: "bazel-9.0.0-windows-arm64.exe",
+		},
+		{
+			name: "Windows without suffix", version: "9.0.0",
+			osName: "windows", machineName: "x86_64", want: "bazel-9.0.0-windows-x86_64",
+		},
+		{
+			name: "Darwin has no suffix", version: "9.0.0", includeSuffix: true,
+			osName: "darwin", machineName: "arm64", want: "bazel-9.0.0-darwin-arm64",
+		},
+		{
+			name: "Linux has no suffix", version: "9.0.0", includeSuffix: true,
+			osName: "linux", machineName: "x86_64", want: "bazel-9.0.0-linux-x86_64",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := FormatBazelFilename(tt.version, tt.includeSuffix, tt.osName, tt.machineName, tt.nojdk)
+			if got != tt.want {
+				t.Errorf("FormatBazelFilename() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestDarwinFallback(t *testing.T) {
 	type args struct {
 		machineName string

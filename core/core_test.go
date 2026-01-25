@@ -20,11 +20,24 @@ import (
 func TestDownloadBazelIfNecessaryVerifiesSHA256(t *testing.T) {
 	content := []byte("test Bazel binary\n")
 	digest := fmt.Sprintf("%x", sha256.Sum256(content))
+	const version = "9.0.0"
+	osName, err := platforms.DetermineOperatingSystem()
+	if err != nil {
+		t.Fatal(err)
+	}
+	arch, err := platforms.DetermineArchitecture(osName, version)
+	if err != nil {
+		t.Fatal(err)
+	}
+	platformKey := "BAZELISK_VERIFY_SHA256_" + strings.ToUpper(osName+"_"+arch)
+	noJDKKey := "BAZELISK_VERIFY_SHA256_NOJDK_" + strings.ToUpper(osName+"_"+arch)
+	wrongHash := strings.Repeat("0", 64)
 	for _, tc := range []struct {
 		name     string
 		cached   bool
 		expected string
 		wantErr  bool
+		values   map[string]string
 	}{
 		{name: "cached without expectation", cached: true},
 		{name: "cached matching hash", cached: true, expected: digest},
@@ -36,6 +49,14 @@ func TestDownloadBazelIfNecessaryVerifiesSHA256(t *testing.T) {
 		{name: "download uppercase hash", expected: strings.ToUpper(digest)},
 		{name: "download wrong hash", expected: strings.Repeat("0", 64), wantErr: true},
 		{name: "download invalid hash", expected: "wrong-hash", wantErr: true},
+		{name: "download platform hash", values: map[string]string{platformKey: strings.ToUpper(digest)}},
+		{name: "platform overrides wrong generic", values: map[string]string{platformKey: digest, "BAZELISK_VERIFY_SHA256": wrongHash}},
+		{name: "download wrong platform hash", expected: wrongHash, wantErr: true, values: map[string]string{platformKey: wrongHash, "BAZELISK_VERIFY_SHA256": digest}},
+		{name: "cached wrong platform hash", cached: true, expected: wrongHash, wantErr: true, values: map[string]string{platformKey: wrongHash, "BAZELISK_VERIFY_SHA256": digest}},
+		{name: "download NOJDK hash", values: map[string]string{"BAZELISK_NOJDK": "1", noJDKKey: strings.ToUpper(digest), platformKey: wrongHash}},
+		{name: "download wrong NOJDK hash", expected: wrongHash, wantErr: true, values: map[string]string{"BAZELISK_NOJDK": "1", noJDKKey: wrongHash, platformKey: digest}},
+		{name: "cached wrong NOJDK hash", cached: true, expected: wrongHash, wantErr: true, values: map[string]string{"BAZELISK_NOJDK": "1", noJDKKey: wrongHash, platformKey: digest}},
+		{name: "false string enables NOJDK", values: map[string]string{"BAZELISK_NOJDK": "false", noJDKKey: digest, platformKey: wrongHash}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			home := t.TempDir()
@@ -49,14 +70,18 @@ func TestDownloadBazelIfNecessaryVerifiesSHA256(t *testing.T) {
 				return path, os.WriteFile(path, content, 0600)
 			}
 			repos := CreateRepositories(nil, nil, nil, nil, false)
-			const version = "9.0.0"
+			values := tc.values
+			if values == nil {
+				values = map[string]string{"BAZELISK_VERIFY_SHA256": tc.expected}
+			}
+			cfg := config.Static(values)
 			if tc.cached {
-				if _, err := downloadBazelIfNecessary(version, home, "bazelbuild", repos, config.Null(), downloader); err != nil {
+				warmConfig := config.Static(map[string]string{"BAZELISK_NOJDK": values["BAZELISK_NOJDK"]})
+				if _, err := downloadBazelIfNecessary(version, home, "bazelbuild", repos, warmConfig, downloader); err != nil {
 					t.Fatal(err)
 				}
 			}
 			downloads = 0
-			cfg := config.Static(map[string]string{"BAZELISK_VERIFY_SHA256": tc.expected})
 			path, err := downloadBazelIfNecessary(version, home, "bazelbuild", repos, cfg, downloader)
 			if tc.wantErr {
 				if err == nil || !strings.Contains(err.Error(), "need sha256="+tc.expected) {
@@ -990,5 +1015,133 @@ func TestRunBazeliskWithStderrRedirection(t *testing.T) {
 
 	if strings.Contains(stderrContent, "stdout message") {
 		t.Error("stdout content should not appear in stderr")
+	}
+}
+
+func TestGetExpectedSHA256(t *testing.T) {
+	testCases := []struct {
+		name     string
+		config   map[string]string
+		osName   string
+		arch     string
+		nojdk    bool
+		expected string
+	}{
+		{
+			name: "platform-specific takes precedence",
+			config: map[string]string{
+				"BAZELISK_VERIFY_SHA256":              "generic-hash",
+				"BAZELISK_VERIFY_SHA256_LINUX_X86_64": "platform-hash",
+			},
+			osName:   "linux",
+			arch:     "x86_64",
+			nojdk:    false,
+			expected: "platform-hash",
+		},
+		{
+			name: "falls back to generic when platform-specific not set",
+			config: map[string]string{
+				"BAZELISK_VERIFY_SHA256": "generic-hash",
+			},
+			osName:   "darwin",
+			arch:     "arm64",
+			nojdk:    false,
+			expected: "generic-hash",
+		},
+		{
+			name:     "empty when neither set",
+			config:   map[string]string{},
+			osName:   "windows",
+			arch:     "x86_64",
+			nojdk:    false,
+			expected: "",
+		},
+		{
+			name: "platform hash casing is preserved",
+			config: map[string]string{
+				"BAZELISK_VERIFY_SHA256_LINUX_ARM64": "AbCdEf123456",
+			},
+			osName:   "linux",
+			arch:     "arm64",
+			nojdk:    false,
+			expected: "AbCdEf123456",
+		},
+		// nojdk test cases
+		{
+			name:   "generic hash casing is preserved",
+			config: map[string]string{"BAZELISK_VERIFY_SHA256": "AbCdEf"},
+			osName: "linux", arch: "x86_64", expected: "AbCdEf",
+		},
+		{
+			name:   "NOJDK hash casing is preserved",
+			config: map[string]string{"BAZELISK_VERIFY_SHA256_NOJDK_LINUX_X86_64": "AbCdEf"},
+			osName: "linux", arch: "x86_64", nojdk: true, expected: "AbCdEf",
+		},
+		{
+			name: "nojdk-specific takes precedence when nojdk enabled",
+			config: map[string]string{
+				"BAZELISK_VERIFY_SHA256":                    "generic-hash",
+				"BAZELISK_VERIFY_SHA256_LINUX_X86_64":       "platform-hash",
+				"BAZELISK_VERIFY_SHA256_NOJDK_LINUX_X86_64": "nojdk-hash",
+			},
+			osName:   "linux",
+			arch:     "x86_64",
+			nojdk:    true,
+			expected: "nojdk-hash",
+		},
+		{
+			name: "nojdk falls back to platform-specific when nojdk key not set",
+			config: map[string]string{
+				"BAZELISK_VERIFY_SHA256":              "generic-hash",
+				"BAZELISK_VERIFY_SHA256_LINUX_X86_64": "platform-hash",
+			},
+			osName:   "linux",
+			arch:     "x86_64",
+			nojdk:    true,
+			expected: "platform-hash",
+		},
+		{
+			name: "nojdk key ignored when nojdk disabled",
+			config: map[string]string{
+				"BAZELISK_VERIFY_SHA256":                    "generic-hash",
+				"BAZELISK_VERIFY_SHA256_LINUX_X86_64":       "platform-hash",
+				"BAZELISK_VERIFY_SHA256_NOJDK_LINUX_X86_64": "nojdk-hash",
+			},
+			osName:   "linux",
+			arch:     "x86_64",
+			nojdk:    false,
+			expected: "platform-hash",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := config.Static(tc.config)
+			result := getExpectedSHA256(cfg, tc.osName, tc.arch, tc.nojdk)
+			if result != tc.expected {
+				t.Errorf("getExpectedSHA256() = %q, want %q", result, tc.expected)
+			}
+		})
+	}
+}
+
+func TestGetExpectedSHA256LayeredConfig(t *testing.T) {
+	cfg := config.Layered(
+		config.Static(map[string]string{"BAZELISK_VERIFY_SHA256": "generic-from-env"}),
+		config.Static(map[string]string{"BAZELISK_VERIFY_SHA256_LINUX_X86_64": "platform-from-file"}),
+	)
+	if got := getExpectedSHA256(cfg, "linux", "x86_64", false); got != "platform-from-file" {
+		t.Errorf("selected hash %q, want platform-from-file", got)
+	}
+}
+
+func TestGetExpectedSHA256DarwinFallback(t *testing.T) {
+	cfg := config.Static(map[string]string{
+		"BAZELISK_VERIFY_SHA256_DARWIN_ARM64":  "arm64-hash",
+		"BAZELISK_VERIFY_SHA256_DARWIN_X86_64": "x86_64-hash",
+	})
+	arch := platforms.DarwinFallback("arm64", "4.0.1")
+	if got := getExpectedSHA256(cfg, "darwin", arch, false); got != "x86_64-hash" {
+		t.Errorf("selected hash %q, want x86_64-hash", got)
 	}
 }

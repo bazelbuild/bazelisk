@@ -500,13 +500,19 @@ func downloadBazel(bazelVersionString string, bazeliskHome string, repos *Reposi
 //	downloads/metadata/[fork-or-url]/bazel-[version-os-etc] is a text file containing a hex sha256 of the contents of the downloaded bazel file.
 //	downloads/sha256/[sha256]/bin/bazel[extension] contains the bazel with a particular sha256.
 func downloadBazelIfNecessary(version string, bazeliskHome string, bazelForkOrURLDirName string, repos *Repositories, config config.Config, downloader DownloadFunc) (string, error) {
-	pathSegment, err := platforms.DetermineBazelFilename(version, false, config)
+	osName, err := platforms.DetermineOperatingSystem()
 	if err != nil {
-		return "", fmt.Errorf("could not determine path segment to use for Bazel binary: %v", err)
+		return "", fmt.Errorf("could not determine operating system: %v", err)
 	}
+	arch, err := platforms.DetermineArchitecture(osName, version)
+	if err != nil {
+		return "", fmt.Errorf("could not determine architecture: %v", err)
+	}
+	noJDK := platforms.IsNoJDKEnabled(config)
 
+	pathSegment := platforms.FormatBazelFilename(version, false, osName, arch, noJDK)
 	destFile := "bazel" + platforms.DetermineExecutableFilenameSuffix()
-	expectedSHA256 := config.Get("BAZELISK_VERIFY_SHA256")
+	expectedSHA256 := getExpectedSHA256(config, osName, arch, noJDK)
 
 	mappingPath := filepath.Join(bazeliskHome, "downloads", "metadata", bazelForkOrURLDirName, pathSegment)
 	digestFromMappingFile, err := os.ReadFile(mappingPath)
@@ -534,6 +540,21 @@ func downloadBazelIfNecessary(version string, bazeliskHome string, bazelForkOrUR
 	}
 
 	return pathToBazelInCAS, nil
+}
+
+// getExpectedSHA256 selects a configured hash without changing its casing.
+// Verification compares hashes case-insensitively; URL substitution preserves them.
+func getExpectedSHA256(cfg config.Config, osName, arch string, noJDK bool) string {
+	suffix := strings.ToUpper(osName) + "_" + strings.ToUpper(arch)
+	if noJDK {
+		if hash := cfg.Get("BAZELISK_VERIFY_SHA256_NOJDK_" + suffix); hash != "" {
+			return hash
+		}
+	}
+	if hash := cfg.Get("BAZELISK_VERIFY_SHA256_" + suffix); hash != "" {
+		return hash
+	}
+	return cfg.Get("BAZELISK_VERIFY_SHA256")
 }
 
 func verifySHA256(path, actual, expected string) error {

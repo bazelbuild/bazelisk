@@ -32,6 +32,12 @@ var supportedPlatforms = map[string]*platform{
 	},
 }
 
+// IsNoJDKEnabled reports whether BAZELISK_NOJDK is nonempty and different from "0".
+func IsNoJDKEnabled(config config.Config) bool {
+	v := config.Get("BAZELISK_NOJDK")
+	return v != "" && v != "0"
+}
+
 // GetPlatform returns a Bazel CI-compatible platform identifier for the current operating system.
 // TODO(fweikert): raise an error for unsupported platforms
 func GetPlatform() (string, error) {
@@ -87,14 +93,6 @@ func DetermineOperatingSystem() (string, error) {
 
 // DetermineBazelFilename returns the correct file name of a local Bazel binary.
 func DetermineBazelFilename(version string, includeSuffix bool, config config.Config) (string, error) {
-	flavor := "bazel"
-
-	bazeliskNojdk := config.Get("BAZELISK_NOJDK")
-
-	if len(bazeliskNojdk) != 0 && bazeliskNojdk != "0" {
-		flavor = "bazel_nojdk"
-	}
-
 	osName, err := DetermineOperatingSystem()
 	if err != nil {
 		return "", err
@@ -105,12 +103,22 @@ func DetermineBazelFilename(version string, includeSuffix bool, config config.Co
 		return "", err
 	}
 
-	var filenameSuffix string
-	if includeSuffix {
-		filenameSuffix = DetermineExecutableFilenameSuffix()
+	return FormatBazelFilename(version, includeSuffix, osName, machineName, IsNoJDKEnabled(config)), nil
+}
+
+// FormatBazelFilename formats a Bazel binary filename from pre-computed platform values.
+func FormatBazelFilename(version string, includeSuffix bool, osName, machineName string, noJDK bool) string {
+	flavor := "bazel"
+	if noJDK {
+		flavor = "bazel_nojdk"
 	}
 
-	return fmt.Sprintf("%s-%s-%s-%s%s", flavor, version, osName, machineName, filenameSuffix), nil
+	var filenameSuffix string
+	if includeSuffix && osName == "windows" {
+		filenameSuffix = ".exe"
+	}
+
+	return fmt.Sprintf("%s-%s-%s-%s%s", flavor, version, osName, machineName, filenameSuffix)
 }
 
 // DetermineBazelInstallerFilename returns the correct file name of a Bazel installer script.
