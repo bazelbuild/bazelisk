@@ -503,7 +503,7 @@ func verifyBinaryAuthenticity(binaryPath, signaturePath string, config config.Co
 	defer signature.Close()
 
 	var verificationKey string
-	var verificationKeySource string
+	//var verificationKeySource string
 
 	verificationKeyPath := config.Get("BAZELISK_VERIFICATION_KEY_FILE")
 	if verificationKeyPath != "" {
@@ -512,19 +512,23 @@ func verifyBinaryAuthenticity(binaryPath, signaturePath string, config config.Co
 			return fmt.Errorf("failed to read verification key from %s: %v", verificationKeyPath, err)
 		}
 		verificationKey = string(data)
-		verificationKeySource = fmt.Sprintf("verification key from %s", verificationKeyPath)
+		//verificationKeySource = fmt.Sprintf("verification key from %s", verificationKeyPath)
 	} else {
 		verificationKey = httputil.VerificationKey
-		verificationKeySource = "embedded verification key"
+		//verificationKeySource = "embedded verification key"
 	}
 
-	entity, err := httputil.VerifyBinary(binary, signature, verificationKey)
+	verificationResult, err := httputil.VerifyBinary(binary, signature, verificationKey)
 	if err != nil {
-		return fmt.Errorf("failed to verify authenticity of downloaded file %s using detached signature from %s and %s: %v", binaryPath, signaturePath, verificationKeySource, err)
+		return err
 	}
 
-	for _, identity := range entity.Identities {
-		log.Printf("Signed by %s", identity.Name)
+	if err = verificationResult.SignatureError(); err != nil {
+		return verificationResult.SignatureError()
+	}
+
+	for identity := range verificationResult.SignedByKey().GetEntity().Identities {
+		log.Printf("Signed by \"%s\"", identity)
 	}
 
 	return nil

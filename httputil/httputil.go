@@ -14,10 +14,9 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
-	"strings"
 	"time"
 
-	"golang.org/x/crypto/openpgp"
+	"github.com/ProtonMail/gopenpgp/v3/crypto"
 
 	netrc "github.com/bgentry/go-netrc/netrc"
 	homedir "github.com/mitchellh/go-homedir"
@@ -309,18 +308,36 @@ func createTempFile(destDir, pattern string) (*os.File, func(), error) {
 	}, nil
 }
 
-func VerifyBinary(signedBinary, signature io.Reader, verificationKey string) (*openpgp.Entity, error) {
-	keys, err := openpgp.ReadArmoredKeyRing(strings.NewReader(verificationKey))
-	if err != nil || len(keys) != 1 {
-		return nil, fmt.Errorf("failed to load the verification Key")
-	}
-
-	entity, err := openpgp.CheckDetachedSignature(keys, signedBinary, signature)
+func VerifyBinary(binary, signature io.Reader, verificationKey string) (*crypto.VerifyResult, error) {
+	pgp := crypto.PGP()
+	key, err := crypto.NewKeyFromArmored(verificationKey)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to load the embedded Verification Key: %v", err)
 	}
 
-	return entity, nil
+	keys, err := crypto.NewKeyRing(key)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create keyring: %v", err)
+	}
+
+	verifier, err := pgp.Verify().
+		VerificationKeys(keys).
+		New()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create verifier: %v", err)
+	}
+
+	verifyDataReader, err := verifier.VerifyingReader(binary, signature, crypto.Auto)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create verifying reader: %v", err)
+	}
+
+	result, err := verifyDataReader.DiscardAllAndVerifySignature()
+	if err != nil {
+		return nil, fmt.Errorf("failed to verify authenticity of downloaded file: %v", err)
+	}
+
+	return result, nil
 }
 
 // DownloadBinary downloads a file from the given URL into the specified location, marks it executable and returns its full path.

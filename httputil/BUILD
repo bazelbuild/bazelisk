@@ -17,7 +17,7 @@ go_library(
         "//httputil/progress",
         "@com_github_bgentry_go_netrc//netrc",
         "@com_github_mitchellh_go_homedir//:go-homedir",
-        "@org_golang_x_crypto//openpgp"
+        "@com_github_protonmail_gopenpgp_v3//crypto",
     ],
 )
 
