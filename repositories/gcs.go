@@ -274,5 +274,5 @@ func (gcs *GCSRepo) DownloadRolling(version, destDir, destFile string, config co
 
 	releaseVersion := strings.Split(version, "-")[0]
 	url := fmt.Sprintf("%s/%s/rolling/%s/%s", ltsBaseURL, releaseVersion, version, srcFile)
-	return httputil.DownloadBinary(url, "", destDir, destFile, config)
+	return httputil.DownloadBinary(url, url+".sig", destDir, destFile, config)
 }
