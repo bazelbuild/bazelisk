@@ -32,6 +32,7 @@ go_test(
     embed = [":core"],
     deps = [
         "//config",
+        "//httputil/httputil_test_helper",
         "//platforms",
     ],
 )

@@ -23,6 +23,11 @@ go_library(
 
 go_test(
     name = "httputil_test",
-    srcs = ["httputil_test.go"],
+    srcs = [
+        "httputil_test.go",
+    ],
     embed = [":httputil"],
+    deps = [
+        "//httputil/httputil_test_helper",
+    ],
 )
