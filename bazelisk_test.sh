@@ -44,6 +44,14 @@ shift 1
 function setup() {
   unset USE_BAZEL_VERSION
 
+  case "$(uname -s)" in
+    MSYS*)
+      export PATH="/usr/bin:$PATH"
+      ;;
+    *)
+      ;;
+  esac
+
   USER_HOME="$(mktemp -d $TEST_TMPDIR/user.XXXXXX)"
   BAZELISK_HOME="$(mktemp -d $TEST_TMPDIR/home.XXXXXX)"
 
