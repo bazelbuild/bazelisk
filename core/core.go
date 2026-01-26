@@ -650,12 +650,17 @@ func downloadBazelToCAS(version string, bazeliskHome string, repos *Repositories
 		return artifact, "", fmt.Errorf("failed to move %s to %s: %w", tmpPathInCorrectDirectory, pathToBazelInCAS, err)
 	}
 
-	if tmpSignaturePath == "" { //TODO: if signature was requested, it's an error to not have it here!
-		return httputil.DownloadArtifact{}, "", fmt.Errorf("signature file for %s was requested but not received", tmpDestPath)
-	}
-	pathToSignatureInCAS := pathToBazelInCAS + ".sig"
-	if err := lockedRenameIfDstAbsent(tmpSignaturePath, pathToSignatureInCAS); err != nil {
-		return httputil.DownloadArtifact{}, "", fmt.Errorf("failed to move signature file %s to %s: %w", tmpSignaturePath, pathToSignatureInCAS, err)
+	var pathToSignatureInCAS string
+	if config.Get("BAZELISK_NO_SIGNATURE_VERIFICATION") == "" {
+		if tmpSignaturePath == "" {
+			return httputil.DownloadArtifact{}, "", fmt.Errorf("signature file for %s was requested but not received", tmpDestPath)
+		}
+		pathToSignatureInCAS = pathToBazelInCAS + ".sig"
+		if err := lockedRenameIfDstAbsent(tmpSignaturePath, pathToSignatureInCAS); err != nil {
+			return httputil.DownloadArtifact{}, "", fmt.Errorf("failed to move signature file %s to %s: %w", tmpSignaturePath, pathToSignatureInCAS, err)
+		}
+	} else {
+		pathToSignatureInCAS = ""
 	}
 
 	return httputil.DownloadArtifact{BinaryPath: pathToBazelInCAS, SignaturePath: pathToSignatureInCAS}, actualSha256, nil

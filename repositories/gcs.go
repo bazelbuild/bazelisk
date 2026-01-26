@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -225,6 +226,10 @@ func (gcs *GCSRepo) DownloadAtCommit(commit, destDir, destFile string, config co
 		return httputil.DownloadArtifact{}, err
 	}
 	url := fmt.Sprintf("%s/%s/%s/bazel", commitBaseURL, platform, commit)
+
+	log.Printf("No signature is available for unreleased version at commit %s, forcefully setting BAZELISK_NO_SIGNATURE_VERIFICATION=1", commit)
+	os.Setenv("BAZELISK_NO_SIGNATURE_VERIFICATION", "1")
+
 	return httputil.DownloadBinary(url, "", destDir, destFile, config)
 }
 

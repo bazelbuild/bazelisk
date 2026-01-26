@@ -349,6 +349,10 @@ func DownloadBinary(originURL, signatureURL, destDir, destFile string, config co
 	destinationPath := filepath.Join(destDir, destFile)
 	destinationSignaturePath := destinationPath + ".sig"
 
+	if signatureURL == "" && config.Get("BAZELISK_NO_SIGNATURE_VERIFICATION") == "" {
+		return DownloadArtifact{}, fmt.Errorf("signature verification is requested, but no signature URL was provided")
+	}
+
 	if _, err := os.Stat(destinationPath); err != nil {
 		originTmpFile, originCleanFunc, err := createTempFile(destDir, "download")
 		if err != nil {
