@@ -34,6 +34,8 @@ import (
 	"github.com/bazelbuild/bazelisk/ws"
 	"github.com/gofrs/flock"
 	"github.com/mitchellh/go-homedir"
+
+	pgpErrors "github.com/ProtonMail/go-crypto/openpgp/errors"
 )
 
 const (
@@ -503,7 +505,7 @@ func verifyBinaryAuthenticity(binaryPath, signaturePath string, config config.Co
 	defer signature.Close()
 
 	var verificationKey string
-	//var verificationKeySource string
+	var verificationKeySource string
 
 	verificationKeyPath := config.Get("BAZELISK_VERIFICATION_KEY_FILE")
 	if verificationKeyPath != "" {
@@ -512,10 +514,10 @@ func verifyBinaryAuthenticity(binaryPath, signaturePath string, config config.Co
 			return fmt.Errorf("failed to read verification key from %s: %v", verificationKeyPath, err)
 		}
 		verificationKey = string(data)
-		//verificationKeySource = fmt.Sprintf("verification key from %s", verificationKeyPath)
+		verificationKeySource = fmt.Sprintf("Verification key from %s", verificationKeyPath)
 	} else {
 		verificationKey = httputil.VerificationKey
-		//verificationKeySource = "embedded verification key"
+		verificationKeySource = "Embedded verification key"
 	}
 
 	verificationResult, err := httputil.VerifyBinary(binary, signature, verificationKey)
@@ -524,7 +526,19 @@ func verifyBinaryAuthenticity(binaryPath, signaturePath string, config config.Co
 	}
 
 	if err = verificationResult.SignatureError(); err != nil {
-		return verificationResult.SignatureError()
+		if errors.Is(err, pgpErrors.ErrKeyExpired) {
+			var msgStart string
+			if verificationKeyPath == "" {
+				msgStart = "Either update bazelisk to a newer version or use"
+			} else {
+				msgStart = "Use"
+			}
+			return fmt.Errorf("%s is expired!\n"+
+				"%s BAZELISK_VERIFICATION_KEY_FILE to set an alternative verification key externally.\n"+
+				"Up to date verification key should be available at https://bazel.build/bazel-release.pub.gpg.",
+				verificationKeySource, msgStart)
+		}
+		return err
 	}
 
 	for identity := range verificationResult.SignedByKey().GetEntity().Identities {

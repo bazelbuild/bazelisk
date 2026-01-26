@@ -19,6 +19,7 @@ go_library(
         "//ws",
         "@com_github_gofrs_flock//:flock",
         "@com_github_mitchellh_go_homedir//:go-homedir",
+        "@com_github_protonmail_go_crypto//openpgp/errors",
     ],
 )
 
