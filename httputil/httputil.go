@@ -2,6 +2,7 @@
 package httputil
 
 import (
+	"bytes"
 	_ "embed"
 	b64 "encoding/base64"
 	"errors"
@@ -16,7 +17,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
-	"strings"
 	"time"
 
 	netrc "github.com/bgentry/go-netrc/netrc"
@@ -41,10 +41,10 @@ var (
 	MaxRequestDuration = time.Second * 30
 	retryHeaders       = []string{"Retry-After", "X-RateLimit-Reset", "Rate-Limit-Reset"}
 	NotFound           = errors.New("not found")
-)
 
-//go:embed bazel-release.pub.gpg
-var verificationKey string
+	//go:embed bazel-release.pub.gpg
+	VerificationKey []byte
+)
 
 // Clock keeps track of time. It can return the current time, as well as move forward by sleeping for a certain period.
 type Clock interface {
@@ -266,7 +266,7 @@ func DownloadBinary(originURL, destDir, destFile string, config config.Config, v
 				return "", fmt.Errorf("HTTP GET %s failed with error %v", signatureURL, signature.StatusCode)
 			}
 
-			keys, err := openpgp.ReadArmoredKeyRing(strings.NewReader(verificationKey))
+			keys, err := openpgp.ReadArmoredKeyRing(bytes.NewReader(VerificationKey))
 			if err != nil {
 				return "", fmt.Errorf("failed to load the embedded Verification Key")
 			}
