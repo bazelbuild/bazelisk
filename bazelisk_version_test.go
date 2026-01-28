@@ -3,12 +3,13 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
+	"slices"
 	"strings"
 	"testing"
 
+	"github.com/bazelbuild/bazelisk/config"
 	"github.com/bazelbuild/bazelisk/core"
 	"github.com/bazelbuild/bazelisk/httputil"
 	"github.com/bazelbuild/bazelisk/repositories"
@@ -23,9 +24,19 @@ var (
 	tmpDir = ""
 )
 
+func TestGetInAscendingOrder(t *testing.T) {
+	input := []string{"7.0.1rc2", "6.1.0", "6.0.1", "10.11.12", "6.0.0", "7.0.1", "6.0.0rc2", "7.0.1rc1", "10.11.12rc1", "6.0.0rc1"}
+	want := []string{"6.0.0rc1", "6.0.0rc2", "6.0.0", "6.0.1", "6.1.0", "7.0.1rc1", "7.0.1rc2", "7.0.1", "10.11.12rc1", "10.11.12"}
+
+	got := versions.GetInAscendingOrder(input)
+	if !slices.Equal(got, want) {
+		t.Errorf("GetInAscendingOrder(): got %s, want %s", got, want)
+	}
+}
+
 func TestMain(m *testing.M) {
 	var err error
-	tmpDir, err = ioutil.TempDir("", "version_test")
+	tmpDir, err = os.MkdirTemp("", "version_test")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -41,8 +52,8 @@ func TestResolveVersion(t *testing.T) {
 	s.Finish()
 
 	gcs := &repositories.GCSRepo{}
-	repos := core.CreateRepositories(nil, gcs, nil, nil, nil, false)
-	version, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, "4.0.0")
+	repos := core.CreateRepositories(gcs, nil, nil, nil, false)
+	version, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, "4.0.0", config.Null())
 
 	if err != nil {
 		t.Fatalf("Version resolution failed unexpectedly: %v", err)
@@ -59,8 +70,8 @@ func TestResolvePatchVersion(t *testing.T) {
 	s.Finish()
 
 	gcs := &repositories.GCSRepo{}
-	repos := core.CreateRepositories(nil, gcs, nil, nil, nil, false)
-	version, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, "4.0.0-patch1")
+	repos := core.CreateRepositories(gcs, nil, nil, nil, false)
+	version, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, "4.0.0-patch1", config.Null())
 
 	if err != nil {
 		t.Fatalf("Version resolution failed unexpectedly: %v", err)
@@ -81,8 +92,8 @@ func TestResolveLatestRcVersion(t *testing.T) {
 	s.Finish()
 
 	gcs := &repositories.GCSRepo{}
-	repos := core.CreateRepositories(nil, gcs, nil, nil, nil, false)
-	version, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, "last_rc")
+	repos := core.CreateRepositories(gcs, nil, nil, nil, false)
+	version, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, "last_rc", config.Null())
 
 	if err != nil {
 		t.Fatalf("Version resolution failed unexpectedly: %v", err)
@@ -99,8 +110,8 @@ func TestResolveLatestRcVersion_WithFullRelease(t *testing.T) {
 	s.Finish()
 
 	gcs := &repositories.GCSRepo{}
-	repos := core.CreateRepositories(nil, gcs, nil, nil, nil, false)
-	version, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, "last_rc")
+	repos := core.CreateRepositories(gcs, nil, nil, nil, false)
+	version, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, "last_rc", config.Null())
 
 	if err != nil {
 		t.Fatalf("Version resolution failed unexpectedly: %v", err)
@@ -119,8 +130,8 @@ func TestResolveLatestVersion_TwoLatestVersionsDoNotHaveAReleaseYet(t *testing.T
 	s.Finish()
 
 	gcs := &repositories.GCSRepo{}
-	repos := core.CreateRepositories(gcs, nil, nil, nil, nil, false)
-	version, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, "latest")
+	repos := core.CreateRepositories(gcs, nil, nil, nil, false)
+	version, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, "latest", config.Null())
 
 	if err != nil {
 		t.Fatalf("Version resolution failed unexpectedly: %v", err)
@@ -141,8 +152,8 @@ func TestResolveLatestVersion_ShouldOnlyReturnStableReleases(t *testing.T) {
 	s.Finish()
 
 	gcs := &repositories.GCSRepo{}
-	repos := core.CreateRepositories(gcs, nil, nil, nil, nil, false)
-	version, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, "latest-1")
+	repos := core.CreateRepositories(gcs, nil, nil, nil, false)
+	version, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, "latest-1", config.Null())
 
 	if err != nil {
 		t.Fatalf("Version resolution failed unexpectedly: %v", err)
@@ -153,6 +164,58 @@ func TestResolveLatestVersion_ShouldOnlyReturnStableReleases(t *testing.T) {
 	}
 }
 
+func TestResolveLatestAvoidsUnnecessaryRequests(t *testing.T) {
+	tests := []struct{
+		name string
+		specifiedVersion string
+		wantVersion string
+	} {
+		{
+			name: "Release",
+			specifiedVersion: "latest",
+			wantVersion: "7.0.0",
+		},
+		{
+			name: "Candidate",
+			specifiedVersion: "last_rc",
+			wantVersion: "7.0.0rc1",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T){
+		s := setUp(t)
+		s.AddVersion("4.0.0", true, []int{1}, nil)
+		s.AddVersion("5.0.0", true, []int{1}, nil)
+		s.AddVersion("6.0.0", true, []int{1}, nil)
+		s.AddVersion("7.0.0", true, []int{1}, nil)
+		s.AddVersion("8.0.0", false, nil, nil)
+		s.Finish()
+
+		gcs := &repositories.GCSRepo{}
+		repos := core.CreateRepositories(gcs, nil, nil, nil, false)
+		gotVersion, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, test.specifiedVersion, config.Null())
+
+		if err != nil {
+			t.Fatalf("Version resolution failed unexpectedly: %v", err)
+		}
+		if gotVersion != test.wantVersion {
+			t.Errorf("Expected version %s, but got %s", test.wantVersion, gotVersion)
+		}
+		/*
+		We expect three requests:
+		- One to get a list of all Bazel version tracks
+		- One to check for the existence of the 8.* release (candidates), which returns no results
+		- One to check for the existence of the 7.* release (candidates), which returns a match
+		*/
+		wantRequests := 3
+		if gotRequests := len(s.Transport.RequestedURLs); gotRequests != wantRequests {
+			t.Errorf("Expected exactly %d requests (one for the top-level, one for 8.0.0, one for 7.0.0), but got %d:\n%s", wantRequests, gotRequests, strings.Join(s.Transport.RequestedURLs, "\n"))
+		}
+	})
+	}
+}
+
 func TestResolveLatestVersion_ShouldFailIfNotEnoughReleases(t *testing.T) {
 	s := setUp(t)
 	s.AddVersion("3.0.0", true, nil, nil)
@@ -160,13 +223,13 @@ func TestResolveLatestVersion_ShouldFailIfNotEnoughReleases(t *testing.T) {
 	s.Finish()
 
 	gcs := &repositories.GCSRepo{}
-	repos := core.CreateRepositories(gcs, nil, nil, nil, nil, false)
-	_, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, "latest-1")
+	repos := core.CreateRepositories(gcs, nil, nil, nil, false)
+	_, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, "latest-1", config.Null())
 
 	if err == nil {
 		t.Fatal("Expected ResolveVersion() to fail.")
 	}
-	expectedError := "unable to determine latest version: requested 2 latest releases, but only found 1"
+	expectedError := "cannot resolve version \"latest-1\": There are not enough matching Bazel releases (1)"
 	if err.Error() != expectedError {
 		t.Fatalf("Expected error message %q, but got '%v'", expectedError, err)
 	}
@@ -177,8 +240,8 @@ func TestResolveLatestVersion_GCSIsDown(t *testing.T) {
 	g.Transport.AddResponse("https://www.googleapis.com/storage/v1/b/bazel/o?delimiter=/", 500, "", nil)
 
 	gcs := &repositories.GCSRepo{}
-	repos := core.CreateRepositories(gcs, nil, nil, nil, nil, false)
-	_, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, "latest")
+	repos := core.CreateRepositories(gcs, nil, nil, nil, false)
+	_, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, "latest", config.Null())
 
 	if err == nil {
 		t.Fatal("Expected resolveLatestVersion() to fail.")
@@ -194,25 +257,25 @@ func TestResolveLatestVersion_GitHubIsDown(t *testing.T) {
 	transport.AddResponse("https://api.github.com/repos/bazelbuild/bazel/releases", 500, "", nil)
 
 	gh := repositories.CreateGitHubRepo("test_token")
-	repos := core.CreateRepositories(nil, nil, gh, nil, nil, false)
+	repos := core.CreateRepositories(nil, gh, nil, nil, false)
 
-	_, _, err := repos.ResolveVersion(tmpDir, "some_fork", "latest")
+	_, _, err := repos.ResolveVersion(tmpDir, "some_fork", "latest", config.Null())
 
 	if err == nil {
 		t.Fatal("Expected resolveLatestVersion() to fail.")
 	}
-	expectedPrefix := "unable to determine latest version: unable to dermine 'some_fork' releases: could not download list of Bazel releases from github.com/some_fork"
+	expectedPrefix := "unable to determine latest version: unable to determine 'some_fork' releases: could not download list of Bazel releases from github.com/some_fork"
 	if !strings.HasPrefix(err.Error(), expectedPrefix) {
 		t.Fatalf("Expected error message that starts with %q, but got '%v'", expectedPrefix, err)
 	}
 }
 
 func TestAcceptRollingReleaseName(t *testing.T) {
-	gh := repositories.CreateGitHubRepo("test_token")
-	repos := core.CreateRepositories(nil, nil, nil, nil, gh, false)
+	gcs := &repositories.GCSRepo{}
+	repos := core.CreateRepositories(nil, nil, nil, gcs, false)
 
 	for _, version := range []string{"10.0.0-pre.20201103.4", "10.0.0-pre.20201103.4.2"} {
-		resolvedVersion, _, err := repos.ResolveVersion(tmpDir, "", version)
+		resolvedVersion, _, err := repos.ResolveVersion(tmpDir, "", version, config.Null())
 
 		if err != nil {
 			t.Fatalf("ResolveVersion(%q, \"\", %q): expected no error, but got %v", tmpDir, version, err)
@@ -225,64 +288,102 @@ func TestAcceptRollingReleaseName(t *testing.T) {
 }
 
 func TestResolveLatestRollingRelease(t *testing.T) {
-	text := `
-	[
-	  {
-		"tag_name": "4.0.0",
-		"prerelease": false
-	  },
-	  {
-		"tag_name": "5.0.0-pre.20210319.1",
-		"prerelease": true
-	  },
-	  {
-		"tag_name": "5.0.0-pre.20210322.4",
-		"prerelease": true
-	  },
-	  {
-		"tag_name": "5.0.0",
-		"prerelease": false
-	  }
-	]
-	`
-	transport := installTransport()
-	transport.AddResponse("https://api.github.com/repos/bazelbuild/bazel/releases", 200, text, nil)
+	s := setUp(t)
+	s.AddVersion("11.0.0", false, nil, []string{"11.0.0/rolling/11.0.0-pre.20210503.1"})
+	s.AddVersion("12.0.0", false, nil, []string{"12.0.0/rolling/12.0.0-pre.20210504.1"})
+	s.Finish()
 
-	gh := repositories.CreateGitHubRepo("test_token")
-	repos := core.CreateRepositories(nil, nil, nil, nil, gh, false)
+	gcs := &repositories.GCSRepo{}
+	repos := core.CreateRepositories(nil, nil, nil, gcs, false)
 
-	version, _, err := repos.ResolveVersion(tmpDir, "", rollingReleaseIdentifier)
+	version, _, err := repos.ResolveVersion(tmpDir, "", rollingReleaseIdentifier, config.Null())
 
 	if err != nil {
 		t.Fatalf("ResolveVersion(%q, \"\", %q): expected no error, but got %v", tmpDir, rollingReleaseIdentifier, err)
 	}
 
-	want := "5.0.0-pre.20210322.4"
+	want := "12.0.0-pre.20210504.1"
 	if version != want {
 		t.Fatalf("ResolveVersion(%q, \"\", %q) = %v, but expected %v", tmpDir, rollingReleaseIdentifier, version, want)
 	}
 }
 
-func TestAcceptFloatingReleaseVersions(t *testing.T) {
+func TestResolveLatestRollingRelease_ShouldFallBackIfNoReleaseYet(t *testing.T) {
 	s := setUp(t)
-	s.AddVersion("3.0.0", true, nil, []string{"4.0.0-pre.20210504.1"})
-	s.AddVersion("4.0.0", true, nil, nil)
-	s.AddVersion("4.1.0", true, nil, nil)
-	s.AddVersion("4.2.0", true, nil, nil)
-	s.AddVersion("4.2.1", true, []int{1, 2}, nil)
-	s.AddVersion("5.0.0", true, nil, nil)
+	s.AddVersion("12.0.0", false, nil, []string{"12.0.0/rolling/12.0.0-pre.20210504.1rc1"})
+	s.AddVersion("11.0.0", true, nil, []string{"11.0.0/rolling/11.0.0-pre.20210503.1"})
 	s.Finish()
 
 	gcs := &repositories.GCSRepo{}
-	repos := core.CreateRepositories(gcs, nil, nil, nil, nil, false)
-	version, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, "4.x")
+	repos := core.CreateRepositories(nil, nil, nil, gcs, false)
+
+	version, _, err := repos.ResolveVersion(tmpDir, "", rollingReleaseIdentifier, config.Null())
 
 	if err != nil {
-		t.Fatalf("Version resolution failed unexpectedly: %v", err)
+		t.Fatalf("ResolveVersion(%q, \"\", %q): expected no error, but got %v", tmpDir, rollingReleaseIdentifier, err)
 	}
-	expectedVersion := "4.2.1"
-	if version != expectedVersion {
-		t.Fatalf("Expected version %s, but got %s", expectedVersion, version)
+
+	want := "11.0.0-pre.20210503.1"
+	if version != want {
+		t.Fatalf("ResolveVersion(%q, \"\", %q) = %v, but expected %v", tmpDir, rollingReleaseIdentifier, version, want)
+	}
+}
+
+
+func TestAcceptTrackBasedReleaseVersions(t *testing.T) {
+	tests := []struct {
+		name             string
+		requestedVersion string
+		releaseExists    bool
+		wantVersion      string
+	}{
+		{
+			name:             "Floating_ReleaseExists",
+			requestedVersion: "4.x",
+			releaseExists:    true,
+			wantVersion:      "4.2.1",
+		},
+		{
+			name:             "Floating_NoRelease",
+			requestedVersion: "4.x",
+			releaseExists:    false,
+			wantVersion:      "4.2.0",
+		},
+		{
+			name:             "Wildcard_ReleaseExists",
+			requestedVersion: "4.*",
+			releaseExists:    true,
+			wantVersion:      "4.2.1",
+		},
+		{
+			name:             "Wildcard_NoRelease",
+			requestedVersion: "4.*",
+			releaseExists:    false,
+			wantVersion:      "4.2.1rc3",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			s := setUp(t)
+			s.AddVersion("4.0.0", true, nil, []string{"4.0.0-pre.20210504.1"})
+			s.AddVersion("4.1.0", true, nil, nil)
+			s.AddVersion("4.2.0", true, nil, nil)
+			s.AddVersion("4.2.1", test.releaseExists, []int{1, 2, 3}, nil)
+			s.AddVersion("5.0.0", true, nil, nil)
+			s.Finish()
+
+			gcs := &repositories.GCSRepo{}
+			repos := core.CreateRepositories(gcs, nil, nil, nil, false)
+			version, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, test.requestedVersion, config.Null())
+
+			if err != nil {
+				t.Fatalf("Version resolution failed unexpectedly: %v", err)
+			}
+			if version != test.wantVersion {
+				t.Fatalf("Expected version %s, but got %s", test.wantVersion, version)
+			}
+		})
 	}
 }
 
@@ -308,9 +409,7 @@ func (g *gcsSetup) AddVersion(version string, hasRelease bool, rcs []int, rollin
 		register(fmt.Sprintf("rc%d", rc))
 	}
 
-	for _, r := range rolling {
-		register(r)
-	}
+	g.addURL(fmt.Sprintf("%s/rolling/", version), false, rolling...)
 
 	// The /release/ URLs have to exist, even if there is no release. In this case GCS returns no items, though.
 	releasePrefix := fmt.Sprintf("%s/release/", version)

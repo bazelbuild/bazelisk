@@ -1,17 +1,50 @@
-// Package platforms determins file names and extensions based on the current operating system.
+// Package platforms determines file names and extensions based on the current operating system.
 package platforms
 
 import (
 	"fmt"
+	"log"
 	"runtime"
+	"strings"
+
+	"github.com/bazelbuild/bazelisk/config"
+	"github.com/bazelbuild/bazelisk/versions"
+	semver "github.com/hashicorp/go-version"
 )
 
-var platforms = map[string]string{"darwin": "macos", "linux": "ubuntu1404", "windows": "windows"}
+type platform struct {
+	Name           string
+	HasArm64Binary bool
+}
+
+var supportedPlatforms = map[string]*platform{
+	"darwin": {
+		Name:           "macos",
+		HasArm64Binary: true,
+	},
+	"linux": {
+		Name:           "linux",
+		HasArm64Binary: true,
+	},
+	"windows": {
+		Name:           "windows",
+		HasArm64Binary: true,
+	},
+}
 
 // GetPlatform returns a Bazel CI-compatible platform identifier for the current operating system.
 // TODO(fweikert): raise an error for unsupported platforms
-func GetPlatform() string {
-	return platforms[runtime.GOOS]
+func GetPlatform() (string, error) {
+	platform := supportedPlatforms[runtime.GOOS]
+	arch := runtime.GOARCH
+	if arch == "arm64" {
+		if platform.HasArm64Binary {
+			return platform.Name + "_arm64", nil
+		}
+		return "", fmt.Errorf("arm64 %s is unsupported", runtime.GOOS)
+	}
+
+	return platform.Name, nil
 }
 
 // DetermineExecutableFilenameSuffix returns the extension for binaries on the current operating system.
@@ -23,8 +56,8 @@ func DetermineExecutableFilenameSuffix() string {
 	return filenameSuffix
 }
 
-// DetermineBazelFilename returns the correct file name of a local Bazel binary.
-func DetermineBazelFilename(version string, includeSuffix bool) (string, error) {
+// DetermineArchitecture returns the architecture of the current machine.
+func DetermineArchitecture(osName, version string) (string, error) {
 	var machineName string
 	switch runtime.GOARCH {
 	case "amd64":
@@ -32,15 +65,44 @@ func DetermineBazelFilename(version string, includeSuffix bool) (string, error) 
 	case "arm64":
 		machineName = "arm64"
 	default:
-		return "", fmt.Errorf("unsupported machine architecture \"%s\", must be arm64 or x86_64", runtime.GOARCH)
+		return "", fmt.Errorf("unsupported machine architecture %q, must be arm64 or x86_64", runtime.GOARCH)
 	}
 
-	var osName string
+	if osName == "darwin" {
+		machineName = DarwinFallback(machineName, version)
+	}
+
+	return machineName, nil
+}
+
+// DetermineOperatingSystem returns the name of the operating system.
+func DetermineOperatingSystem() (string, error) {
 	switch runtime.GOOS {
 	case "darwin", "linux", "windows":
-		osName = runtime.GOOS
+		return runtime.GOOS, nil
 	default:
-		return "", fmt.Errorf("unsupported operating system \"%s\", must be Linux, macOS or Windows", runtime.GOOS)
+		return "", fmt.Errorf("unsupported operating system %q, must be Linux, macOS or Windows", runtime.GOOS)
+	}
+}
+
+// DetermineBazelFilename returns the correct file name of a local Bazel binary.
+func DetermineBazelFilename(version string, includeSuffix bool, config config.Config) (string, error) {
+	flavor := "bazel"
+
+	bazeliskNojdk := config.Get("BAZELISK_NOJDK")
+
+	if len(bazeliskNojdk) != 0 && bazeliskNojdk != "0" {
+		flavor = "bazel_nojdk"
+	}
+
+	osName, err := DetermineOperatingSystem()
+	if err != nil {
+		return "", err
+	}
+
+	machineName, err := DetermineArchitecture(osName, version)
+	if err != nil {
+		return "", err
 	}
 
 	var filenameSuffix string
@@ -48,5 +110,49 @@ func DetermineBazelFilename(version string, includeSuffix bool) (string, error) 
 		filenameSuffix = DetermineExecutableFilenameSuffix()
 	}
 
-	return fmt.Sprintf("bazel-%s-%s-%s%s", version, osName, machineName, filenameSuffix), nil
+	return fmt.Sprintf("%s-%s-%s-%s%s", flavor, version, osName, machineName, filenameSuffix), nil
+}
+
+// DetermineBazelInstallerFilename returns the correct file name of a Bazel installer script.
+func DetermineBazelInstallerFilename(version string, config config.Config) (string, error) {
+	osName, err := DetermineOperatingSystem()
+	if err != nil {
+		return "", err
+	}
+
+	machineName, err := DetermineArchitecture(osName, version)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("bazel-%s-installer-%s-%s.sh", version, osName, machineName), nil
+}
+
+// DarwinArm64MinVersion represents the minimum Darwin version that supported arm64.
+const DarwinArm64MinVersion = "4.1.0"
+
+// DarwinFallback Darwin arm64 was supported since 4.1.0, before 4.1.0, fall back to x86_64
+func DarwinFallback(machineName string, version string) (alterMachineName string) {
+	// Do not use fallback for commits since they are likely newer than Bazel 4.1
+	if versions.IsCommit(version) {
+		return machineName
+	}
+
+	v, err := semver.NewVersion(version)
+	if err != nil {
+		return machineName
+	}
+
+	armSupportVer, _ := semver.NewVersion(DarwinArm64MinVersion)
+
+	if machineName == "arm64" && v.LessThan(armSupportVer) {
+		log.Printf("WARN: Fallback to x86_64 because arm64 is not supported on Apple Silicon until 4.1.0")
+		return "x86_64"
+	}
+	return machineName
+}
+
+// PrettyLabel returns a label for the current OS and architecture.
+func PrettyLabel() string {
+	return fmt.Sprintf("%s %s", strings.Title(strings.Replace(runtime.GOOS, "darwin", "macOS", 1)), runtime.GOARCH)
 }

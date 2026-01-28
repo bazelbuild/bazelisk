@@ -17,7 +17,7 @@ limitations under the License.
 
 import base64
 from contextlib import closing
-from distutils.version import LooseVersion
+import hashlib
 import json
 import netrc
 import os
@@ -33,36 +33,78 @@ import time
 try:
     from urllib.parse import urlparse
     from urllib.request import urlopen, Request
+    from urllib.error import HTTPError
 except ImportError:
     # Python 2.x compatibility hack.
     # http://python-future.org/compatible_idioms.html?highlight=urllib#urllib-module
     from urlparse import urlparse
-    from urllib2 import urlopen, Request
+    from urllib2 import urlopen, Request, HTTPError
+
+    FileNotFoundError = IOError
 
 ONE_HOUR = 1 * 60 * 60
 
 LATEST_PATTERN = re.compile(r"latest(-(?P<offset>\d+))?$")
 
-LAST_GREEN_COMMIT_BASE_PATH = (
-    "https://storage.googleapis.com/bazel-untrusted-builds/last_green_commit/"
+LAST_GREEN_COMMIT_PATH = (
+    "https://storage.googleapis.com/bazel-builds/last_green_commit/github.com/bazelbuild/bazel.git/publish-bazel-binaries"
 )
-
-LAST_GREEN_COMMIT_PATH_SUFFIXES = {
-    "last_green": "github.com/bazelbuild/bazel.git/bazel-bazel",
-    "last_downstream_green": "downstream_pipeline",
-}
 
 BAZEL_GCS_PATH_PATTERN = (
     "https://storage.googleapis.com/bazel-builds/artifacts/{platform}/{commit}/bazel"
 )
 
-SUPPORTED_PLATFORMS = {"linux": "ubuntu1404", "windows": "windows", "darwin": "macos"}
+SUPPORTED_PLATFORMS = {"linux": "linux", "windows": "windows", "darwin": "macos"}
 
 TOOLS_BAZEL_PATH = "./tools/bazel"
 
 BAZEL_REAL = "BAZEL_REAL"
 
 BAZEL_UPSTREAM = "bazelbuild"
+
+_dotfiles_dict = None
+
+
+def get_dotfiles_dict():
+    """Loads all supported dotfiles and returns a unified name=value dictionary
+    for their config settings. The dictionary is only loaded on the first call
+    to this function; subsequent calls used a cached result, so won't change.
+    """
+    global _dotfiles_dict
+    if _dotfiles_dict is not None:
+        return _dotfiles_dict
+    _dotfiles_dict = dict()
+    env_files = []
+    # Here we're only checking the workspace root. Ideally, we would also check
+    # the user's home directory to match the Go version. When making that edit,
+    # be sure to obey the correctly prioritization of workspace / home rcfiles.
+    root = find_workspace_root()
+    if root:
+        env_files.append(os.path.join(root, ".bazeliskrc"))
+    for env_file in env_files:
+        try:
+            with open(env_file, "r") as f:
+                rcdata = f.read()
+        except Exception:
+            continue
+        for line in rcdata.splitlines():
+            line = line.split("#", 1)[0].strip()
+            if not line:
+                continue
+            some_name, some_value = line.split("=", 1)
+            _dotfiles_dict[some_name] = some_value
+    return _dotfiles_dict
+
+
+def get_env_or_config(name, default=None):
+    """Reads a configuration value from the environment, but falls back to
+    reading it from .bazeliskrc in the workspace root."""
+    if name in os.environ:
+        return os.environ[name]
+    dotfiles = get_dotfiles_dict()
+    if name in dotfiles:
+        return dotfiles[name]
+    return default
 
 
 def decide_which_bazel_version_to_use():
@@ -76,15 +118,19 @@ def decide_which_bazel_version_to_use():
     # - workspace_root/.bazelversion exists -> read contents, that version.
     # - workspace_root/WORKSPACE contains a version -> that version. (TODO)
     # - fallback: latest release
-    if "USE_BAZEL_VERSION" in os.environ:
-        return os.environ["USE_BAZEL_VERSION"]
+    use_bazel_version = get_env_or_config("USE_BAZEL_VERSION")
+    if use_bazel_version is not None:
+        return use_bazel_version
 
     workspace_root = find_workspace_root()
     if workspace_root:
         bazelversion_path = os.path.join(workspace_root, ".bazelversion")
         if os.path.exists(bazelversion_path):
             with open(bazelversion_path, "r") as f:
-                return f.read().strip()
+                for ln in f.readlines():
+                    ln = ln.strip()
+                    if ln:
+                        return ln
 
     return "latest"
 
@@ -92,8 +138,10 @@ def decide_which_bazel_version_to_use():
 def find_workspace_root(root=None):
     if root is None:
         root = os.getcwd()
-    if os.path.exists(os.path.join(root, "WORKSPACE")):
-        return root
+    for boundary in ["MODULE.bazel", "REPO.bazel", "WORKSPACE.bazel", "WORKSPACE"]:
+        path = os.path.join(root, boundary)
+        if os.path.exists(path) and not os.path.isdir(path):
+            return root
     new_root = os.path.dirname(root)
     return find_workspace_root(new_root) if new_root != root else None
 
@@ -111,9 +159,8 @@ def resolve_version_label_to_number_or_commit(bazelisk_directory, version):
             of an unreleased Bazel binary,
         2. An indicator for whether the returned version refers to a commit.
     """
-    suffix = LAST_GREEN_COMMIT_PATH_SUFFIXES.get(version)
-    if suffix:
-        return get_last_green_commit(suffix), True
+    if version == "last_green":
+        return get_last_green_commit(), True
 
     if "latest" in version:
         match = LATEST_PATTERN.match(version)
@@ -132,8 +179,11 @@ def resolve_version_label_to_number_or_commit(bazelisk_directory, version):
     return version, False
 
 
-def get_last_green_commit(path_suffix):
-    return read_remote_text_file(LAST_GREEN_COMMIT_BASE_PATH + path_suffix).strip()
+def get_last_green_commit():
+    commit = read_remote_text_file(LAST_GREEN_COMMIT_PATH).strip()
+    if not re.match(r"^[0-9a-f]{40}$", commit):
+        raise Exception("Invalid commit hash: {}".format(commit))
+    return commit
 
 
 def get_releases_json(bazelisk_directory):
@@ -167,15 +217,18 @@ def read_remote_text_file(url):
 
 
 def get_version_history(bazelisk_directory):
-    ordered = sorted(
+    return sorted(
         (
-            LooseVersion(release["tag_name"])
+            release["tag_name"]
             for release in get_releases_json(bazelisk_directory)
             if not release["prerelease"]
         ),
+        # This only handles versions with numeric components, but that is fine
+        # since prerelease versions have been excluded.
+        key=lambda version: tuple(int(component)
+                                  for component in version.split('.')),
         reverse=True,
     )
-    return [str(v) for v in ordered]
 
 
 def resolve_latest_version(version_history, offset):
@@ -206,27 +259,54 @@ def determine_executable_filename_suffix():
 
 
 def determine_bazel_filename(version):
+    operating_system = get_operating_system()
+    supported_machines = get_supported_machine_archs(version, operating_system)
     machine = normalized_machine_arch_name()
-    if machine != "x86_64":
+    if machine not in supported_machines:
         raise Exception(
-            'Unsupported machine architecture "{}". Bazel currently only supports x86_64.'.format(
-                machine
+            'Unsupported machine architecture "{}". Bazel {} only supports {} on {}.'.format(
+                machine, version, ", ".join(supported_machines), operating_system.capitalize()
             )
         )
 
-    operating_system = get_operating_system()
-
     filename_suffix = determine_executable_filename_suffix()
     bazel_flavor = "bazel"
-    if os.environ.get("BAZELISK_NOJDK", "0") != "0":
+    if get_env_or_config("BAZELISK_NOJDK", "0") != "0":
         bazel_flavor = "bazel_nojdk"
     return "{}-{}-{}-{}{}".format(bazel_flavor, version, operating_system, machine, filename_suffix)
+
+
+def get_supported_machine_archs(version, operating_system):
+    supported_machines = ["x86_64"]
+    versions = version.split(".")[:2]
+    if len(versions) == 2:
+        # released version
+        major, minor = int(versions[0]), int(versions[1])
+        if (
+            operating_system == "darwin"
+            and (major > 4 or major == 4 and minor >= 1)
+            or operating_system == "linux"
+            and (major > 3 or major == 3 and minor >= 4)
+        ):
+            # Linux arm64 was supported since 3.4.0.
+            # Darwin arm64 was supported since 4.1.0.
+            supported_machines.append("arm64")
+    elif operating_system in ("darwin", "linux"):
+        # This is needed to run bazelisk_test.sh on Linux and Darwin arm64 machines, which are
+        # becoming more and more popular.
+        # It works because all recent commits of Bazel support arm64 on Darwin and Linux.
+        # However, this would add arm64 by mistake if the commit is too old, which should be
+        # a rare scenario.
+        supported_machines.append("arm64")
+    return supported_machines
 
 
 def normalized_machine_arch_name():
     machine = platform.machine().lower()
     if machine == "amd64":
         machine = "x86_64"
+    elif machine == "aarch64":
+        machine = "arm64"
     return machine
 
 
@@ -242,10 +322,9 @@ def determine_url(version, is_commit, bazel_filename):
     # Example: '0.19.1' -> ('0.19.1', None), '0.20.0rc1' -> ('0.20.0', 'rc1')
     (version, rc) = re.match(r"(\d*\.\d*(?:\.\d*)?)(rc\d+)?", version).groups()
 
-    if "BAZELISK_BASE_URL" in os.environ:
-        return "{}/{}/{}".format(
-            os.environ["BAZELISK_BASE_URL"], version, bazel_filename
-        )
+    bazelisk_base_url = get_env_or_config("BAZELISK_BASE_URL")
+    if bazelisk_base_url is not None:
+        return "{}/{}{}/{}".format(bazelisk_base_url, version, rc if rc else "", bazel_filename)
     else:
         return "https://releases.bazel.build/{}/{}/{}".format(
             version, rc if rc else "release", bazel_filename
@@ -254,14 +333,14 @@ def determine_url(version, is_commit, bazel_filename):
 
 def trim_suffix(string, suffix):
     if string.endswith(suffix):
-        return string[:len(string) - len(suffix)]
+        return string[: len(string) - len(suffix)]
     else:
         return string
 
 
 def download_bazel_into_directory(version, is_commit, directory):
     bazel_filename = determine_bazel_filename(version)
-    url = determine_url(version, is_commit, bazel_filename)
+    bazel_url = determine_url(version, is_commit, bazel_filename)
 
     filename_suffix = determine_executable_filename_suffix()
     bazel_directory_name = trim_suffix(bazel_filename, filename_suffix)
@@ -270,32 +349,61 @@ def download_bazel_into_directory(version, is_commit, directory):
 
     destination_path = os.path.join(destination_dir, "bazel" + filename_suffix)
     if not os.path.exists(destination_path):
-        sys.stderr.write("Downloading {}...\n".format(url))
-        with tempfile.NamedTemporaryFile(prefix="bazelisk", dir=destination_dir, delete=False) as t:
-            # https://github.com/bazelbuild/bazelisk/issues/247
-            request = Request(url)
-            if "BAZELISK_BASE_URL" in os.environ:
-                parts = urlparse(url)
-                creds = None
-                try:
-                    creds = netrc.netrc().hosts.get(parts.netloc)
-                except:
-                    pass
-                if creds is not None:
-                    auth = base64.b64encode(('%s:%s' % (creds[0], creds[2])).encode('ascii'))
-                    request.add_header("Authorization", "Basic %s" % auth.decode('utf-8'))
-            with closing(urlopen(request)) as response:
-                shutil.copyfileobj(response, t)
-            t.flush()
-            os.fsync(t.fileno())
-        os.rename(t.name, destination_path)
+        download(bazel_url, destination_path)
         os.chmod(destination_path, 0o755)
 
+    sha256_path = destination_path + ".sha256"
+    expected_hash = ""
+    if not os.path.exists(sha256_path):
+        try:
+            download(bazel_url + ".sha256", sha256_path)
+        except HTTPError as e:
+            if e.code == 404:
+                sys.stderr.write(
+                    "The Bazel mirror does not have a checksum file; skipping checksum verification."
+                )
+                return destination_path
+            raise e
+    with open(sha256_path, "r") as sha_file:
+        expected_hash = sha_file.read().split()[0]
+    sha256_hash = hashlib.sha256()
+    with open(destination_path, "rb") as bazel_file:
+        for byte_block in iter(lambda: bazel_file.read(4096), b""):
+            sha256_hash.update(byte_block)
+    actual_hash = sha256_hash.hexdigest()
+    if actual_hash != expected_hash:
+        os.remove(destination_path)
+        os.remove(sha256_path)
+        print(
+            "The downloaded Bazel binary is corrupted. Expected SHA-256 {}, got {}. Please try again.".format(
+                expected_hash, actual_hash
+            )
+        )
+        # Exiting with a special exit code not used by Bazel, so the calling process may retry based on that.
+        # https://docs.bazel.build/versions/0.21.0/guide.html#what-exit-code-will-i-get
+        sys.exit(22)
     return destination_path
 
 
+def download(url, destination_path):
+    sys.stderr.write("Downloading {}...\n".format(url))
+    request = Request(url)
+    if get_env_or_config("BAZELISK_BASE_URL") is not None:
+        parts = urlparse(url)
+        creds = None
+        try:
+            creds = netrc.netrc().hosts.get(parts.netloc)
+        except Exception:
+            pass
+        if creds is not None:
+            auth = base64.b64encode(("%s:%s" % (creds[0], creds[2])).encode("ascii"))
+            request.add_header("Authorization", "Basic %s" % auth.decode("utf-8"))
+    with closing(urlopen(request)) as response, open(destination_path, "wb") as file:
+        shutil.copyfileobj(response, file)
+
+
 def get_bazelisk_directory():
-    bazelisk_home = os.environ.get("BAZELISK_HOME")
+    bazelisk_home = get_env_or_config("BAZELISK_HOME")
     if bazelisk_home is not None:
         return bazelisk_home
 
@@ -327,8 +435,8 @@ def get_bazelisk_directory():
 
 def maybe_makedirs(path):
     """
-  Creates a directory and its parents if necessary.
-  """
+    Creates a directory and its parents if necessary.
+    """
     try:
         os.makedirs(path)
     except OSError as e:
@@ -376,9 +484,9 @@ def make_bazel_cmd(bazel_path, argv):
     directory = os.path.dirname(bazel_path)
     prepend_directory_to_path(env, directory)
     return {
-        'exec': bazel_path,
-        'args': argv,
-        'env': env,
+        "exec": bazel_path,
+        "args": argv,
+        "env": env,
     }
 
 
@@ -386,7 +494,7 @@ def execute_bazel(bazel_path, argv):
     cmd = make_bazel_cmd(bazel_path, argv)
 
     # We cannot use close_fds on Windows, so disable it there.
-    p = subprocess.Popen([cmd['exec']] + cmd['args'], close_fds=os.name != "nt", env=cmd['env'])
+    p = subprocess.Popen([cmd["exec"]] + cmd["args"], close_fds=os.name != "nt", env=cmd["env"])
     while True:
         try:
             return p.wait()
@@ -420,9 +528,9 @@ def main(argv=None):
 
     if argv and argv[0] == "--print_env":
         cmd = make_bazel_cmd(bazel_path, argv)
-        env = cmd['env']
+        env = cmd["env"]
         for key in env:
-            print('{}={}'.format(key, env[key]))
+            print("{}={}".format(key, env[key]))
         return 0
 
     return execute_bazel(bazel_path, argv)

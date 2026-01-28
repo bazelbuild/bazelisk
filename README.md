@@ -10,16 +10,21 @@ You can call it just like you would call Bazel.
 
 ## Installation
 
-On MacOS, you can `brew install bazelisk`. This adds both `bazelisk` and `bazel` to the `PATH`.
+On macOS: `brew install bazelisk`.
 
-Binary and source releases are provided on our [Releases](https://github.com/bazelbuild/bazelisk/releases) page.
-You can download one of these and add it to your `PATH` manually.
+On Windows: `winget install Bazel.Bazelisk`, `choco install bazelisk`, or `scoop install bazelisk`.
+
+Each adds bazelisk to the `PATH` as both `bazelisk` and `bazel`.
+
+On Linux: You can download Bazelisk binary on our [Releases](https://github.com/bazelbuild/bazelisk/releases) page and add it to your `PATH` manually, which also works on macOS and Windows.
 
 Bazelisk is also published to npm.
 Frontend developers may want to install it with `npm install -g @bazel/bazelisk`.
 
 > You will notice that it serves an analogous function for Bazel as the
 > [`nvm` utility](https://github.com/nvm-sh/nvm) which manages your version of Node.js.
+
+On Linux/macOS you can also [mise](https://github.com/jdx/mise) the polyglot tools version manager with a command like `mise use -g bazelisk@latest`
 
 Some ideas how to use it:
 - Install it as the `bazel` binary in your `PATH` (e.g. copy it to `/usr/local/bin/bazel`).
@@ -42,7 +47,11 @@ It uses a simple algorithm:
 - If the environment variable `USE_BAZEL_VERSION` is set, it will use the version specified in the value.
 - Otherwise, if a `.bazeliskrc` file exists in the workspace root and contains the `USE_BAZEL_VERSION` variable, this version will be used.
 - Otherwise, if a `.bazelversion` file exists in the current directory or recursively any parent directory, it will read the file and use the version specified in it.
-- Otherwise it will use the official latest Bazel release.
+- Otherwise, if the environment variable `USE_BAZEL_FALLBACK_VERSION` is set to one of the following formats:
+  - If set to a value starting with `error:`, it will report an error and version detection will fail.
+  - If set to a value starting with `warn:`, it will report a warning and use the version specified after the prefix.
+  - If set to a value starting with `silent:`, it will use the version specified after the prefix.
+- Otherwise, it will use the official latest Bazel release.
 
 A version can optionally be prefixed with a fork name.
 The fork and version should be separated by slash: `<FORK>/<VERSION>`.
@@ -53,27 +62,47 @@ Bazelisk currently understands the following formats for version labels:
   Previous releases can be specified via `latest-1`, `latest-2` etc.
 - A version number like `0.17.2` means that exact version of Bazel.
   It can also be a release candidate version like `0.20.0rc3`, or a rolling release version like `5.0.0-pre.20210317.1`.
-- A floating version identifier like `4.x` that returns the latest release from the LTS series started by Bazel 4.0.0.
+- A floating version identifier like `4.x` that returns the latest **release** from the LTS series started by Bazel 4.0.0.
+- A wildcard version identifier like `4.*` that returns the latest **release or candidate** from the LTS series started by Bazel 4.0.0.
 - The hash of a Git commit. Please note that Bazel binaries are only available for commits that passed [Bazel CI](https://buildkite.com/bazel/bazel-bazel).
 
 Additionally, a few special version names are supported for our official releases only (these formats do not work when using a fork):
 - `last_green` refers to the Bazel binary that was built at the most recent commit that passed [Bazel CI](https://buildkite.com/bazel/bazel-bazel).
   Ideally this binary should be very close to Bazel-at-head.
-- `last_downstream_green` points to the most recent Bazel binary that builds and tests all [downstream projects](https://buildkite.com/bazel/bazel-at-head-plus-downstream) successfully.
 - `last_rc` points to the most recent release candidate.
   If there is no active release candidate, Bazelisk uses the latest Bazel release instead.
 - `rolling` refers to the latest rolling release (even if there is a newer LTS release).
 
+Note: `last_downstream_green` support has been removed, please use `last_green` instead.
+
 ## Where does Bazelisk get Bazel from?
 
-By default Bazelisk retrieves Bazel releases, release candidates and binaries built at green commits from Google Cloud Storage.
+By default Bazelisk retrieves Bazel releases, release candidates and binaries built at green commits from Google Cloud Storage. The downloaded artifacts are validated against the SHA256 value recorded in `BAZELISK_VERIFY_SHA256` if this variable is set in the configuration file.
 
 As mentioned in the previous section, the `<FORK>/<VERSION>` version format allows you to use your own Bazel fork hosted on GitHub:
 
-If you want to create a fork with your own releases, you have to follow the naming conventions that we use in `bazelbuild/bazel` for the binary file names.
+If you want to create a fork with your own releases, you should follow the naming conventions that we use in `bazelbuild/bazel` for the binary file names as this results in predictable URLs that are similar to the official ones.
 The URL format looks like `https://github.com/<FORK>/bazel/releases/download/<VERSION>/<FILENAME>`.
 
-You can also override the URL by setting the environment variable `$BAZELISK_BASE_URL`. Bazelisk will then append `/<VERSION>/<FILENAME>` to the base URL instead of using the official release server.
+You can also override the URL by setting the environment variable `$BAZELISK_BASE_URL`. Bazelisk will then append `/<VERSION>/<FILENAME>` to the base URL instead of using the official release server. Bazelisk will read file [`~/.netrc`](https://everything.curl.dev/usingcurl/netrc) for credentials for Basic authentication.
+
+If for any reason none of this works, you can also override the URL format altogether by setting the environment variable `$BAZELISK_FORMAT_URL`. This variable takes a format-like string with placeholders and performs the following replacements to compute the download URL:
+
+- `%e`: Extension suffix, such as the empty string or `.exe`.
+- `%h`: Value of `BAZELISK_VERIFY_SHA256`, respecting uppercase/lowercase characters.
+- `%m`: Machine architecture name, such as `arm64` or `x86_64`.
+- `%o`: Operating system name, such as `darwin` or `linux`.
+- `%v`: Bazel version as determined by Bazelisk.
+- `%%`: Literal `%` for escaping purposes.
+- All other characters after `%` are reserved for future use and result in a processing error.
+
+## Environment variables set by Bazelisk
+
+Bazelisk prepends a directory to `PATH` that contains the downloaded Bazel binary.
+This ensures that Bazel targets that invoke `bazel` will use the same Bazel binary as the outer invocation.
+
+Bazelisk also sets the environment variable `BAZELISK` to its own path.
+This can be useful for scripts that want to know if they are running under Bazelisk and can also be used to run specific Bazel versions from within a Bazel run, e.g. to generate version-specific test data.
 
 ## Ensuring that your developers use Bazelisk rather than Bazel
 
@@ -93,7 +122,9 @@ require users update their bazel.
 [shell wrapper script]: https://github.com/bazelbuild/bazel/blob/master/scripts/packages/bazel.sh
 ## Other features
 
-The Go version of Bazelisk offers two new flags.
+The Go version of Bazelisk offers the following new flags and commands:
+
+### --strict
 
 `--strict` expands to the set of incompatible flags which may be enabled for the given version of Bazel.
 
@@ -101,26 +132,118 @@ The Go version of Bazelisk offers two new flags.
 bazelisk --strict build //...
 ```
 
+### --migrate
+
 `--migrate` will run Bazel multiple times to help you identify compatibility issues.
 If the code fails with `--strict`, the flag `--migrate` will run Bazel with each one of the flag separately, and print a report at the end.
 This will show you which flags can safely enabled, and which flags require a migration.
 
+
+### --bisect
+
+`--bisect` flag allows you to bisect Bazel versions to find which version introduced a build failure. You can specify the range of versions to bisect with `--bisect=<GOOD>..<BAD>`, where GOOD is the last known working Bazel version and BAD is the first known non-working Bazel version. Bazelisk uses [GitHub's compare API](https://docs.github.com/en/rest/commits/commits#compare-two-commits) to get the list of commits to bisect. When GOOD is not an ancestor of BAD, GOOD is reset to their merge base commit.
+The meaning of GOOD and BAD can be reversed by prefixing the range with `~`, e.g. `--bisect=~6.0.0..HEAD` will find the first version between 6.0.0 and HEAD that *fixes* the build.
+
+Examples:
+```shell
+# Bisect between 6.0.0 and Bazel at HEAD to find the first commit that breaks the build.
+bazelisk --bisect=6.0.0..HEAD test //foo:bar_test
+
+# Bisect between 6.1.0 and the second release candidate of Bazel 6.2.0
+bazelisk --bisect=6.1.0..release-6.2.0rc2 test //foo:bar_test
+
+# Bisect between two commits on the main branch (or branches with `release-` prefix) of the Bazel GitHub repository.
+bazelisk --bisect=<good commit hash>..<bad commit hash> test //foo:bar_test
+
+# Bisect between 6.0.0 and Bazel at HEAD to find the first commit that *fixes* the build.
+bazelisk --bisect=~6.0.0..HEAD test //foo:bar_test
+```
+
+Note that, Bazelisk uses prebuilt Bazel binaries at commits on the main and release branches, therefore you cannot bisect your local commits.
+
+### bazeliskVersion
+
+`bazeliskVersion` prints the version of Bazelisk itself.
+
+```shell
+bazelisk bazeliskVersion
+```
+
+### Command-line completion
+
+Bazelisk offers a new `completion` command that allows you to generate
+command-line completion scripts for Bazel commands.
+
+#### bash
+
+You can enable Bash completion by either:
+
+1. Source the generated completion script while inside a Bazel workspace:
+
+```shell
+source <(bazelisk completion bash)
+```
+
+2. Or emit the completion script into a file:
+
+```shell
+bazelisk completion bash > bash-complete.bash
+```
+
+then copy this file to `/etc/bash_completion.d` (on Ubuntu) or source it in your
+`~/.bashrc` (on Ubuntu) or `~/.bash_profile` (on macOS).
+
+```shell
+source /path/to/bazel-complete.bash
+```
+
+#### fish
+
+Generate a completion script and save it into your fish completion directory:
+
+```shell
+bazelisk completion fish > ~/.config/fish/completions/bazel.fish
+```
+
+Note that the generated completion script is tied to the active Bazel version.
+
+The bazel completion scripts are taken from installer binaries. If you use a
+custom base URL, make sure the installer URLs are available alongside with
+bazel binaries.
+
+### Useful environment variables for --migrate and --bisect
+
+You can set `BAZELISK_INCOMPATIBLE_FLAGS` to set a list of incompatible flags (separated by `,`) to be tested, otherwise Bazelisk tests all flags starting with `--incompatible_`.
+
 You can set `BAZELISK_GITHUB_TOKEN` to set a GitHub access token to use for API requests to avoid rate limiting when on shared networks.
 
-You can set `BAZELISK_SHUTDOWN` to run `shutdown` between builds when migrating if you suspect this affects your results.
+You can set `BAZELISK_SHUTDOWN` to run `shutdown` between builds when migrating or bisecting if you suspect this affects your results.
 
-You can set `BAZELISK_CLEAN` to run `clean --expunge` between builds when migrating if you suspect this affects your results.
+You can set `BAZELISK_CLEAN` to run `clean --expunge` between builds when migrating or bisecting if you suspect this affects your results.
 
-If `tools/bazel` exists in your workspace root and is executable, Bazelisk will run this file, instead of the Bazel version it downloaded.
-It will set the environment variable `BAZEL_REAL` to the path of the downloaded Bazel binary.
-This can be useful, if you have a wrapper script that e.g. ensures that environment variables are set to known good values.
+## tools/bazel
+
+Bazelisk will try to run a Bazel wrapper from the `tools` directory if present, instead of the Bazel version it downloaded. The environment variable `BAZEL_REAL`, unconditionally set by Bazelisk, can be used by the wrapper to execute the downloaded Bazel binary.
+
+Bazelisk looks for the following wrappers, in order:
+
+* `tools/bazel.<OSNAME>-<ARCH>[.exe]`: An executable that's OS- and platform-specific
+* `tools/bazel.<ARCH>[.exe]`: An executable that's platform-specific (for cases where your project only supports one operating system anyway)
+* `tools/bazel[.exe]`: An executable or shell script
+* `tools/bazel.ps1`: A PowerShell script on Windows
+* `tools/bazel.bat`: A batch file on Windows
+
+where `.exe` extension is required on Windows.
+
+Also, on Windows `tools/bazel` is allowed with the lowest priority. It is not recommended and can cause issues, but it's supported for backward compatibility.
+
 This behavior can be disabled by setting the environment variable `BAZELISK_SKIP_WRAPPER` to any value (except the empty string) before launching Bazelisk.
 
 You can control the user agent that Bazelisk sends in all HTTP requests by setting `BAZELISK_USER_AGENT` to the desired value.
 
 # .bazeliskrc configuration file
 
-The Go version supports a `.bazeliskrc` file in the root directory of a workspace. This file allows users to set environment variables persistently.
+A `.bazeliskrc` file in the root directory of a workspace or the user home directory allows users to set environment variables persistently. (The Python implementation of Bazelisk doesn't check the user home directory yet, only the workspace directory.)
 
 Example file content:
 
@@ -133,29 +256,38 @@ BAZELISK_GITHUB_TOKEN=abc
 The following variables can be set:
 
 - `BAZELISK_BASE_URL`
+- `BAZELISK_FORMAT_URL`
+- `BAZELISK_NOJDK`
 - `BAZELISK_CLEAN`
 - `BAZELISK_GITHUB_TOKEN`
+- `BAZELISK_HOME_DARWIN`
+- `BAZELISK_HOME_LINUX`
+- `BAZELISK_HOME_WINDOWS`
 - `BAZELISK_HOME`
+- `BAZELISK_INCOMPATIBLE_FLAGS`
+- `BAZELISK_SHOW_PROGRESS`
 - `BAZELISK_SHUTDOWN`
 - `BAZELISK_SKIP_WRAPPER`
 - `BAZELISK_USER_AGENT`
+- `BAZELISK_VERIFY_SHA256`
 - `USE_BAZEL_VERSION`
 
-Please note that the actual environment variables take precedence over those in the `.bazeliskrc` file.
+Configuration variables are evaluated with precedence order. The preferred values are derived in order from highest to lowest precedence as follows:
+
+* Variables defined in the environment
+* Variables defined in the workspace root `.bazeliskrc`
+* Variables defined in the user home `.bazeliskrc`
+
+Additionally, the Bazelisk home directory is also evaluated in precedence order. The preferred value is OS-specific e.g. `BAZELISK_HOME_LINUX`, then we fall back to `BAZELISK_HOME`.
 
 ## Requirements
 
 For ease of use, the Python version of Bazelisk is written to work with Python 2.7 and 3.x and only uses modules provided by the standard library.
 
 The Go version can be compiled to run natively on Linux, macOS and Windows.
-You need at least Go 1.11 to build Bazelisk, otherwise you'll run into errors like `undefined: os.UserCacheDir`.
 
-To install the Go version, type:
+To install it, run:
 
-```shell
-go get github.com/bazelbuild/bazelisk
-```
-With Go 1.17 or later, the recommended way to install it is:
 ```shell
 go install github.com/bazelbuild/bazelisk@latest
 ```
@@ -172,8 +304,6 @@ For more information, you may read about the [`GOPATH` environment variable](htt
 
 - Add support for checked-in Bazel binaries.
 - When the version label is set to a commit hash, first download a matching binary version of Bazel, then build Bazel automatically at that commit and use the resulting binary.
-- Add support to automatically bisect a build failure to a culprit commit in Bazel.
-  If you notice that you could successfully build your project using version X, but not using version X+1, then Bazelisk should be able to figure out the commit that caused the breakage and the Bazel team can easily fix the problem.
 
 ## FAQ
 

@@ -1,10 +1,16 @@
 module github.com/bazelbuild/bazelisk
 
-go 1.15
+go 1.24.0
+
+toolchain go1.24.2
 
 require (
-	github.com/bazelbuild/rules_go v0.29.0
-	github.com/hashicorp/go-version v1.3.0
+	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d
+	github.com/gofrs/flock v0.13.0
+	github.com/hashicorp/go-version v1.7.0
 	github.com/mitchellh/go-homedir v1.1.0
-	golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3
+	golang.org/x/crypto v0.47.0
+	golang.org/x/term v0.39.0
 )
+
+require golang.org/x/sys v0.40.0 // indirect
