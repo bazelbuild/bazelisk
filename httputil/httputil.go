@@ -2,6 +2,7 @@
 package httputil
 
 import (
+	_ "embed"
 	b64 "encoding/base64"
 	"errors"
 	"fmt"
@@ -16,12 +17,17 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/ProtonMail/gopenpgp/v3/crypto"
+
 	netrc "github.com/bgentry/go-netrc/netrc"
 	homedir "github.com/mitchellh/go-homedir"
 
 	"github.com/bazelbuild/bazelisk/config"
 	"github.com/bazelbuild/bazelisk/httputil/progress"
 )
+
+//go:embed bazel_key.pub.gpg
+var VerificationKey string
 
 var (
 	// DefaultTransport specifies the http.RoundTripper that is used for any network traffic, and may be replaced with a dummy implementation for unit testing.
@@ -32,6 +38,7 @@ var (
 
 	// RetryClock is used for waiting between HTTP request retries.
 	RetryClock = Clock(&realClock{})
+
 	// MaxRetries specifies how often non-fatally failing HTTP requests should be retried.
 	MaxRetries = 4
 	// MaxRequestDuration defines the maximum amount of time that a request and its retries may take in total
@@ -186,75 +193,162 @@ func tryFindNetrcFileCreds(host string) (string, error) {
 	return fmt.Sprintf("Basic %s", token), nil
 }
 
+func getAuthForURL(rawURL string) (string, error) {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		// rawURL is supposed to be valid
+		return "", err
+	}
+
+	t, err := tryFindNetrcFileCreds(u.Host)
+	if err != nil {
+		return "", nil
+	}
+	return t, nil
+}
+
+type DownloadArtifact struct {
+	BinaryPath    string
+	SignaturePath string
+}
+
+func DownloadFile(url string, destFile *os.File, config config.Config) error {
+	auth, err := getAuthForURL(url)
+	if err != nil {
+		return err
+	}
+
+	log.Printf("Downloading %s...", url)
+	resp, err := get(url, auth)
+	if err != nil {
+		return fmt.Errorf("HTTP GET %s failed: %w", url, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == 404 {
+		return NotFound
+	} else if resp.StatusCode != 200 {
+		return fmt.Errorf("HTTP GET %s failed with error %v", url, resp.StatusCode)
+	}
+
+	_, err = io.Copy(
+		// Add a progress bar during download.
+		progress.Writer(destFile, "Downloading", resp.ContentLength, config),
+		resp.Body)
+	progress.Finish(config)
+	if err != nil {
+		return fmt.Errorf("could not copy from %s to %s: %v", url, destFile.Name(), err)
+	}
+
+	return nil
+}
+
+func createTempFile(destDir, pattern string) (*os.File, func(), error) {
+	tmpFile, err := os.CreateTemp(destDir, pattern)
+	if err != nil {
+		return nil, nil, fmt.Errorf("could not create temporary file: %v", err)
+	}
+	return tmpFile, func() {
+		err := tmpFile.Close()
+		if err == nil {
+			os.Remove(tmpFile.Name())
+		}
+	}, nil
+}
+
+func VerifyBinary(binary, signature io.Reader, verificationKey string) (*crypto.VerifyResult, error) {
+	pgp := crypto.PGP()
+	key, err := crypto.NewKeyFromArmored(verificationKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load the embedded Verification Key: %v", err)
+	}
+
+	keys, err := crypto.NewKeyRing(key)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create keyring: %v", err)
+	}
+
+	verifier, err := pgp.Verify().
+		VerificationKeys(keys).
+		New()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create verifier: %v", err)
+	}
+
+	verifyDataReader, err := verifier.VerifyingReader(binary, signature, crypto.Auto)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create verifying reader: %v", err)
+	}
+
+	result, err := verifyDataReader.DiscardAllAndVerifySignature()
+	if err != nil {
+		return nil, fmt.Errorf("failed to verify authenticity of downloaded file: %v", err)
+	}
+
+	return result, nil
+}
+
 // DownloadBinary downloads a file from the given URL into the specified location, marks it executable and returns its full path.
-func DownloadBinary(originURL, destDir, destFile string, config config.Config) (string, error) {
+func DownloadBinary(originURL, signatureURL, destDir, destFile string, config config.Config) (DownloadArtifact, error) {
 	err := os.MkdirAll(destDir, 0755)
 	if err != nil {
-		return "", fmt.Errorf("could not create directory %s: %v", destDir, err)
+		return DownloadArtifact{}, fmt.Errorf("could not create directory %s: %v", destDir, err)
 	}
 	destinationPath := filepath.Join(destDir, destFile)
+	destinationSignaturePath := destinationPath + ".sig"
+
+	if signatureURL == "" && config.Get("BAZELISK_NO_SIGNATURE_VERIFICATION") == "" {
+		return DownloadArtifact{}, fmt.Errorf("signature verification is requested, but no signature URL was provided")
+	}
 
 	if _, err := os.Stat(destinationPath); err != nil {
-		tmpfile, err := os.CreateTemp(destDir, "download")
+		originTmpFile, originCleanFunc, err := createTempFile(destDir, "download")
 		if err != nil {
-			return "", fmt.Errorf("could not create temporary file: %v", err)
+			return DownloadArtifact{}, fmt.Errorf("could not create temporary file: %v", err)
 		}
-		defer func() {
-			err := tmpfile.Close()
-			if err == nil {
-				os.Remove(tmpfile.Name())
+		defer originCleanFunc()
+
+		err = DownloadFile(originURL, originTmpFile, config)
+		if err != nil {
+			return DownloadArtifact{}, fmt.Errorf("failed to download %s: %v", originURL, err)
+		}
+		err = os.Chmod(originTmpFile.Name(), 0755)
+		if err != nil {
+			return DownloadArtifact{}, fmt.Errorf("could not chmod file %s: %v", originTmpFile.Name(), err)
+		}
+
+		// download the signature file if signature verification is requested
+		if config.Get("BAZELISK_NO_SIGNATURE_VERIFICATION") == "" && signatureURL != "" {
+			signatureTmpFile, signatureCleanFunc, err := createTempFile(destDir, "download-signature-")
+			if err != nil {
+				return DownloadArtifact{}, fmt.Errorf("could not create temporary file: %v", err)
 			}
-		}()
+			defer signatureCleanFunc()
 
-		u, err := url.Parse(originURL)
+			err = DownloadFile(signatureURL, signatureTmpFile, config)
+			if err != nil {
+				return DownloadArtifact{}, fmt.Errorf("failed to download %s: %v", signatureURL, err)
+			}
+
+			signatureTmpFile.Close()
+			err = os.Rename(signatureTmpFile.Name(), destinationSignaturePath)
+			if err != nil {
+				return DownloadArtifact{}, fmt.Errorf("could not move %s to %s: %v", signatureTmpFile.Name(), destinationSignaturePath, err)
+			}
+		}
+
+		originTmpFile.Close()
+		err = os.Rename(originTmpFile.Name(), destinationPath)
 		if err != nil {
-			// originURL supposed to be valid
-			return "", err
+			return DownloadArtifact{}, fmt.Errorf("could not move %s to %s: %v", originTmpFile.Name(), destinationPath, err)
 		}
-
-		log.Printf("Downloading %s...", originURL)
-
-		var auth string = ""
-		t, err := tryFindNetrcFileCreds(u.Host)
-		if err == nil {
-			// successfully parsed netrc for given host
-			auth = t
-		}
-
-		resp, err := get(originURL, auth)
-		if err != nil {
-			return "", fmt.Errorf("HTTP GET %s failed: %w", originURL, err)
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode == 404 {
-			return "", NotFound
-		} else if resp.StatusCode != 200 {
-			return "", fmt.Errorf("HTTP GET %s failed with error %v", originURL, resp.StatusCode)
-		}
-
-		_, err = io.Copy(
-			// Add a progress bar during download.
-			progress.Writer(tmpfile, "Downloading", resp.ContentLength, config),
-			resp.Body)
-		progress.Finish(config)
-		if err != nil {
-			return "", fmt.Errorf("could not copy from %s to %s: %v", originURL, tmpfile.Name(), err)
-		}
-
-		err = os.Chmod(tmpfile.Name(), 0755)
-		if err != nil {
-			return "", fmt.Errorf("could not chmod file %s: %v", tmpfile.Name(), err)
-		}
-
-		tmpfile.Close()
-		err = os.Rename(tmpfile.Name(), destinationPath)
-		if err != nil {
-			return "", fmt.Errorf("could not move %s to %s: %v", tmpfile.Name(), destinationPath, err)
+	} else if config.Get("BAZELISK_NO_SIGNATURE_VERIFICATION") == "" {
+		if _, err := os.Stat(destinationSignaturePath); err != nil {
+			return DownloadArtifact{}, fmt.Errorf("%s already exists, but corresponding signature file %s does not exist or unaccessable: %v", destinationPath, destinationSignaturePath, err)
 		}
 	}
 
-	return destinationPath, nil
+	return DownloadArtifact{destinationPath, destinationSignaturePath}, nil
 }
 
 // ContentMerger is a function that merges multiple HTTP payloads into a single message.

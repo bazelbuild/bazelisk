@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -181,10 +182,10 @@ func getTrack(version string) (int, error) {
 }
 
 // DownloadLTS downloads the given Bazel LTS release (candidate) into the specified location and returns the absolute path.
-func (gcs *GCSRepo) DownloadLTS(version, destDir, destFile string, config config.Config) (string, error) {
+func (gcs *GCSRepo) DownloadLTS(version, destDir, destFile string, config config.Config) (httputil.DownloadArtifact, error) {
 	srcFile, err := platforms.DetermineBazelFilename(version, true, config)
 	if err != nil {
-		return "", err
+		return httputil.DownloadArtifact{}, err
 	}
 
 	var baseVersion, folder string
@@ -196,7 +197,7 @@ func (gcs *GCSRepo) DownloadLTS(version, destDir, destFile string, config config
 	}
 
 	url := fmt.Sprintf("%s/%s/%s/%s", ltsBaseURL, baseVersion, folder, srcFile)
-	return httputil.DownloadBinary(url, destDir, destFile, config)
+	return httputil.DownloadBinary(url, url+".sig", destDir, destFile, config)
 }
 
 // CommitRepo
@@ -218,14 +219,18 @@ func (gcs *GCSRepo) GetLastGreenCommit(bazeliskHome string) (string, error) {
 }
 
 // DownloadAtCommit downloads a Bazel binary built at the given commit into the specified location and returns the absolute path.
-func (gcs *GCSRepo) DownloadAtCommit(commit, destDir, destFile string, config config.Config) (string, error) {
+func (gcs *GCSRepo) DownloadAtCommit(commit, destDir, destFile string, config config.Config) (httputil.DownloadArtifact, error) {
 	log.Printf("Using unreleased version at commit %s", commit)
 	platform, err := platforms.GetPlatform()
 	if err != nil {
-		return "", err
+		return httputil.DownloadArtifact{}, err
 	}
 	url := fmt.Sprintf("%s/%s/%s/bazel", commitBaseURL, platform, commit)
-	return httputil.DownloadBinary(url, destDir, destFile, config)
+
+	log.Printf("No signature is available for unreleased version at commit %s, forcefully setting BAZELISK_NO_SIGNATURE_VERIFICATION=1", commit)
+	os.Setenv("BAZELISK_NO_SIGNATURE_VERIFICATION", "1")
+
+	return httputil.DownloadBinary(url, "", destDir, destFile, config)
 }
 
 // RollingRepo
@@ -266,13 +271,13 @@ func (gcs *GCSRepo) GetRollingVersions(bazeliskHome string) ([]string, error) {
 }
 
 // DownloadRolling downloads the given Bazel version into the specified location and returns the absolute path.
-func (gcs *GCSRepo) DownloadRolling(version, destDir, destFile string, config config.Config) (string, error) {
+func (gcs *GCSRepo) DownloadRolling(version, destDir, destFile string, config config.Config) (httputil.DownloadArtifact, error) {
 	srcFile, err := platforms.DetermineBazelFilename(version, true, config)
 	if err != nil {
-		return "", err
+		return httputil.DownloadArtifact{}, err
 	}
 
 	releaseVersion := strings.Split(version, "-")[0]
 	url := fmt.Sprintf("%s/%s/rolling/%s/%s", ltsBaseURL, releaseVersion, version, srcFile)
-	return httputil.DownloadBinary(url, destDir, destFile, config)
+	return httputil.DownloadBinary(url, url+".sig", destDir, destFile, config)
 }

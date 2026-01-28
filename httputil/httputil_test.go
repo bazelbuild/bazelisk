@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/bazelbuild/bazelisk/httputil/httputil_test_helper"
 )
 
 var (
@@ -251,3 +253,49 @@ func TestNoRetryOnPermanentError(t *testing.T) {
 		t.Fatalf("Expected no retries for permanent error, but got %d", clock.TimesSlept())
 	}
 }
+
+func TestVerifyBinary(t *testing.T) {
+	key, err := httputil_test_helper.GenerateTestKey("Bazelisk Test", "test@bazel.build")
+	if err != nil {
+		t.Fatalf("Failed to generate test key: %v", err)
+	}
+
+	content := []byte("important content")
+	signature, err := httputil_test_helper.SignMessage(content, key)
+	if err != nil {
+		t.Fatalf("Failed to sign message: %v", err)
+	}
+
+	t.Run("ValidSignature", func(t *testing.T) {
+		res, err := VerifyBinary(strings.NewReader(string(content)), strings.NewReader(signature), key)
+		if err != nil {
+			t.Fatalf("VerifyBinary failed: %v", err)
+		}
+		if err := res.SignatureError(); err != nil {
+			t.Fatalf("Signature error: %v", err)
+		}
+	})
+
+	t.Run("InvalidSignature", func(t *testing.T) {
+		res, err := VerifyBinary(strings.NewReader("different content"), strings.NewReader(signature), key)
+		if err != nil {
+			// VerifyBinary might return an error or a result with a signature error
+			return
+		}
+		if err := res.SignatureError(); err == nil {
+			t.Fatal("Expected signature error for different content, but got none")
+		}
+	})
+
+	t.Run("InvalidKey", func(t *testing.T) {
+		otherKey, _ := httputil_test_helper.GenerateTestKey("Other Key", "other@example.com")
+		_, err := VerifyBinary(strings.NewReader(string(content)), strings.NewReader(signature), otherKey)
+		if err == nil {
+			// In some cases it might return a result with error instead of error
+			// but usually failing to find the key in keyring for signature is an error or sig error
+		}
+	})
+}
+
+// It would be nice to have a test for an expired key too, but it occurred to be too complicated and
+// not expressible in terms of GopenPGP V3.

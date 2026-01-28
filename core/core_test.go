@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/bazelbuild/bazelisk/config"
+	"github.com/bazelbuild/bazelisk/httputil/httputil_test_helper"
 	"github.com/bazelbuild/bazelisk/platforms"
 )
 
@@ -887,4 +888,84 @@ func TestRunBazeliskWithStderrRedirection(t *testing.T) {
 	if strings.Contains(stderrContent, "stdout message") {
 		t.Error("stdout content should not appear in stderr")
 	}
+}
+
+func TestVerifyBinaryAuthenticity(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "TestVerifyBinaryAuthenticity")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	key, err := httputil_test_helper.GenerateTestKey("Bazelisk Test", "test@bazel.build")
+	if err != nil {
+		t.Fatalf("Failed to generate test key: %v", err)
+	}
+
+	binaryPath := filepath.Join(tmpDir, "bazel")
+	content := []byte("binary content")
+	if err := os.WriteFile(binaryPath, content, 0644); err != nil {
+		t.Fatalf("Failed to write binary: %v", err)
+	}
+
+	signature, err := httputil_test_helper.SignMessage(content, key)
+	if err != nil {
+		t.Fatalf("Failed to sign message: %v", err)
+	}
+	signaturePath := binaryPath + ".sig"
+	if err := os.WriteFile(signaturePath, []byte(signature), 0644); err != nil {
+		t.Fatalf("Failed to write signature: %v", err)
+	}
+
+	keyPath := filepath.Join(tmpDir, "key.pub")
+	if err := os.WriteFile(keyPath, []byte(key), 0644); err != nil {
+		t.Fatalf("Failed to write key: %v", err)
+	}
+
+	t.Run("ValidSignatureWithKeyFile", func(t *testing.T) {
+		cfg := config.Static(map[string]string{
+			"BAZELISK_VERIFICATION_KEY_FILE": keyPath,
+		})
+		err := verifyBinaryAuthenticity(binaryPath, signaturePath, cfg)
+		if err != nil {
+			t.Errorf("verifyBinaryAuthenticity failed: %v", err)
+		}
+	})
+
+	t.Run("NoSignatureVerification", func(t *testing.T) {
+		cfg := config.Static(map[string]string{
+			"BAZELISK_NO_SIGNATURE_VERIFICATION": "1",
+		})
+		// Use invalid signature path, should still pass because verification is skipped
+		err := verifyBinaryAuthenticity(binaryPath, "nonexistent.sig", cfg)
+		if err != nil {
+			t.Errorf("verifyBinaryAuthenticity should have skipped verification: %v", err)
+		}
+	})
+
+	t.Run("InvalidSignature", func(t *testing.T) {
+		cfg := config.Static(map[string]string{
+			"BAZELISK_VERIFICATION_KEY_FILE": keyPath,
+		})
+		wrongContent := []byte("wrong content")
+		wrongBinaryPath := filepath.Join(tmpDir, "bazel_wrong")
+		if err := os.WriteFile(wrongBinaryPath, wrongContent, 0644); err != nil {
+			t.Fatalf("Failed to write wrong binary: %v", err)
+		}
+
+		err := verifyBinaryAuthenticity(wrongBinaryPath, signaturePath, cfg)
+		if err == nil {
+			t.Error("Expected error for invalid signature, but got none")
+		}
+	})
+
+	t.Run("MissingKeyFile", func(t *testing.T) {
+		cfg := config.Static(map[string]string{
+			"BAZELISK_VERIFICATION_KEY_FILE": "nonexistent.key",
+		})
+		err := verifyBinaryAuthenticity(binaryPath, signaturePath, cfg)
+		if err == nil {
+			t.Error("Expected error for missing key file, but got none")
+		}
+	})
 }
