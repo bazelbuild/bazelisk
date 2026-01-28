@@ -2,9 +2,12 @@
 package httputil
 
 import (
+	"bytes"
+	_ "embed"
 	b64 "encoding/base64"
 	"errors"
 	"fmt"
+	"golang.org/x/crypto/openpgp"
 	"io"
 	"log"
 	"math/rand"
@@ -38,6 +41,9 @@ var (
 	MaxRequestDuration = time.Second * 30
 	retryHeaders       = []string{"Retry-After", "X-RateLimit-Reset", "Rate-Limit-Reset"}
 	NotFound           = errors.New("not found")
+
+	//go:embed bazel-release.pub.gpg
+	VerificationKey []byte
 )
 
 // Clock keeps track of time. It can return the current time, as well as move forward by sleeping for a certain period.
@@ -187,7 +193,7 @@ func tryFindNetrcFileCreds(host string) (string, error) {
 }
 
 // DownloadBinary downloads a file from the given URL into the specified location, marks it executable and returns its full path.
-func DownloadBinary(originURL, destDir, destFile string, config config.Config) (string, error) {
+func DownloadBinary(originURL, destDir, destFile string, config config.Config, verifySignature bool) (string, error) {
 	err := os.MkdirAll(destDir, 0755)
 	if err != nil {
 		return "", fmt.Errorf("could not create directory %s: %v", destDir, err)
@@ -245,6 +251,40 @@ func DownloadBinary(originURL, destDir, destFile string, config config.Config) (
 		err = os.Chmod(tmpfile.Name(), 0755)
 		if err != nil {
 			return "", fmt.Errorf("could not chmod file %s: %v", tmpfile.Name(), err)
+		}
+
+		if verifySignature {
+			signatureURL := originURL + ".sig"
+
+			signature, err := get(signatureURL, "")
+			if err != nil {
+				return "", fmt.Errorf("HTTP GET %s failed: %v", signatureURL, err)
+			}
+			defer signature.Body.Close()
+
+			if signature.StatusCode != 200 {
+				return "", fmt.Errorf("HTTP GET %s failed with error %v", signatureURL, signature.StatusCode)
+			}
+
+			keys, err := openpgp.ReadArmoredKeyRing(bytes.NewReader(VerificationKey))
+			if err != nil {
+				return "", fmt.Errorf("failed to load the embedded Verification Key")
+			}
+
+			if len(keys) != 1 {
+				return "", fmt.Errorf("failed to load the embedded Verification Key")
+			}
+
+			tmpfile.Seek(0, io.SeekStart)
+
+			entity, err := openpgp.CheckDetachedSignature(keys, tmpfile, signature.Body)
+			if err != nil {
+				return "", fmt.Errorf("failed to verify the downloaded file using signature from %s", signatureURL)
+			}
+
+			for _, identity := range entity.Identities {
+				log.Printf("Signed by %s", identity.Name)
+			}
 		}
 
 		tmpfile.Close()
