@@ -10,6 +10,7 @@ go_library(
         "fake.go",
         "httputil.go",
     ],
+    embedsrcs = ["bazel-release.pub.gpg"],
     importpath = "github.com/bazelbuild/bazelisk/httputil",
     visibility = ["//visibility:public"],
     deps = [
