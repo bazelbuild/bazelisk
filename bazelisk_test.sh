@@ -430,18 +430,25 @@ function test_bazel_verify_sha256() {
   # intentional to ensure the variable contents are normalized before comparison.
   # If updating these values, re-introduce randomness.
   local os="$(uname -s | tr A-Z a-z)"
-  case "${os}" in
-    darwin)
+  local arch="$(uname -m)"
+  case "${os}_${arch}" in
+    darwin_x86_64)
+      expected_sha256="6e9274042665163de666f13b87abfe187a9127ed90ff1142bf42cfd45b32cd2b"
+      ;;
+    darwin_arm64)
       expected_sha256="dae351f491ead382bfc7c14d8957b9c8d735300c566c2161e34035eab994c1f2"
       ;;
-    linux)
+    linux_x86_64)
       expected_sha256="D93508529d41136065c7b1E5ff555fbfb9d18fd00e768886F2fc7dfb53b05B43"
+      ;;
+    linux_aarch64)
+      expected_sha256="37c2d1c8ff917eba88fc68a9fc7ac0b96014f1bed653f1621de0eabc79ed0d2b"
       ;;
     msys*|mingw*|cygwin*)
       expected_sha256="9fb6f439e2eb646b9bae7bd2c0317165c0b08abc0bba25f6af53180fa1f86997"
       ;;
     *)
-      echo "FAIL: Unknown OS ${os} in test"
+      echo "FAIL: Unknown OS ${os} ARCH ${arch} in test"
       exit 1
       ;;
   esac
