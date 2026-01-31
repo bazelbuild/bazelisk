@@ -124,7 +124,7 @@ require users update their bazel.
 [shell wrapper script]: https://github.com/bazelbuild/bazel/blob/master/scripts/packages/bazel.sh
 ## Other features
 
-The Go version of Bazelisk offers three new flags.
+The Go version of Bazelisk offers the following new flags and commands:
 
 ### --strict
 
@@ -162,6 +162,14 @@ bazelisk --bisect=~6.0.0..HEAD test //foo:bar_test
 ```
 
 Note that, Bazelisk uses prebuilt Bazel binaries at commits on the main and release branches, therefore you cannot bisect your local commits.
+
+### bazeliskVersion
+
+`bazeliskVersion` prints the version of Bazelisk itself.
+
+```shell
+bazelisk bazeliskVersion
+```
 
 ### Command-line completion
 

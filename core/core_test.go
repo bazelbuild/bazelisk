@@ -821,3 +821,70 @@ func TestPrependDirToPathListWithEqualsInPath(t *testing.T) {
 		t.Error("PATH environment variable not found")
 	}
 }
+
+func TestRunBazeliskWithStderrRedirection(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Skipping on Windows due to executable format requirements")
+	}
+
+	tmpDir, err := os.MkdirTemp("", "TestRunBazeliskWithStderrRedirection")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	bazelDir := filepath.Join(tmpDir, "bazel")
+	err = os.MkdirAll(bazelDir, 0755)
+	if err != nil {
+		t.Fatalf("Failed to create bazel dir: %v", err)
+	}
+
+	mockBazelPath := filepath.Join(bazelDir, "bazel")
+	scriptContent := "#!/bin/sh\necho 'stdout message'\necho 'stderr message' >&2\nexit 0\n"
+
+	err = os.WriteFile(mockBazelPath, []byte(scriptContent), 0755)
+	if err != nil {
+		t.Fatalf("Failed to create mock bazel: %v", err)
+	}
+
+	var stdoutBuf bytes.Buffer
+	var stderrBuf bytes.Buffer
+
+	cfg := config.Static(map[string]string{
+		"USE_BAZEL_VERSION": mockBazelPath,
+		"BAZELISK_HOME":     tmpDir,
+	})
+
+	argsFunc := func(_ string) []string {
+		return []string{"version"}
+	}
+
+	repos := CreateRepositories(nil, nil, nil, nil, false)
+
+	exitCode, err := RunBazeliskWithArgsFuncAndConfigAndOutAndErr(argsFunc, repos, cfg, &stdoutBuf, &stderrBuf)
+	if err != nil {
+		t.Fatalf("RunBazeliskWithArgsFuncAndConfigAndOutAndErr failed: %v", err)
+	}
+
+	if exitCode != 0 {
+		t.Errorf("Expected exit code 0, got %d", exitCode)
+	}
+
+	stdoutContent := stdoutBuf.String()
+	if !strings.Contains(stdoutContent, "stdout message") {
+		t.Errorf("Expected stdout to contain 'stdout message', got: %q", stdoutContent)
+	}
+
+	stderrContent := stderrBuf.String()
+	if !strings.Contains(stderrContent, "stderr message") {
+		t.Errorf("Expected stderr to contain 'stderr message', got: %q", stderrContent)
+	}
+
+	if strings.Contains(stdoutContent, "stderr message") {
+		t.Error("stderr content should not appear in stdout")
+	}
+
+	if strings.Contains(stderrContent, "stdout message") {
+		t.Error("stdout content should not appear in stderr")
+	}
+}

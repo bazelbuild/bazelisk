@@ -9,13 +9,24 @@ def bazelisk_go_binaries():
         gc_linkopts = [] if os == "windows" else ["-s", "-w"]
 
         for arch in ("amd64", "arm64"):
+            binary_name = "bazelisk-%s-%s" % (os, arch)
+            binary_out = "bazelisk-%s_%s%s" % (os, arch, ext)
             go_binary(
-                name = "bazelisk-%s-%s" % (os, arch),
-                out = "bazelisk-%s_%s%s" % (os, arch, ext),
+                name = binary_name,
+                out = binary_out,
                 embed = [":bazelisk_lib"],
                 gc_linkopts = gc_linkopts,
                 goarch = arch,
                 goos = os,
                 pure = "on",
+                visibility = ["//visibility:public"],
+            )
+
+            native.genrule(
+                name = binary_name + "-sha256",
+                srcs = [binary_name],
+                outs = [binary_out + ".sha256"],
+                cmd = "$(execpath //sha256sum) $< > $@",
+                tools = ["//sha256sum"],
                 visibility = ["//visibility:public"],
             )

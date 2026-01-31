@@ -23,25 +23,43 @@ mkdir bin
 go build
 ./bazelisk build --config=release \
     //:bazelisk-darwin-amd64 \
+    //:bazelisk-darwin-amd64-sha256 \
     //:bazelisk-darwin-arm64 \
+    //:bazelisk-darwin-arm64-sha256 \
     //:bazelisk-darwin-universal \
+    //:bazelisk-darwin-universal-sha256 \
     //:bazelisk-linux-amd64 \
+    //:bazelisk-linux-amd64-sha256 \
     //:bazelisk-linux-arm64 \
+    //:bazelisk-linux-arm64-sha256 \
     //:bazelisk-windows-amd64 \
+    //:bazelisk-windows-amd64-sha256 \
     //:bazelisk-windows-arm64 \
+    //:bazelisk-windows-arm64-sha256 \
     //deb:bazelisk-amd64_deb \
-    //deb:bazelisk-arm64_deb
+    //deb:bazelisk-amd64-deb-sha256 \
+    //deb:bazelisk-arm64_deb \
+    //deb:bazelisk-arm64-deb-sha256
 echo
 
 cp bazel-out/*-opt*/bin/bazelisk-darwin_amd64 bin/bazelisk-darwin-amd64
+cp bazel-out/*-opt*/bin/bazelisk-darwin_amd64.sha256 bin/bazelisk-darwin-amd64.sha256
 cp bazel-out/*-opt*/bin/bazelisk-darwin_arm64 bin/bazelisk-darwin-arm64
+cp bazel-out/*-opt*/bin/bazelisk-darwin_arm64.sha256 bin/bazelisk-darwin-arm64.sha256
 cp bazel-out/*-opt*/bin/bazelisk-darwin_universal bin/bazelisk-darwin
+cp bazel-out/*-opt*/bin/bazelisk-darwin_universal.sha256 bin/bazelisk-darwin.sha256
 cp bazel-out/*-opt*/bin/bazelisk-linux_amd64 bin/bazelisk-linux-amd64
+cp bazel-out/*-opt*/bin/bazelisk-linux_amd64.sha256 bin/bazelisk-linux-amd64.sha256
 cp bazel-out/*-opt*/bin/bazelisk-linux_arm64 bin/bazelisk-linux-arm64
+cp bazel-out/*-opt*/bin/bazelisk-linux_arm64.sha256 bin/bazelisk-linux-arm64.sha256
 cp bazel-out/*-opt*/bin/bazelisk-windows_amd64.exe bin/bazelisk-windows-amd64.exe
+cp bazel-out/*-opt*/bin/bazelisk-windows_amd64.exe.sha256 bin/bazelisk-windows-amd64.exe.sha256
 cp bazel-out/*-opt*/bin/bazelisk-windows_arm64.exe bin/bazelisk-windows-arm64.exe
+cp bazel-out/*-opt*/bin/bazelisk-windows_arm64.exe.sha256 bin/bazelisk-windows-arm64.exe.sha256
 cp bazel-out/*-opt*/bin/deb/bazelisk-amd64.deb bin/bazelisk-amd64.deb
+cp bazel-out/*-opt*/bin/deb/bazelisk-amd64.deb.sha256 bin/bazelisk-amd64.deb.sha256
 cp bazel-out/*-opt*/bin/deb/bazelisk-arm64.deb bin/bazelisk-arm64.deb
+cp bazel-out/*-opt*/bin/deb/bazelisk-arm64.deb.sha256 bin/bazelisk-arm64.deb.sha256
 rm -f bazelisk
 
 ### Build release artifacts using `go build`.

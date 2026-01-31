@@ -92,6 +92,15 @@ genrule(
     ],
 )
 
+genrule(
+    name = "bazelisk-darwin-universal-sha256",
+    srcs = [":bazelisk-darwin-universal"],
+    outs = ["bazelisk-darwin_universal.sha256"],
+    cmd = "$(execpath //sha256sum) $< > $@",
+    tools = ["//sha256sum"],
+    visibility = ["//visibility:public"],
+)
+
 stamped_package_json(
     name = "package",
     # This key is defined by /stamp.sh
@@ -106,11 +115,17 @@ npm_package(
         "bazelisk.d.ts",
         "bazelisk.js",
         ":bazelisk-darwin-amd64",
+        ":bazelisk-darwin-amd64-sha256",
         ":bazelisk-darwin-arm64",
+        ":bazelisk-darwin-arm64-sha256",
         ":bazelisk-linux-amd64",
+        ":bazelisk-linux-amd64-sha256",
         ":bazelisk-linux-arm64",
+        ":bazelisk-linux-arm64-sha256",
         ":bazelisk-windows-amd64",
+        ":bazelisk-windows-amd64-sha256",
         ":bazelisk-windows-arm64",
+        ":bazelisk-windows-arm64-sha256",
         ":package",
     ],
     package = "@bazel/bazelisk",
