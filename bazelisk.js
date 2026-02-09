@@ -61,7 +61,7 @@ function main(args) {
 
     // set shutdown timeout
     setTimeout(() => {
-      console.error(`Child did not exit in ${shutdown_timeout}us, forcing exit.`);
+      console.error(`Child did not exit in ${shutdown_timeout}ms, forcing exit.`);
       ps.kill("SIGKILL");
       process.exit();
     }, shutdown_timeout);
