@@ -441,11 +441,17 @@ func downloadBazel(bazelVersionString string, bazeliskHome string, repos *Reposi
 //	downloads/metadata/[fork-or-url]/bazel-[version-os-etc] is a text file containing a hex sha256 of the contents of the downloaded bazel file.
 //	downloads/sha256/[sha256]/bin/bazel[extension] contains the bazel with a particular sha256.
 func downloadBazelIfNecessary(version string, bazeliskHome string, bazelForkOrURLDirName string, repos *Repositories, config config.Config, downloader DownloadFunc) (string, error) {
-	pathSegment, err := platforms.DetermineBazelFilename(version, false, config)
+	osName, err := platforms.DetermineOperatingSystem()
 	if err != nil {
-		return "", fmt.Errorf("could not determine path segment to use for Bazel binary: %v", err)
+		return "", fmt.Errorf("could not determine operating system: %v", err)
 	}
+	arch, err := platforms.DetermineArchitecture(osName, version)
+	if err != nil {
+		return "", fmt.Errorf("could not determine architecture: %v", err)
+	}
+	isNojdk := platforms.IsNojdkEnabled(config)
 
+	pathSegment := platforms.FormatBazelFilename(version, false, osName, arch, isNojdk)
 	destFile := "bazel" + platforms.DetermineExecutableFilenameSuffix()
 
 	mappingPath := filepath.Join(bazeliskHome, "downloads", "metadata", bazelForkOrURLDirName, pathSegment)
@@ -462,7 +468,7 @@ func downloadBazelIfNecessary(version string, bazeliskHome string, bazelForkOrUR
 		return "", fmt.Errorf("failed to download bazel: %w", err)
 	}
 
-	expectedSha256 := strings.ToLower(config.Get("BAZELISK_VERIFY_SHA256"))
+	expectedSha256 := getExpectedSHA256(config, osName, arch, isNojdk)
 	if len(expectedSha256) > 0 {
 		if expectedSha256 != downloadedDigest {
 			return "", fmt.Errorf("%s has sha256=%s but need sha256=%s", pathToBazelInCAS, downloadedDigest, expectedSha256)
@@ -1507,4 +1513,22 @@ func extractCompletionScriptsFromZip(zipData []byte) (map[string]string, error) 
 	// Fish completion is optional (older Bazel versions might not have it)
 
 	return completionScripts, nil
+}
+
+// getExpectedSHA256 returns the expected SHA256 hash for verification.
+// It checks platform-specific keys first, then falls back to the generic key.
+// Returns empty string if no hash is configured.
+// TODO(#767): Normalize hash values at the config layer to avoid repetitive ToLower calls.
+func getExpectedSHA256(cfg config.Config, osName, arch string, nojdk bool) string {
+	suffix := strings.ToUpper(osName) + "_" + strings.ToUpper(arch)
+
+	if nojdk {
+		if hash := cfg.Get("BAZELISK_VERIFY_SHA256_NOJDK_" + suffix); hash != "" {
+			return strings.ToLower(hash)
+		}
+	}
+	if hash := cfg.Get("BAZELISK_VERIFY_SHA256_" + suffix); hash != "" {
+		return strings.ToLower(hash)
+	}
+	return strings.ToLower(cfg.Get("BAZELISK_VERIFY_SHA256"))
 }
