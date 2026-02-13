@@ -176,7 +176,7 @@ func RunBazeliskWithArgsFuncAndConfigAndOutAndErr(argsFunc ArgsFunc, repos *Repo
 	}
 
 	// handle completion command
-	if isCompletionCommand(args) {
+	if isCompletionCommand(args) && config.Get("BAZELISK_DISABLE_COMPLETION") == "" {
 		err := handleCompletionCommand(args, bazelInstallation, config)
 		if err != nil {
 			if errors.Is(err, httputil.NotFound) {
