@@ -5,6 +5,8 @@ go 1.24.0
 toolchain go1.24.2
 
 require (
+	github.com/ProtonMail/go-crypto v1.3.0
+	github.com/ProtonMail/gopenpgp/v3 v3.3.0
 	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d
 	github.com/gofrs/flock v0.13.0
 	github.com/hashicorp/go-version v1.7.0
@@ -12,4 +14,8 @@ require (
 	golang.org/x/term v0.39.0
 )
 
-require golang.org/x/sys v0.40.0 // indirect
+require (
+	github.com/cloudflare/circl v1.6.1 // indirect
+	golang.org/x/crypto v0.45.0 // indirect
+	golang.org/x/sys v0.40.0 // indirect
+)

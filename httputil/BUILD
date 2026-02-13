@@ -10,6 +10,9 @@ go_library(
         "fake.go",
         "httputil.go",
     ],
+    embedsrcs = [
+        "bazel_key.pub.gpg",
+    ],
     importpath = "github.com/bazelbuild/bazelisk/httputil",
     visibility = ["//visibility:public"],
     deps = [
@@ -17,11 +20,17 @@ go_library(
         "//httputil/progress",
         "@com_github_bgentry_go_netrc//netrc",
         "@com_github_mitchellh_go_homedir//:go-homedir",
+        "@com_github_protonmail_gopenpgp_v3//crypto",
     ],
 )
 
 go_test(
     name = "httputil_test",
-    srcs = ["httputil_test.go"],
+    srcs = [
+        "httputil_test.go",
+    ],
     embed = [":httputil"],
+    deps = [
+        "//httputil/httputil_test_helper",
+    ],
 )
