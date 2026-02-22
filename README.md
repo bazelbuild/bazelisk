@@ -243,7 +243,7 @@ You can control the user agent that Bazelisk sends in all HTTP requests by setti
 
 You can set the Authorization header that Bazelisk sends in all HTTP requests by setting `BAZELISK_AUTH_HEADER` to the desired value.
 ```shell
-export BAZELISK_AUTH_HEADER="bearer <your_token_here>"
+export BAZELISK_AUTH_HEADER="Bearer <your_token_here>"
 ```
 
 # .bazeliskrc configuration file
@@ -274,6 +274,7 @@ The following variables can be set:
 - `BAZELISK_SHUTDOWN`
 - `BAZELISK_SKIP_WRAPPER`
 - `BAZELISK_USER_AGENT`
+- `BAZELISK_AUTH_HEADER`
 - `BAZELISK_VERIFY_SHA256`
 - `USE_BAZEL_VERSION`
 
