@@ -326,11 +326,7 @@ func getUserAgent(config config.Config) string {
 }
 
 func getAuthHeader(config config.Config) string {
-	auth_header := config.Get("BAZELISK_AUTH_HEADER")
-	if len(auth_header) > 0 {
-		return auth_header
-	}
-	return ""
+	return config.Get("BAZELISK_AUTH_HEADER")
 }
 
 // GetBazelVersion returns the Bazel version that should be used.
