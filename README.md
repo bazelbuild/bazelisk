@@ -241,6 +241,11 @@ This behavior can be disabled by setting the environment variable `BAZELISK_SKIP
 
 You can control the user agent that Bazelisk sends in all HTTP requests by setting `BAZELISK_USER_AGENT` to the desired value.
 
+You can set the Authorization header that Bazelisk sends in all HTTP requests by setting `BAZELISK_AUTH_HEADER` to the desired value.
+```shell
+export BAZELISK_AUTH_HEADER="bearer <your_token_here>"
+```
+
 # .bazeliskrc configuration file
 
 A `.bazeliskrc` file in the root directory of a workspace or the user home directory allows users to set environment variables persistently. (The Python implementation of Bazelisk doesn't check the user home directory yet, only the workspace directory.)

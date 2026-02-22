@@ -28,6 +28,8 @@ var (
 	DefaultTransport = http.DefaultTransport
 	// UserAgent is passed to every HTTP request as part of the 'User-Agent' header.
 	UserAgent   = "Bazelisk"
+	// AuthHeader is optionally set to a value that is passed as part of the 'Authorization' header in HTTP requests.
+	AuthHeader  = ""
 	linkPattern = regexp.MustCompile(`<(.*?)>; rel="(\w+)"`)
 
 	// RetryClock is used for waiting between HTTP request retries.
@@ -215,10 +217,16 @@ func DownloadBinary(originURL, destDir, destFile string, config config.Config) (
 		log.Printf("Downloading %s...", originURL)
 
 		var auth string = ""
-		t, err := tryFindNetrcFileCreds(u.Host)
-		if err == nil {
-			// successfully parsed netrc for given host
-			auth = t
+		if AuthHeader != "" {
+			// If AuthHeader is set, use it as the Authorization header.
+			log.Printf("Authorization header is set using BAZELISK_AUTH_HEADER, using it for %s", u.Host)
+			auth = AuthHeader
+		} else {
+			t, err := tryFindNetrcFileCreds(u.Host)
+			if err == nil {
+				// successfully parsed netrc for given host
+				auth = t
+			}
 		}
 
 		resp, err := get(originURL, auth)
