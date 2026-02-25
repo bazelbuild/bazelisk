@@ -9,6 +9,7 @@ require (
 	github.com/gofrs/flock v0.13.0
 	github.com/hashicorp/go-version v1.7.0
 	github.com/mitchellh/go-homedir v1.1.0
+	golang.org/x/crypto v0.47.0
 	golang.org/x/term v0.39.0
 )
 

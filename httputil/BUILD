@@ -10,6 +10,7 @@ go_library(
         "fake.go",
         "httputil.go",
     ],
+    embedsrcs = ["bazel-release.pub.gpg"],
     importpath = "github.com/bazelbuild/bazelisk/httputil",
     visibility = ["//visibility:public"],
     deps = [
@@ -17,6 +18,7 @@ go_library(
         "//httputil/progress",
         "@com_github_bgentry_go_netrc//netrc",
         "@com_github_mitchellh_go_homedir//:go-homedir",
+        "@org_golang_x_crypto//openpgp:go_default_library",
     ],
 )
 

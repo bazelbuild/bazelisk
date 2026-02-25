@@ -196,7 +196,7 @@ func (gcs *GCSRepo) DownloadLTS(version, destDir, destFile string, config config
 	}
 
 	url := fmt.Sprintf("%s/%s/%s/%s", ltsBaseURL, baseVersion, folder, srcFile)
-	return httputil.DownloadBinary(url, destDir, destFile, config)
+	return httputil.DownloadBinary(url, destDir, destFile, config, true)
 }
 
 // CommitRepo
@@ -225,7 +225,7 @@ func (gcs *GCSRepo) DownloadAtCommit(commit, destDir, destFile string, config co
 		return "", err
 	}
 	url := fmt.Sprintf("%s/%s/%s/bazel", commitBaseURL, platform, commit)
-	return httputil.DownloadBinary(url, destDir, destFile, config)
+	return httputil.DownloadBinary(url, destDir, destFile, config, false)
 }
 
 // RollingRepo
@@ -274,5 +274,5 @@ func (gcs *GCSRepo) DownloadRolling(version, destDir, destFile string, config co
 
 	releaseVersion := strings.Split(version, "-")[0]
 	url := fmt.Sprintf("%s/%s/rolling/%s/%s", ltsBaseURL, releaseVersion, version, srcFile)
-	return httputil.DownloadBinary(url, destDir, destFile, config)
+	return httputil.DownloadBinary(url, destDir, destFile, config, true)
 }
