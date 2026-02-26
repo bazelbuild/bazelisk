@@ -86,6 +86,8 @@ The URL format looks like `https://github.com/<FORK>/bazel/releases/download/<VE
 
 You can also override the URL by setting the environment variable `$BAZELISK_BASE_URL`. Bazelisk will then append `/<VERSION>/<FILENAME>` to the base URL instead of using the official release server. Bazelisk will read file [`~/.netrc`](https://everything.curl.dev/usingcurl/netrc) for credentials for Basic authentication.
 
+If you want to use the releases stored on the local disk, set the URL as `file://` followed by the local disk path. On Windows, escape `\` in the path by `%5C`.
+
 If for any reason none of this works, you can also override the URL format altogether by setting the environment variable `$BAZELISK_FORMAT_URL`. This variable takes a format-like string with placeholders and performs the following replacements to compute the download URL:
 
 - `%e`: Extension suffix, such as the empty string or `.exe`.
