@@ -353,6 +353,59 @@ func TestIsCompletionCommand(t *testing.T) {
 	}
 }
 
+func TestDisableCompletionConfig(t *testing.T) {
+	testCases := []struct {
+		name           string
+		args           []string
+		configValue    string
+		shouldIntercept bool
+	}{
+		{
+			name:           "completion intercepted by default",
+			args:           []string{"completion", "bash"},
+			configValue:    "",
+			shouldIntercept: true,
+		},
+		{
+			name:           "completion disabled with config",
+			args:           []string{"completion", "bash"},
+			configValue:    "1",
+			shouldIntercept: false,
+		},
+		{
+			name:           "completion disabled with any non-empty value",
+			args:           []string{"completion", "zsh"},
+			configValue:    "true",
+			shouldIntercept: false,
+		},
+		{
+			name:           "non-completion command unaffected",
+			args:           []string{"build", "//..."},
+			configValue:    "",
+			shouldIntercept: false,
+		},
+		{
+			name:           "non-completion command unaffected with config",
+			args:           []string{"build", "//..."},
+			configValue:    "1",
+			shouldIntercept: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := config.Static(map[string]string{
+				"BAZELISK_DISABLE_COMPLETION": tc.configValue,
+			})
+			result := isCompletionCommand(tc.args) && cfg.Get("BAZELISK_DISABLE_COMPLETION") == ""
+			if result != tc.shouldIntercept {
+				t.Errorf("completion interception for args=%v, BAZELISK_DISABLE_COMPLETION=%q: got %v, want %v",
+					tc.args, tc.configValue, result, tc.shouldIntercept)
+			}
+		})
+	}
+}
+
 func TestConstructInstallerURL(t *testing.T) {
 	testCases := []struct {
 		name        string
