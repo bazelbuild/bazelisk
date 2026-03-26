@@ -193,12 +193,22 @@ func tryFindNetrcFileCreds(host string) (string, error) {
 }
 
 // DownloadBinary downloads a file from the given URL into the specified location, marks it executable and returns its full path.
+// Supports http://, https://, and file:// URL schemes. For file:// URLs, returns NotFound if the file does not exist.
 func DownloadBinary(originURL, destDir, destFile string, config config.Config, verifySignature bool) (string, error) {
 	err := os.MkdirAll(destDir, 0755)
 	if err != nil {
 		return "", fmt.Errorf("could not create directory %s: %v", destDir, err)
 	}
 	destinationPath := filepath.Join(destDir, destFile)
+
+	u, err := url.Parse(originURL)
+	if err != nil {
+		return "", err
+	}
+
+	if u.Scheme == "file" {
+		return downloadFromLocalFile(u.Path, destinationPath)
+	}
 
 	if _, err := os.Stat(destinationPath); err != nil {
 		tmpfile, err := os.CreateTemp(destDir, "download")
@@ -211,12 +221,6 @@ func DownloadBinary(originURL, destDir, destFile string, config config.Config, v
 				os.Remove(tmpfile.Name())
 			}
 		}()
-
-		u, err := url.Parse(originURL)
-		if err != nil {
-			// originURL supposed to be valid
-			return "", err
-		}
 
 		log.Printf("Downloading %s...", originURL)
 
@@ -294,6 +298,30 @@ func DownloadBinary(originURL, destDir, destFile string, config config.Config, v
 		}
 	}
 
+	return destinationPath, nil
+}
+
+// downloadFromLocalFile copies a local file to destinationPath, marking it executable.
+// Returns NotFound if the source file does not exist.
+func downloadFromLocalFile(srcPath, destinationPath string) (string, error) {
+	if _, err := os.Stat(srcPath); os.IsNotExist(err) {
+		return "", NotFound
+	}
+	src, err := os.Open(srcPath)
+	if err != nil {
+		return "", fmt.Errorf("could not open %s: %v", srcPath, err)
+	}
+	defer src.Close()
+
+	dst, err := os.OpenFile(destinationPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0755)
+	if err != nil {
+		return "", fmt.Errorf("could not create %s: %v", destinationPath, err)
+	}
+	defer dst.Close()
+
+	if _, err := io.Copy(dst, src); err != nil {
+		return "", fmt.Errorf("could not copy %s to %s: %v", srcPath, destinationPath, err)
+	}
 	return destinationPath, nil
 }
 

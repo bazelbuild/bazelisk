@@ -310,7 +310,23 @@ def normalized_machine_arch_name():
     return machine
 
 
-def determine_url(version, is_commit, bazel_filename):
+def parse_base_urls():
+    """Returns a list of base URLs to try for downloading Bazel.
+
+    BAZELISK_BASE_URLS (comma-separated) takes precedence over BAZELISK_BASE_URL.
+    Supports http://, https://, and file:// schemes.
+    Returns an empty list if neither variable is set (upstream is used).
+    """
+    urls_value = get_env_or_config("BAZELISK_BASE_URLS")
+    if urls_value is not None:
+        return [u.strip() for u in urls_value.split(",") if u.strip()]
+    single_url = get_env_or_config("BAZELISK_BASE_URL")
+    if single_url is not None:
+        return [single_url]
+    return []
+
+
+def determine_url(version, is_commit, bazel_filename, base_url=None):
     if is_commit:
         sys.stderr.write("Using unreleased version at commit {}\n".format(version))
         # No need to validate the platform thanks to determine_bazel_filename().
@@ -323,9 +339,8 @@ def determine_url(version, is_commit, bazel_filename):
     # Example: '0.19.1' -> ('0.19.1', None), '0.20.0rc1' -> ('0.20.0', 'rc1')
     (version, rc) = re.match(r"(\d*\.\d*(?:\.\d*)?)(rc\d+)?", version).groups()
 
-    bazelisk_base_url = get_env_or_config("BAZELISK_BASE_URL")
-    if bazelisk_base_url is not None:
-        return "{}/{}{}/{}".format(bazelisk_base_url, version, rc if rc else "", bazel_filename)
+    if base_url is not None:
+        return "{}/{}{}/{}".format(base_url, version, rc if rc else "", bazel_filename)
     else:
         return "https://releases.bazel.build/{}/{}/{}".format(
             version, rc if rc else "release", bazel_filename
