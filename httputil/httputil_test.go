@@ -265,9 +265,6 @@ func TestDownloadBinaryFromFileURL(t *testing.T) {
 	}
 
 	destDir := t.TempDir()
-	// Use forward slashes; DownloadBinary normalizes Windows paths like
-	// file://C:/... into the valid file:///C:/... form before parsing.
-	// originURL := "file://" + filepath.ToSlash(srcFile)
 	originURL := "file://" + srcFile
 
 	got, err := DownloadBinary(originURL, destDir, "bazel", config.Null(), false)
