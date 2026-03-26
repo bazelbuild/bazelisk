@@ -207,7 +207,7 @@ func DownloadBinary(originURL, destDir, destFile string, config config.Config, v
 	}
 
 	if u.Scheme == "file" {
-		return downloadFromLocalFile(u.Path, destinationPath)
+		return copyFromLocalDisk(u.Path, destinationPath)
 	}
 
 	if _, err := os.Stat(destinationPath); err != nil {
@@ -301,9 +301,9 @@ func DownloadBinary(originURL, destDir, destFile string, config config.Config, v
 	return destinationPath, nil
 }
 
-// downloadFromLocalFile copies a local file to destinationPath, marking it executable.
+// copyFromLocalDisk copies a local file to destinationPath, marking it executable.
 // Returns NotFound if the source file does not exist.
-func downloadFromLocalFile(srcPath, destinationPath string) (string, error) {
+func copyFromLocalDisk(srcPath, destinationPath string) (string, error) {
 	if _, err := os.Stat(srcPath); os.IsNotExist(err) {
 		return "", NotFound
 	}
