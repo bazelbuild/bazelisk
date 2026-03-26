@@ -356,7 +356,6 @@ def trim_suffix(string, suffix):
 
 def download_bazel_into_directory(version, is_commit, directory):
     bazel_filename = determine_bazel_filename(version)
-    bazel_url = determine_url(version, is_commit, bazel_filename)
 
     filename_suffix = determine_executable_filename_suffix()
     bazel_directory_name = trim_suffix(bazel_filename, filename_suffix)
@@ -365,7 +364,28 @@ def download_bazel_into_directory(version, is_commit, directory):
 
     destination_path = os.path.join(destination_dir, "bazel" + filename_suffix)
     if not os.path.exists(destination_path):
-        download(bazel_url, destination_path)
+        base_urls = parse_base_urls()
+        if base_urls:
+            errors = []
+            for base_url in base_urls:
+                url = determine_url(version, is_commit, bazel_filename, base_url)
+                try:
+                    download(url, destination_path)
+                    break
+                except Exception as e:
+                    sys.stderr.write("Could not download Bazel from {}: {}\n".format(url, e))
+                    errors.append("{}: {}".format(url, e))
+                    if os.path.exists(destination_path):
+                        os.remove(destination_path)
+            else:
+                raise Exception(
+                    "Could not download Bazel from any URL in BAZELISK_BASE_URLS: {}".format(
+                        "; ".join(errors)
+                    )
+                )
+        else:
+            bazel_url = determine_url(version, is_commit, bazel_filename)
+            download(bazel_url, destination_path)
         os.chmod(destination_path, 0o755)
 
     sha256_path = destination_path + ".sha256"
@@ -404,8 +424,12 @@ def download_bazel_into_directory(version, is_commit, directory):
 def download(url, destination_path):
     sys.stderr.write("Downloading {}...\n".format(url))
     request = Request(url)
-    if get_env_or_config("BAZELISK_BASE_URL") is not None:
-        parts = urlparse(url)
+    parts = urlparse(url)
+    using_custom_url = (
+        get_env_or_config("BAZELISK_BASE_URL") is not None
+        or get_env_or_config("BAZELISK_BASE_URLS") is not None
+    )
+    if using_custom_url and parts.scheme != "file":
         creds = None
         try:
             creds = netrc.netrc().hosts.get(parts.netloc)
