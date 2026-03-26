@@ -17,6 +17,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	netrc "github.com/bgentry/go-netrc/netrc"
@@ -201,13 +202,30 @@ func DownloadBinary(originURL, destDir, destFile string, config config.Config, v
 	}
 	destinationPath := filepath.Join(destDir, destFile)
 
+	// Normalize file:// URLs before parsing. On Windows, a raw path like
+	// file://C:\foo is not a valid URL (C is parsed as host, :\foo as invalid
+	// port). Convert to file:///C:/foo so url.Parse succeeds.
+	if strings.HasPrefix(originURL, "file://") {
+		rest := originURL[len("file://"):]
+		if len(rest) > 0 && rest[0] != '/' {
+			originURL = "file:///" + filepath.ToSlash(rest)
+		}
+	}
+
 	u, err := url.Parse(originURL)
 	if err != nil {
 		return "", err
 	}
 
 	if u.Scheme == "file" {
-		return copyFromLocalDisk(u.Path, destinationPath)
+		// Convert the URL path back to an OS-native path.
+		// url.Parse("file:///C:/foo") gives u.Path = "/C:/foo" on all platforms;
+		// on Windows we strip the leading separator before the drive letter.
+		localPath := filepath.FromSlash(u.Path)
+		if len(localPath) > 2 && (localPath[0] == '/' || localPath[0] == '\\') && localPath[2] == ':' {
+			localPath = localPath[1:]
+		}
+		return copyFromLocalDisk(localPath, destinationPath)
 	}
 
 	if _, err := os.Stat(destinationPath); err != nil {
