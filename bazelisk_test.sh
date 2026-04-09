@@ -274,8 +274,8 @@ function test_bazel_last_green() {
       BAZELISK_HOME="$BAZELISK_HOME" \
       bazelisk version 2>&1 | tee log
 
-  ! grep "Build label:" log || \
-      (echo "FAIL: 'bazelisk version' of an unreleased binary must not print a build label."; exit 1)
+  grep -E "^Build label: [0-9]+\.[0-9]+\.[0-9]+-pre-[0-9a-fA-F]+$" log || \
+      (echo "FAIL: Expected to find pre-release 'Build label' in the output of 'bazelisk version'"; exit 1)
 }
 
 function test_BAZELISK_NOJDK() {
