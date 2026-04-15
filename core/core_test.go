@@ -888,3 +888,65 @@ func TestRunBazeliskWithStderrRedirection(t *testing.T) {
 		t.Error("stdout content should not appear in stderr")
 	}
 }
+
+func TestParseBaseURLs(t *testing.T) {
+	tests := []struct {
+		name string
+		env  map[string]string
+		want []string
+	}{
+		{
+			name: "neither env var set",
+			env:  map[string]string{},
+			want: nil,
+		},
+		{
+			name: "single URL via BAZELISK_BASE_URL",
+			env:  map[string]string{BaseURLEnv: "https://example.com/bazel"},
+			want: []string{"https://example.com/bazel"},
+		},
+		{
+			name: "single URL via BAZELISK_BASE_URLS",
+			env:  map[string]string{BaseURLsEnv: "https://example.com/bazel"},
+			want: []string{"https://example.com/bazel"},
+		},
+		{
+			name: "multiple URLs via BAZELISK_BASE_URLS",
+			env:  map[string]string{BaseURLsEnv: "file:///opt/cache,https://corp.example.com,https://releases.bazel.build"},
+			want: []string{"file:///opt/cache", "https://corp.example.com", "https://releases.bazel.build"},
+		},
+		{
+			name: "BAZELISK_BASE_URLS with spaces around commas",
+			env:  map[string]string{BaseURLsEnv: "file:///opt/cache , https://corp.example.com"},
+			want: []string{"file:///opt/cache", "https://corp.example.com"},
+		},
+		{
+			name: "BAZELISK_BASE_URLS takes precedence over BAZELISK_BASE_URL",
+			env: map[string]string{
+				BaseURLEnv:  "https://old.example.com",
+				BaseURLsEnv: "https://new.example.com",
+			},
+			want: []string{"https://new.example.com"},
+		},
+		{
+			name: "BAZELISK_BASE_URLS ignores empty entries",
+			env:  map[string]string{BaseURLsEnv: ",https://example.com,,"},
+			want: []string{"https://example.com"},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := config.Static(tc.env)
+			got := parseBaseURLs(cfg)
+			if len(got) != len(tc.want) {
+				t.Fatalf("parseBaseURLs() = %v, want %v", got, tc.want)
+			}
+			for i := range got {
+				if got[i] != tc.want[i] {
+					t.Errorf("parseBaseURLs()[%d] = %q, want %q", i, got[i], tc.want[i])
+				}
+			}
+		})
+	}
+}
