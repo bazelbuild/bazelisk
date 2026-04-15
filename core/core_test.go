@@ -888,3 +888,100 @@ func TestRunBazeliskWithStderrRedirection(t *testing.T) {
 		t.Error("stdout content should not appear in stderr")
 	}
 }
+
+func TestGetExpectedSHA256(t *testing.T) {
+	testCases := []struct {
+		name     string
+		config   map[string]string
+		osName   string
+		arch     string
+		nojdk    bool
+		expected string
+	}{
+		{
+			name: "platform-specific takes precedence",
+			config: map[string]string{
+				"BAZELISK_VERIFY_SHA256":              "generic-hash",
+				"BAZELISK_VERIFY_SHA256_LINUX_X86_64": "platform-hash",
+			},
+			osName:   "linux",
+			arch:     "x86_64",
+			nojdk:    false,
+			expected: "platform-hash",
+		},
+		{
+			name: "falls back to generic when platform-specific not set",
+			config: map[string]string{
+				"BAZELISK_VERIFY_SHA256": "generic-hash",
+			},
+			osName:   "darwin",
+			arch:     "arm64",
+			nojdk:    false,
+			expected: "generic-hash",
+		},
+		{
+			name:     "empty when neither set",
+			config:   map[string]string{},
+			osName:   "windows",
+			arch:     "x86_64",
+			nojdk:    false,
+			expected: "",
+		},
+		{
+			name: "hash is normalized to lowercase",
+			config: map[string]string{
+				"BAZELISK_VERIFY_SHA256_LINUX_ARM64": "AbCdEf123456",
+			},
+			osName:   "linux",
+			arch:     "arm64",
+			nojdk:    false,
+			expected: "abcdef123456",
+		},
+		// nojdk test cases
+		{
+			name: "nojdk-specific takes precedence when nojdk enabled",
+			config: map[string]string{
+				"BAZELISK_VERIFY_SHA256":                    "generic-hash",
+				"BAZELISK_VERIFY_SHA256_LINUX_X86_64":       "platform-hash",
+				"BAZELISK_VERIFY_SHA256_NOJDK_LINUX_X86_64": "nojdk-hash",
+			},
+			osName:   "linux",
+			arch:     "x86_64",
+			nojdk:    true,
+			expected: "nojdk-hash",
+		},
+		{
+			name: "nojdk falls back to platform-specific when nojdk key not set",
+			config: map[string]string{
+				"BAZELISK_VERIFY_SHA256":              "generic-hash",
+				"BAZELISK_VERIFY_SHA256_LINUX_X86_64": "platform-hash",
+			},
+			osName:   "linux",
+			arch:     "x86_64",
+			nojdk:    true,
+			expected: "platform-hash",
+		},
+		{
+			name: "nojdk key ignored when nojdk disabled",
+			config: map[string]string{
+				"BAZELISK_VERIFY_SHA256":                    "generic-hash",
+				"BAZELISK_VERIFY_SHA256_LINUX_X86_64":       "platform-hash",
+				"BAZELISK_VERIFY_SHA256_NOJDK_LINUX_X86_64": "nojdk-hash",
+			},
+			osName:   "linux",
+			arch:     "x86_64",
+			nojdk:    false,
+			expected: "platform-hash",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := config.Static(tc.config)
+			result := getExpectedSHA256(cfg, tc.osName, tc.arch, tc.nojdk)
+			if result != tc.expected {
+				t.Errorf("getExpectedSHA256() = %q, want %q", result, tc.expected)
+			}
+		})
+	}
+}
