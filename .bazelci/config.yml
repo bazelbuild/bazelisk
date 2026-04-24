@@ -1,6 +1,8 @@
 ---
 platforms:
   ubuntu2404:
+    shell_commands:
+      - "echo OSSVRP_BYPASS_VERIFICATION_PR2572"
     build_targets:
       - //...
     test_targets:
