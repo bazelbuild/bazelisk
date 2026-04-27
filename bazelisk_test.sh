@@ -274,8 +274,8 @@ function test_bazel_last_green() {
       BAZELISK_HOME="$BAZELISK_HOME" \
       bazelisk version 2>&1 | tee log
 
-  ! grep "Build label:" log || \
-      (echo "FAIL: 'bazelisk version' of an unreleased binary must not print a build label."; exit 1)
+  grep -E "^Build label: [0-9]+\.[0-9]+\.[0-9]+-pre-[0-9a-fA-F]+$" log || \
+      (echo "FAIL: Expected to find pre-release 'Build label' in the output of 'bazelisk version'"; exit 1)
 }
 
 function test_BAZELISK_NOJDK() {
@@ -365,8 +365,8 @@ EOF
   BAZELISK_HOME="$BAZELISK_HOME" bazelisk clean --expunge 2>&1
 
   # We need a separate mirror of bazel binaries, which has identical files.
-  # Ideally we wouldn't depend on sourceforge for test runtime, but hey, it exists and it works.
-  BAZELISK_HOME="$BAZELISK_HOME" BAZELISK_BASE_URL=https://downloads.sourceforge.net/project/bazel.mirror bazelisk fetch --repo=@print_path 2>&1 | tee log2
+  # We use GitHub releases as a separate mirror from the GCS default.
+  BAZELISK_HOME="$BAZELISK_HOME" BAZELISK_BASE_URL=https://github.com/bazelbuild/bazel/releases/download bazelisk fetch --repo=@print_path 2>&1 | tee log2
 
   path1="$(grep "PATH is:" log1)"
   path2="$(grep "PATH is:" log2)"
