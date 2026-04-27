@@ -473,6 +473,25 @@ func parseBazelForkAndVersion(bazelForkAndVersion string) (string, string, error
 	return bazelFork, bazelVersion, nil
 }
 
+// parseBaseURLs returns the list of base URLs to try for downloading Bazel.
+// BAZELISK_BASE_URLS (comma-separated) takes precedence over BAZELISK_BASE_URL (single URL).
+func parseBaseURLs(config config.Config) []string {
+	if urls := config.Get(BaseURLsEnv); urls != "" {
+		var result []string
+		for _, u := range strings.Split(urls, ",") {
+			u = strings.TrimSpace(u)
+			if u != "" {
+				result = append(result, u)
+			}
+		}
+		return result
+	}
+	if u := config.Get(BaseURLEnv); u != "" {
+		return []string{u}
+	}
+	return nil
+}
+
 func downloadBazel(bazelVersionString string, bazeliskHome string, repos *Repositories, config config.Config) (string, error) {
 	bazelFork, bazelVersion, err := parseBazelForkAndVersion(bazelVersionString)
 	if err != nil {
@@ -484,17 +503,14 @@ func downloadBazel(bazelVersionString string, bazeliskHome string, repos *Reposi
 		return "", fmt.Errorf("could not resolve the version '%s' to an actual version number: %v", bazelVersion, err)
 	}
 
-	bazelForkOrURL := dirForURL(config.Get(BaseURLEnv))
-	if len(bazelForkOrURL) == 0 {
-		bazelForkOrURL = bazelFork
-	}
+	baseURLs := parseBaseURLs(config)
 
-	bazelPath, err := downloadBazelIfNecessary(resolvedBazelVersion, bazeliskHome, bazelForkOrURL, repos, config, downloader)
+	bazelPath, err := downloadBazelIfNecessary(resolvedBazelVersion, bazeliskHome, bazelFork, baseURLs, repos, config, downloader)
 	return bazelPath, err
 }
 
 // downloadBazelIfNecessary returns a path to a bazel which can be run, which may have been cached.
-// The directory it returns may depend on version and bazeliskHome, but does not depend on bazelForkOrURLDirName.
+// The directory it returns may depend on version and bazeliskHome, but does not depend on where the binary was downloaded from.
 // This is important, as the directory may be added to $PATH, and varying the path for equivalent files may cause unnecessary repository rule cache invalidations.
 // Where a file was downloaded from shouldn't affect cache behaviour of Bazel invocations.
 //
@@ -502,7 +518,7 @@ func downloadBazel(bazelVersionString string, bazeliskHome string, repos *Reposi
 //
 //	downloads/metadata/[fork-or-url]/bazel-[version-os-etc] is a text file containing a hex sha256 of the contents of the downloaded bazel file.
 //	downloads/sha256/[sha256]/bin/bazel[extension] contains the bazel with a particular sha256.
-func downloadBazelIfNecessary(version string, bazeliskHome string, bazelForkOrURLDirName string, repos *Repositories, config config.Config, downloader DownloadFunc) (string, error) {
+func downloadBazelIfNecessary(version string, bazeliskHome string, bazelFork string, baseURLs []string, repos *Repositories, config config.Config, downloader DownloadFunc) (string, error) {
 	pathSegment, err := platforms.DetermineBazelFilename(version, false, config)
 	if err != nil {
 		return "", fmt.Errorf("could not determine path segment to use for Bazel binary: %v", err)
@@ -510,16 +526,27 @@ func downloadBazelIfNecessary(version string, bazeliskHome string, bazelForkOrUR
 
 	destFile := "bazel" + platforms.DetermineExecutableFilenameSuffix()
 
-	mappingPath := filepath.Join(bazeliskHome, "downloads", "metadata", bazelForkOrURLDirName, pathSegment)
-	digestFromMappingFile, err := os.ReadFile(mappingPath)
-	if err == nil {
-		pathToBazelInCAS := filepath.Join(bazeliskHome, "downloads", "sha256", string(digestFromMappingFile), "bin", destFile)
-		if _, err := os.Stat(pathToBazelInCAS); err == nil {
-			return pathToBazelInCAS, nil
+	// Build the list of cache directory names to check, in priority order.
+	// Each base URL gets its own metadata dir; if no base URLs are set, use the fork name.
+	cacheDirNames := make([]string, 0, len(baseURLs)+1)
+	for _, u := range baseURLs {
+		cacheDirNames = append(cacheDirNames, dirForURL(u))
+	}
+	if len(cacheDirNames) == 0 {
+		cacheDirNames = append(cacheDirNames, bazelFork)
+	}
+
+	for _, cacheDirName := range cacheDirNames {
+		mappingPath := filepath.Join(bazeliskHome, "downloads", "metadata", cacheDirName, pathSegment)
+		if digestFromMappingFile, err := os.ReadFile(mappingPath); err == nil {
+			pathToBazelInCAS := filepath.Join(bazeliskHome, "downloads", "sha256", string(digestFromMappingFile), "bin", destFile)
+			if _, err := os.Stat(pathToBazelInCAS); err == nil {
+				return pathToBazelInCAS, nil
+			}
 		}
 	}
 
-	pathToBazelInCAS, downloadedDigest, err := downloadBazelToCAS(version, bazeliskHome, repos, config, downloader)
+	pathToBazelInCAS, downloadedDigest, successfulURL, err := downloadBazelToCAS(version, bazeliskHome, baseURLs, repos, config, downloader)
 	if err != nil {
 		return "", fmt.Errorf("failed to download bazel: %w", err)
 	}
@@ -531,6 +558,15 @@ func downloadBazelIfNecessary(version string, bazeliskHome string, bazelForkOrUR
 		}
 	}
 
+	// Write metadata under the cache dir of the URL that actually provided the binary.
+	// For standard repos (no base URLs), use the fork name.
+	var writeCacheDirName string
+	if successfulURL != "" {
+		writeCacheDirName = dirForURL(successfulURL)
+	} else {
+		writeCacheDirName = bazelFork
+	}
+	mappingPath := filepath.Join(bazeliskHome, "downloads", "metadata", writeCacheDirName, pathSegment)
 	if err := atomicWriteFile(mappingPath, []byte(downloadedDigest), 0644); err != nil {
 		return "", fmt.Errorf("failed to write mapping file after downloading bazel: %w", err)
 	}
@@ -587,43 +623,58 @@ func lockedRenameIfDstAbsent(src, dst string) error {
 	return os.Rename(src, dst)
 }
 
-func downloadBazelToCAS(version string, bazeliskHome string, repos *Repositories, config config.Config, downloader DownloadFunc) (string, string, error) {
+// downloadBazelToCAS downloads a Bazel binary to the content-addressable store and returns its path,
+// sha256 digest, and the base URL that provided the binary (empty if downloaded via standard repos).
+func downloadBazelToCAS(version string, bazeliskHome string, baseURLs []string, repos *Repositories, config config.Config, downloader DownloadFunc) (string, string, string, error) {
 	downloadsDir := filepath.Join(bazeliskHome, "downloads")
 	temporaryDownloadDir := filepath.Join(downloadsDir, "_tmp")
 	casDir := filepath.Join(bazeliskHome, "downloads", "sha256")
 
 	tmpDestFileBytes := make([]byte, 32)
 	if _, err := rand.Read(tmpDestFileBytes); err != nil {
-		return "", "", fmt.Errorf("failed to generate temporary file name: %w", err)
+		return "", "", "", fmt.Errorf("failed to generate temporary file name: %w", err)
 	}
 	tmpDestFile := fmt.Sprintf("%x", tmpDestFileBytes)
 
 	var tmpDestPath string
+	var successfulURL string
 	var err error
-	baseURL := config.Get(BaseURLEnv)
+
 	formatURL := config.Get(FormatURLEnv)
-	if baseURL != "" && formatURL != "" {
-		return "", "", fmt.Errorf("cannot set %s and %s at once", BaseURLEnv, FormatURLEnv)
+	if len(baseURLs) > 0 && formatURL != "" {
+		return "", "", "", fmt.Errorf("cannot set %s or %s and %s at once", BaseURLEnv, BaseURLsEnv, FormatURLEnv)
 	} else if formatURL != "" {
 		tmpDestPath, err = repos.DownloadFromFormatURL(config, formatURL, version, temporaryDownloadDir, tmpDestFile)
-	} else if baseURL != "" {
-		tmpDestPath, err = repos.DownloadFromBaseURL(baseURL, version, temporaryDownloadDir, tmpDestFile, config)
+	} else if len(baseURLs) > 0 {
+		var errs []string
+		for _, u := range baseURLs {
+			tmpDestPath, err = repos.DownloadFromBaseURL(u, version, temporaryDownloadDir, tmpDestFile, config)
+			if err == nil {
+				successfulURL = u
+				break
+			}
+			log.Printf("Could not download Bazel from %s: %v", u, err)
+			errs = append(errs, fmt.Sprintf("%s: %v", u, err))
+		}
+		if successfulURL == "" {
+			return "", "", "", fmt.Errorf("could not download Bazel from any URL in %s: %s", BaseURLsEnv, strings.Join(errs, "; "))
+		}
 	} else {
 		tmpDestPath, err = downloader(temporaryDownloadDir, tmpDestFile)
 	}
 	if err != nil {
-		return "", "", fmt.Errorf("failed to download bazel: %w", err)
+		return "", "", "", fmt.Errorf("failed to download bazel: %w", err)
 	}
 
 	f, err := os.Open(tmpDestPath)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to open downloaded bazel to digest it: %w", err)
+		return "", "", "", fmt.Errorf("failed to open downloaded bazel to digest it: %w", err)
 	}
 
 	h := sha256.New()
 	if _, err := io.Copy(h, f); err != nil {
 		f.Close()
-		return "", "", fmt.Errorf("cannot compute sha256 of %s after download: %v", tmpDestPath, err)
+		return "", "", "", fmt.Errorf("cannot compute sha256 of %s after download: %v", tmpDestPath, err)
 	}
 	f.Close()
 	actualSha256 := strings.ToLower(fmt.Sprintf("%x", h.Sum(nil)))
@@ -632,24 +683,24 @@ func downloadBazelToCAS(version string, bazeliskHome string, repos *Repositories
 	pathToBazelInCAS := filepath.Join(casDir, actualSha256, "bin", bazelInCASBasename)
 	dirForBazelInCAS := filepath.Dir(pathToBazelInCAS)
 	if err := os.MkdirAll(dirForBazelInCAS, 0755); err != nil {
-		return "", "", fmt.Errorf("failed to MkdirAll parent of %s: %w", pathToBazelInCAS, err)
+		return "", "", "", fmt.Errorf("failed to MkdirAll parent of %s: %w", pathToBazelInCAS, err)
 	}
 
 	tmpPathFile, err := os.CreateTemp(dirForBazelInCAS, bazelInCASBasename+".tmp")
 	if err != nil {
-		return "", "", fmt.Errorf("failed to create temporary file in %s: %w", dirForBazelInCAS, err)
+		return "", "", "", fmt.Errorf("failed to create temporary file in %s: %w", dirForBazelInCAS, err)
 	}
 	tmpPathFile.Close()
 	defer os.Remove(tmpPathFile.Name())
 	tmpPathInCorrectDirectory := tmpPathFile.Name()
 	if err := os.Rename(tmpDestPath, tmpPathInCorrectDirectory); err != nil {
-		return "", "", fmt.Errorf("failed to move %s to %s: %w", tmpDestPath, tmpPathInCorrectDirectory, err)
+		return "", "", "", fmt.Errorf("failed to move %s to %s: %w", tmpDestPath, tmpPathInCorrectDirectory, err)
 	}
 	if err := lockedRenameIfDstAbsent(tmpPathInCorrectDirectory, pathToBazelInCAS); err != nil {
-		return "", "", fmt.Errorf("failed to move %s to %s: %w", tmpPathInCorrectDirectory, pathToBazelInCAS, err)
+		return "", "", "", fmt.Errorf("failed to move %s to %s: %w", tmpPathInCorrectDirectory, pathToBazelInCAS, err)
 	}
 
-	return pathToBazelInCAS, actualSha256, nil
+	return pathToBazelInCAS, actualSha256, successfulURL, nil
 }
 
 func copyFile(src, dst string, perm os.FileMode) error {
