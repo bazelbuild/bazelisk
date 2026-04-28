@@ -494,8 +494,17 @@ def make_bazel_cmd(bazel_path, argv):
 def execute_bazel(bazel_path, argv):
     cmd = make_bazel_cmd(bazel_path, argv)
 
-    # We cannot use close_fds on Windows, so disable it there.
-    p = subprocess.Popen([cmd["exec"]] + cmd["args"], close_fds=os.name != "nt", env=cmd["env"])
+    # If we can replace our process with the Bazel executable, that's better
+    # than a subprocess. (Replacing is not available on Windows.)
+    if os.name != "nt":
+        os.execve(
+            cmd["exec"],
+            [cmd["exec"]] + cmd["args"],
+            cmd["env"],
+        )
+
+    # We cannot use close_fds on Windows.
+    p = subprocess.Popen([cmd["exec"]] + cmd["args"], close_fds=False, env=cmd["env"])
     while True:
         try:
             return p.wait()
