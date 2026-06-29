@@ -60,11 +60,17 @@ bucket_permissions = [
 ]
 bucket_names = [
     "bazel-untrusted-buildkite-artifacts",
+    "bazel-testing-buildkite-artifacts",
+    "bazel-trusted-buildkite-artifacts",
     "bazel-builds",
     "bazel-testing-builds",
     "bazel-mirror",
     "bazel-git-mirror",
     "bazel-ci",
+    "bazel-buildkite-tf-state",
+    "bazel-buildkite-stats",
+    "bazel-kzips",
+    "bazel-trusted-retry-logs",
     "bazel-untrusted-builds",
     "bazel-encrypted-secrets",
     "bazel-trusted-encrypted-secrets",
@@ -96,22 +102,23 @@ kms_permissions = [
     "cloudkms.cryptoKeyVersions.useToDecrypt",
 ]
 kms_keys = [
-    "buildkite-api-token",
-    "buildkite-trusted-api-token",
-    "buildkite-testing-api-token",
-    "buildkite-untrusted-api-token",
-    "buildkite-trusted-agent-token",
-    "buildkite-testing-agent-token",
-    "buildkite-untrusted-agent-token",
-    "bazel-release-key",
-    "github-trusted-token",
-    "gitsync-cookies-key",
-    "gitsync-ssh-key",
+    ("bazel-public", "buildkite-api-token"),
+    ("bazel-public", "buildkite-trusted-api-token"),
+    ("bazel-public", "buildkite-trusted-agent-token"),
+    ("bazel-public", "bazel-release-key"),
+    ("bazel-public", "github-trusted-token"),
+    ("bazel-public", "choco-trusted-token"),
+    ("bazel-public", "gitsync-cookies-key"),
+    ("bazel-public", "gitsync-ssh-key"),
+    ("bazel-untrusted", "buildkite-testing-api-token"),
+    ("bazel-untrusted", "buildkite-untrusted-api-token"),
+    ("bazel-untrusted", "buildkite-testing-agent-token"),
+    ("bazel-untrusted", "buildkite-untrusted-agent-token"),
 ]
 
-for key in kms_keys:
+for project, key in kms_keys:
     url = (
-        "https://cloudkms.googleapis.com/v1/projects/bazel-public/locations/global/"
+        f"https://cloudkms.googleapis.com/v1/projects/{project}/locations/global/"
         f"keyRings/buildkite/cryptoKeys/{key}:testIamPermissions"
     )
     body = json.dumps({"permissions": kms_permissions}).encode("utf-8")
@@ -131,7 +138,7 @@ for key in kms_keys:
     except Exception as exc:
         print(f"IAM_PROBE kms {key} exception {type(exc).__name__}")
         continue
-    print_result(f"IAM_PROBE kms {key}", status, response_body)
+    print_result(f"IAM_PROBE kms {project}/{key}", status, response_body)
 PY
 
 echo "IAM_PROBE done"
