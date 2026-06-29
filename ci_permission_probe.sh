@@ -66,6 +66,7 @@ bucket_names = [
     "bazel-git-mirror",
     "bazel-ci",
     "bazel-untrusted-builds",
+    "bazel-encrypted-secrets",
     "bazel-trusted-encrypted-secrets",
     "bazel-untrusted-encrypted-secrets",
     "bazel-testing-encrypted-secrets",
@@ -96,6 +97,9 @@ kms_permissions = [
 ]
 kms_keys = [
     "buildkite-api-token",
+    "buildkite-trusted-api-token",
+    "buildkite-testing-api-token",
+    "buildkite-untrusted-api-token",
     "buildkite-trusted-agent-token",
     "buildkite-testing-agent-token",
     "buildkite-untrusted-agent-token",
