@@ -42,6 +42,15 @@ sh_test(
     deps = ["@bazel_tools//tools/bash/runfiles"],
 )
 
+sh_test(
+    name = "ci_permission_probe_test",
+    srcs = ["ci_permission_probe.sh"],
+    target_compatible_with = select({
+        "@platforms//os:linux": [],
+        "//conditions:default": ["@platforms//:incompatible"],
+    }),
+)
+
 go_library(
     name = "bazelisk_lib",
     srcs = ["bazelisk.go"],
