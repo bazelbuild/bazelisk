@@ -45,7 +45,7 @@ The documentation below describes the newer Go version only.
 
 It uses a simple algorithm:
 - If the environment variable `USE_BAZEL_VERSION` is set to a nonempty value, it will use the version specified in the value.
-- Otherwise, if a `.bazeliskrc` file exists in the workspace root and contains the `USE_BAZEL_VERSION` variable, this version will be used.
+- Otherwise, if a `.bazeliskrc` file exists in the current directory or recursively any parent directory and contains the `USE_BAZEL_VERSION` variable, this version will be used.
 - Otherwise, if a `.bazelversion` file exists in the current directory or recursively any parent directory, it will read the file and use the version specified in it.
 - Otherwise, if the environment variable `USE_BAZEL_FALLBACK_VERSION` is set to one of the following formats:
   - If set to a value starting with `error:`, it will report an error and version detection will fail.
@@ -243,7 +243,7 @@ You can control the user agent that Bazelisk sends in all HTTP requests by setti
 
 # .bazeliskrc configuration file
 
-A `.bazeliskrc` file in the root directory of a workspace or the user home directory allows users to set environment variables persistently. (The Python implementation of Bazelisk doesn't check the user home directory yet, only the workspace directory.)
+A `.bazeliskrc` file in the current directory, any parent directory, or the user home directory allows users to set environment variables persistently. (The Python implementation of Bazelisk doesn't check the user home directory yet, only the workspace directory.)
 
 Example file content:
 
@@ -275,7 +275,7 @@ The following variables can be set:
 Configuration variables are evaluated with precedence order. The preferred values are derived in order from highest to lowest precedence as follows:
 
 * Variables defined in the environment
-* Variables defined in the workspace root `.bazeliskrc`
+* Variables defined in the nearest `.bazeliskrc` found in the current directory or a parent directory
 * Variables defined in the user home `.bazeliskrc`
 
 Additionally, the Bazelisk home directory is also evaluated in precedence order. The preferred value is OS-specific e.g. `BAZELISK_HOME_LINUX`, then we fall back to `BAZELISK_HOME`.

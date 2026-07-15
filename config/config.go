@@ -84,17 +84,14 @@ func LocateUserConfigFile() (string, error) {
 	return filepath.Join(home, rcFileName), nil
 }
 
-// LocateWorkspaceConfigFile locates a .bazeliskrc file in the current workspace root.
+// LocateWorkspaceConfigFile locates the nearest .bazeliskrc file in the working
+// directory or one of its parent directories.
 func LocateWorkspaceConfigFile() (string, error) {
 	workingDirectory, err := os.Getwd()
 	if err != nil {
 		return "", err
 	}
-	workspaceRoot := ws.FindWorkspaceRoot(workingDirectory)
-	if workspaceRoot == "" {
-		return "", err
-	}
-	return filepath.Join(workspaceRoot, rcFileName), nil
+	return ws.FindFile(workingDirectory, rcFileName), nil
 }
 
 // Layered returns a Config which gets config values from the first of a series of other Config values which sets the config.

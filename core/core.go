@@ -390,17 +390,17 @@ func getUserAgent(config config.Config) string {
 func GetBazelVersion(config config.Config) (string, error) {
 	// Check in this order:
 	// - env var "USE_BAZEL_VERSION" is set to a specific version.
-	// - workspace_root/.bazeliskrc exists -> read contents, in contents:
+	// - .bazeliskrc exists in the working directory or a parent -> read contents, in contents:
 	//   var "USE_BAZEL_VERSION" is set to a specific version.
 	// - env var "USE_NIGHTLY_BAZEL" or "USE_BAZEL_NIGHTLY" is set -> latest
 	//   nightly. (TODO)
 	// - env var "USE_CANARY_BAZEL" or "USE_BAZEL_CANARY" is set -> latest
 	//   rc. (TODO)
 	// - the file workspace_root/tools/bazel exists -> that version. (TODO)
-	// - workspace_root/.bazelversion exists -> read contents, that version.
+	// - .bazelversion exists in the working directory or a parent -> read contents, that version.
 	// - workspace_root/WORKSPACE contains a version -> that version. (TODO)
 	// - env var "USE_BAZEL_FALLBACK_VERSION" is set to a fallback version format.
-	// - workspace_root/.bazeliskrc exists -> read contents, in contents:
+	// - .bazeliskrc exists in the working directory or a parent -> read contents, in contents:
 	//   var "USE_BAZEL_FALLBACK_VERSION" is set to a fallback version format.
 	// - fallback version format "silent:latest"
 	bazelVersion := config.Get("USE_BAZEL_VERSION")
@@ -413,26 +413,23 @@ func GetBazelVersion(config config.Config) (string, error) {
 		return "", fmt.Errorf("could not get working directory: %v", err)
 	}
 
-	workspaceRoot := ws.FindWorkspaceRoot(workingDirectory)
-	if len(workspaceRoot) != 0 {
-		bazelVersionPath := filepath.Join(workspaceRoot, ".bazelversion")
-		if _, err := os.Stat(bazelVersionPath); err == nil {
-			f, err := os.Open(bazelVersionPath)
-			if err != nil {
-				return "", fmt.Errorf("could not read %s: %v", bazelVersionPath, err)
-			}
-			defer f.Close()
+	bazelVersionPath := ws.FindFile(workingDirectory, ".bazelversion")
+	if len(bazelVersionPath) != 0 {
+		f, err := os.Open(bazelVersionPath)
+		if err != nil {
+			return "", fmt.Errorf("could not read %s: %v", bazelVersionPath, err)
+		}
+		defer f.Close()
 
-			scanner := bufio.NewScanner(f)
-			scanner.Scan()
-			bazelVersion := scanner.Text()
-			if err := scanner.Err(); err != nil {
-				return "", fmt.Errorf("could not read version from file %s: %v", bazelVersion, err)
-			}
+		scanner := bufio.NewScanner(f)
+		scanner.Scan()
+		bazelVersion := scanner.Text()
+		if err := scanner.Err(); err != nil {
+			return "", fmt.Errorf("could not read version from file %s: %v", bazelVersion, err)
+		}
 
-			if len(bazelVersion) != 0 {
-				return bazelVersion, nil
-			}
+		if len(bazelVersion) != 0 {
+			return bazelVersion, nil
 		}
 	}
 
