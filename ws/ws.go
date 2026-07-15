@@ -8,6 +8,10 @@ import (
 
 // FindWorkspaceRoot returns the root directory of the Bazel workspace in which the passed root exists, if any.
 func FindWorkspaceRoot(root string) string {
+	return findWorkspaceRoot(root, root)
+}
+
+func findWorkspaceRoot(workingDirectory string, root string) string {
 	for _, boundary := range [...]string{"MODULE.bazel", "REPO.bazel", "WORKSPACE.bazel", "WORKSPACE"} {
 		if isValidWorkspace(filepath.Join(root, boundary)) {
 			return root
@@ -16,10 +20,10 @@ func FindWorkspaceRoot(root string) string {
 
 	parentDirectory := filepath.Dir(root)
 	if parentDirectory == root {
-		return ""
+		return workingDirectory
 	}
 
-	return FindWorkspaceRoot(parentDirectory)
+	return findWorkspaceRoot(workingDirectory, parentDirectory)
 }
 
 // isValidWorkspace returns true if the supplied path is the workspace root, defined by the presence of
