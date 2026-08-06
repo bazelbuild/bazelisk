@@ -44,7 +44,7 @@ The documentation below describes the newer Go version only.
 ## How does Bazelisk know which Bazel version to run?
 
 It uses a simple algorithm:
-- If the environment variable `USE_BAZEL_VERSION` is set, it will use the version specified in the value.
+- If the environment variable `USE_BAZEL_VERSION` is set to a nonempty value, it will use the version specified in the value.
 - Otherwise, if a `.bazeliskrc` file exists in the workspace root and contains the `USE_BAZEL_VERSION` variable, this version will be used.
 - Otherwise, if a `.bazelversion` file exists in the current directory or recursively any parent directory, it will read the file and use the version specified in it.
 - Otherwise, if the environment variable `USE_BAZEL_FALLBACK_VERSION` is set to one of the following formats:
