@@ -1,4 +1,6 @@
+load("@bazel_lib//lib:run_binary.bzl", "run_binary")
 load("@rules_pkg//pkg:deb.bzl", "pkg_deb")
+load("@rules_pkg//pkg:mappings.bzl", "pkg_attributes", "pkg_files")
 load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
 
 config_setting(
@@ -17,6 +19,31 @@ genrule(
     stamp = True,
 )
 
+run_binary(
+    name = "bazelisk_completion_bash",
+    args = [
+        "completion",
+        "bash",
+    ],
+    env = {
+        "HOME": "/tmp",
+        "USE_BAZEL_VERSION": "9.2.0",
+    },
+    silent_on_success = True,
+    stdout = "completion.bash",
+    tool = "//:bazelisk",
+    tags = ["manual"],
+)
+
+pkg_files(
+    name = "bash_completion",
+    srcs = ["completion.bash"],
+    attributes = pkg_attributes(mode = "0644"),
+    prefix = "/etc/bash_completion.d",
+    renames = {"completion.bash": "bazel"},
+    tags = ["manual"],
+)
+
 ARCHES = [
     "amd64",
     "arm64",
@@ -25,12 +52,16 @@ ARCHES = [
 [
     pkg_tar(
         name = "bazelisk-{}_tar".format(arch),
-        srcs = ["//:bazelisk-linux-{}".format(arch)],
+        srcs = [
+            "//:bazelisk-linux-{}".format(arch),
+        ] + select({
+            "@platforms//os:windows": [],
+            "//conditions:default": [":bash_completion"],
+        }),
         out = "bazelisk-{}.tar".format(arch),
-        package_dir = "/usr/bin",
-        remap_paths = {"bazelisk-linux_{}".format(arch): "bazelisk"},
+        remap_paths = {"bazelisk-linux_{}".format(arch): "/usr/bin/bazelisk"},
         stamp = -1,
-        symlinks = {"bazel": "bazelisk"},
+        symlinks = {"/usr/bin/bazel": "bazelisk"},
     )
     for arch in ARCHES
 ]
@@ -40,6 +71,7 @@ ARCHES = [
         name = "bazelisk-{}_deb".format(arch),
         out = "bazelisk-{}.deb".format(arch),
         architecture = arch,
+        conffiles = ["/etc/bash_completion.d/bazel"],
         conflicts = [
             "bazel",
             "bazel-bootstrap",
