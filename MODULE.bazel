@@ -17,7 +17,7 @@ bazel_dep(name = "aspect_bazel_lib", version = "2.22.0", repo_name=None)
 bazel_dep(name = "rules_nodejs", version = "6.6.2", repo_name=None)
 
 go_sdk = use_extension("@io_bazel_rules_go//go:extensions.bzl", "go_sdk")
-go_sdk.download(version = "1.24.0")
+go_sdk.download(version = "1.24.13")
 
 go_deps = use_extension("@bazel_gazelle//:extensions.bzl", "go_deps")
 go_deps.from_file(go_mod = "//:go.mod")
