@@ -21,6 +21,7 @@ var (
 	trackPattern         = regexp.MustCompile(`^(\d+)\.(x|\*)$`)
 	patchPattern         = regexp.MustCompile(`^(\d+\.\d+\.\d+)-([\w\d]+)$`)
 	candidatePattern     = regexp.MustCompile(`^(\d+\.\d+\.\d+)rc(\d+)$`)
+	candidatePatchPattern = regexp.MustCompile(`^(\d+\.\d+\.\d+)rc(\d+)-([\w\d]+)$`)
 	rollingPattern       = regexp.MustCompile(`^\d+\.0\.0-pre\.\d{8}(\.\d+){1,2}$`)
 	latestReleasePattern = regexp.MustCompile(`^latest(?:-(?P<offset>\d+))?$`)
 	commitPattern        = regexp.MustCompile(`^[a-z0-9]{40}$`)
@@ -65,7 +66,7 @@ func Parse(fork, version string) (*Info, error) {
 			}
 			vi.LatestOffset = offset
 		}
-	} else if candidatePattern.MatchString(version) {
+	} else if candidatePattern.MatchString(version) || candidatePatchPattern.MatchString(version) {
 		vi.IsLTS = true
 		vi.MustBeCandidate = true
 	} else if version == "last_rc" {
