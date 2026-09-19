@@ -888,3 +888,56 @@ func TestRunBazeliskWithStderrRedirection(t *testing.T) {
 		t.Error("stdout content should not appear in stderr")
 	}
 }
+
+type fakeLTSRepo struct {
+	versions []string
+}
+
+func (f *fakeLTSRepo) GetLTSVersions(bazeliskHome string, opts *FilterOpts) ([]string, error) {
+	var out []string
+	for _, v := range f.versions {
+		if opts != nil && opts.Filter != nil && !opts.Filter(v) {
+			continue
+		}
+		out = append(out, v)
+	}
+	if opts != nil && opts.MaxResults > 0 && len(out) > opts.MaxResults {
+		out = out[:opts.MaxResults]
+	}
+	return out, nil
+}
+
+func (f *fakeLTSRepo) DownloadLTS(version, destDir, destFile string, cfg config.Config) (string, error) {
+	if err := os.MkdirAll(destDir, 0755); err != nil {
+		return "", err
+	}
+	path := filepath.Join(destDir, destFile)
+	return path, os.WriteFile(path, []byte("fake-bazel-"+version), 0755)
+}
+
+func TestGetBazelInstallationResolvesLatestForCompletion(t *testing.T) {
+	tmpDir := t.TempDir()
+	cfg := config.Static(map[string]string{
+		"USE_BAZEL_VERSION": "latest",
+		"BAZELISK_HOME":     tmpDir,
+	})
+	repos := CreateRepositories(&fakeLTSRepo{versions: []string{"8.4.2", "8.3.1"}}, nil, nil, nil, false)
+	inst, err := GetBazelInstallation(repos, cfg)
+	if err != nil {
+		t.Fatalf("GetBazelInstallation: %v", err)
+	}
+	if inst.Version != "8.4.2" {
+		t.Fatalf("Version = %q, want resolved 8.4.2 (not latest)", inst.Version)
+	}
+
+	installerURL, err := constructInstallerURL("", "", inst.Version, cfg)
+	if err != nil {
+		t.Fatalf("constructInstallerURL: %v", err)
+	}
+	if strings.Contains(installerURL, "/latest/") {
+		t.Fatalf("installer URL still uses latest label: %s", installerURL)
+	}
+	if !strings.Contains(installerURL, "/8.4.2/") {
+		t.Fatalf("installer URL missing resolved version: %s", installerURL)
+	}
+}
