@@ -425,7 +425,7 @@ func GetBazelVersion(config config.Config) (string, error) {
 		scanner.Scan()
 		bazelVersion := scanner.Text()
 		if err := scanner.Err(); err != nil {
-			return "", fmt.Errorf("could not read version from file %s: %v", bazelVersion, err)
+			return "", fmt.Errorf("could not read version from file %s: %v", bazelVersionPath, err)
 		}
 
 		if len(bazelVersion) != 0 {
