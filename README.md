@@ -77,7 +77,13 @@ Note: `last_downstream_green` support has been removed, please use `last_green` 
 
 ## Where does Bazelisk get Bazel from?
 
-By default Bazelisk retrieves Bazel releases, release candidates and binaries built at green commits from Google Cloud Storage. The downloaded artifacts are validated against the SHA256 value recorded in `BAZELISK_VERIFY_SHA256` if this variable is set in the configuration file.
+By default Bazelisk retrieves Bazel releases, release candidates and binaries built at green commits from Google Cloud Storage. The downloaded artifacts can be validated against an expected SHA256 hash.
+
+Since each platform has a different binary with a different hash, Bazelisk supports platform-specific hash variables:
+
+- `BAZELISK_VERIFY_SHA256_<OS>_<ARCH>` - hash for a specific platform (e.g., `BAZELISK_VERIFY_SHA256_LINUX_X86_64`)
+- `BAZELISK_VERIFY_SHA256_NOJDK_<OS>_<ARCH>` - hash for nojdk builds (when `BAZELISK_NOJDK` is enabled)
+- `BAZELISK_VERIFY_SHA256` - fallback used when no platform-specific hash is set
 
 As mentioned in the previous section, the `<FORK>/<VERSION>` version format allows you to use your own Bazel fork hosted on GitHub:
 
@@ -270,6 +276,8 @@ The following variables can be set:
 - `BAZELISK_SKIP_WRAPPER`
 - `BAZELISK_USER_AGENT`
 - `BAZELISK_VERIFY_SHA256`
+- `BAZELISK_VERIFY_SHA256_<OS>_<ARCH>` (e.g., `BAZELISK_VERIFY_SHA256_DARWIN_ARM64`)
+- `BAZELISK_VERIFY_SHA256_NOJDK_<OS>_<ARCH>` (e.g., `BAZELISK_VERIFY_SHA256_NOJDK_LINUX_X86_64`)
 - `USE_BAZEL_VERSION`
 
 Configuration variables are evaluated with precedence order. The preferred values are derived in order from highest to lowest precedence as follows:
@@ -278,7 +286,7 @@ Configuration variables are evaluated with precedence order. The preferred value
 * Variables defined in the workspace root `.bazeliskrc`
 * Variables defined in the user home `.bazeliskrc`
 
-Additionally, the Bazelisk home directory is also evaluated in precedence order. The preferred value is OS-specific e.g. `BAZELISK_HOME_LINUX`, then we fall back to `BAZELISK_HOME`.
+Some variables support platform-specific variants. For example, `BAZELISK_HOME_LINUX` takes precedence over `BAZELISK_HOME`, and `BAZELISK_VERIFY_SHA256_DARWIN_ARM64` takes precedence over `BAZELISK_VERIFY_SHA256`.
 
 ## Requirements
 
