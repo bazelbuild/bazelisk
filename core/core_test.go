@@ -17,6 +17,27 @@ import (
 	"github.com/bazelbuild/bazelisk/platforms"
 )
 
+func TestGetBazelVersionFromFileInParentDirectory(t *testing.T) {
+	root := t.TempDir()
+	workingDirectory := filepath.Join(root, "nested", "directory")
+	if err := os.MkdirAll(workingDirectory, 0700); err != nil {
+		t.Fatalf("Failed to create working directory: %v", err)
+	}
+	want := "8.5.0"
+	if err := os.WriteFile(filepath.Join(root, ".bazelversion"), []byte(want), 0600); err != nil {
+		t.Fatalf("Failed to write .bazelversion: %v", err)
+	}
+	t.Chdir(workingDirectory)
+
+	got, err := GetBazelVersion(config.Null())
+	if err != nil {
+		t.Fatalf("GetBazelVersion failed unexpectedly: %v", err)
+	}
+	if got != want {
+		t.Fatalf("GetBazelVersion returned %q, want %q", got, want)
+	}
+}
+
 func TestMaybeDelegateToNoWrapper(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "TestMaybeDelegateToNoWrapper")
 	if err != nil {

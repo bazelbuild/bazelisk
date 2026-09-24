@@ -1,4 +1,4 @@
-// Package ws offers functions to get information about Bazel workspaces.
+// Package ws offers functions for locating Bazel workspaces and related files.
 package ws
 
 import (
@@ -6,10 +6,31 @@ import (
 	"path/filepath"
 )
 
-// FindWorkspaceRoot returns the root directory of the Bazel workspace in which the passed root exists, if any.
+// FindFile returns the nearest file at relativePath in startDirectory or one of
+// its parent directories. It returns an empty string if no such file exists.
+func FindFile(startDirectory string, relativePath string) string {
+	directory := startDirectory
+	for {
+		path := filepath.Join(directory, relativePath)
+		if isFile(path) {
+			return path
+		}
+
+		parentDirectory := filepath.Dir(directory)
+		if parentDirectory == directory {
+			return ""
+		}
+		directory = parentDirectory
+	}
+}
+
+// FindWorkspaceRoot returns the root directory of the Bazel workspace in which
+// root exists, if any. Defined by the presence of
+// a file named MODULE.bazel, REPO.bazel, WORKSPACE.bazel, or WORKSPACE
+// see https://github.com/bazelbuild/bazel/blob/7.2.1/src/main/cpp/workspace_layout.cc#L34
 func FindWorkspaceRoot(root string) string {
 	for _, boundary := range [...]string{"MODULE.bazel", "REPO.bazel", "WORKSPACE.bazel", "WORKSPACE"} {
-		if isValidWorkspace(filepath.Join(root, boundary)) {
+		if isFile(filepath.Join(root, boundary)) {
 			return root
 		}
 	}
@@ -22,10 +43,7 @@ func FindWorkspaceRoot(root string) string {
 	return FindWorkspaceRoot(parentDirectory)
 }
 
-// isValidWorkspace returns true if the supplied path is the workspace root, defined by the presence of
-// a file named MODULE.bazel, REPO.bazel, WORKSPACE.bazel, or WORKSPACE
-// see https://github.com/bazelbuild/bazel/blob/7.2.1/src/main/cpp/workspace_layout.cc#L34
-func isValidWorkspace(path string) bool {
+func isFile(path string) bool {
 	info, err := os.Stat(path)
 	if err != nil {
 		return false
