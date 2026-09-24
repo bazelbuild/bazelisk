@@ -270,6 +270,7 @@ The following variables can be set:
 - `BAZELISK_SKIP_WRAPPER`
 - `BAZELISK_USER_AGENT`
 - `BAZELISK_VERIFY_SHA256`
+- `BAZELISK_WRAPPER_DIRECTORY`
 - `USE_BAZEL_VERSION`
 
 Configuration variables are evaluated with precedence order. The preferred values are derived in order from highest to lowest precedence as follows:
