@@ -197,6 +197,9 @@ then copy this file to `/etc/bash_completion.d` (on Ubuntu) or source it in your
 source /path/to/bazel-complete.bash
 ```
 
+If you installed from a `*.deb` package on Linux, the bash completion will
+have already been installed as a conffile; the above steps are not necessary.
+
 #### fish
 
 Generate a completion script and save it into your fish completion directory:
