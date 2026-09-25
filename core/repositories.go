@@ -15,6 +15,11 @@ const (
 	// BaseURLEnv is the name of the environment variable that stores the base URL for downloads.
 	BaseURLEnv = "BAZELISK_BASE_URL"
 
+	// BaseURLsEnv is the name of the environment variable that stores a comma-separated list of base URLs for downloads.
+	// URLs are tried in order; the first successful download wins. Supports http://, https://, and file:// schemes.
+	// If set, takes precedence over BaseURLEnv.
+	BaseURLsEnv = "BAZELISK_BASE_URLS"
+
 	// FormatURLEnv is the name of the environment variable that stores the format string to generate URLs for downloads.
 	FormatURLEnv = "BAZELISK_FORMAT_URL"
 )
