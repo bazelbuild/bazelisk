@@ -17,6 +17,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	netrc "github.com/bgentry/go-netrc/netrc"
@@ -84,7 +85,41 @@ func ReadRemoteFile(url string, auth string) ([]byte, http.Header, error) {
 	return body, res.Header, nil
 }
 
+type LocalFileError struct{ err error }
+
+func (e *LocalFileError) Error() string { return e.err.Error() }
+func (e *LocalFileError) Unwrap() error { return e.err }
+
+// Handles file:// URLs by reading files from disk.
+func readLocalFile(urlStr string) (*http.Response, error) {
+	urlStr = strings.TrimPrefix(urlStr, "file://")
+	path, err := url.PathUnescape(urlStr)
+	if err != nil {
+		return nil, &LocalFileError{err: fmt.Errorf("invalid file url %q: %w", urlStr, err)}
+	}
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, &LocalFileError{err: fmt.Errorf("could not open %q: %w", path, err)}
+	}
+	var size int64 = -1
+	if fi, statErr := f.Stat(); statErr == nil {
+		size = fi.Size()
+	}
+	return &http.Response{
+		StatusCode:    200,
+		Status:        "200 OK",
+		Header:        make(http.Header),
+		Body:          f,
+		ContentLength: size,
+		Request:       &http.Request{Method: "GET", URL: &url.URL{Scheme: "file", Path: path}},
+	}, nil
+}
+
 func get(url, auth string) (*http.Response, error) {
+	if strings.HasPrefix(url, "file://") {
+		return readLocalFile(url)
+	}
+
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("could not create request: %v", err)
@@ -133,6 +168,10 @@ func get(url, auth string) (*http.Response, error) {
 func shouldRetry(res *http.Response, err error) bool {
 	// Retry if the client failed to speak HTTP.
 	if err != nil {
+		var nre *LocalFileError
+		if errors.As(err, &nre) {
+			return false
+		}
 		return true
 	}
 	// For HTTP: only retry on non-permanent/fatal errors.
