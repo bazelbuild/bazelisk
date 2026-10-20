@@ -1,3 +1,5 @@
+//go:build bazelisk_internal_checksum
+
 package main
 
 import (
