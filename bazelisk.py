@@ -523,6 +523,10 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv
 
+    if argv[1:] == ["bazeliskVersion"]:
+        print("Bazelisk version: Python")
+        return 0
+
     bazel_path = get_bazel_path()
 
     argv = argv[1:]
