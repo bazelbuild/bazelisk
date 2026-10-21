@@ -316,8 +316,7 @@ func GetBazelInstallation(repos *Repositories, config config.Config) (*BazelInst
 	// If we aren't using a local Bazel binary, we'll have to parse the version string and
 	// download the version that the user wants.
 	if !filepath.IsAbs(bazelPath) {
-		resolvedVersion = bazelVersionString
-		bazelPath, err = downloadBazel(bazelVersionString, bazeliskHome, repos, config)
+		bazelPath, resolvedVersion, err = downloadBazel(bazelVersionString, bazeliskHome, repos, config)
 		if err != nil {
 			return nil, fmt.Errorf("could not download Bazel: %v", err)
 		}
@@ -470,15 +469,15 @@ func parseBazelForkAndVersion(bazelForkAndVersion string) (string, string, error
 	return bazelFork, bazelVersion, nil
 }
 
-func downloadBazel(bazelVersionString string, bazeliskHome string, repos *Repositories, config config.Config) (string, error) {
+func downloadBazel(bazelVersionString string, bazeliskHome string, repos *Repositories, config config.Config) (string, string, error) {
 	bazelFork, bazelVersion, err := parseBazelForkAndVersion(bazelVersionString)
 	if err != nil {
-		return "", fmt.Errorf("could not parse Bazel fork and version: %v", err)
+		return "", "", fmt.Errorf("could not parse Bazel fork and version: %v", err)
 	}
 
 	resolvedBazelVersion, downloader, err := repos.ResolveVersion(bazeliskHome, bazelFork, bazelVersion, config)
 	if err != nil {
-		return "", fmt.Errorf("could not resolve the version '%s' to an actual version number: %v", bazelVersion, err)
+		return "", "", fmt.Errorf("could not resolve the version '%s' to an actual version number: %v", bazelVersion, err)
 	}
 
 	bazelForkOrURL := dirForURL(config.Get(BaseURLEnv))
@@ -487,7 +486,7 @@ func downloadBazel(bazelVersionString string, bazeliskHome string, repos *Reposi
 	}
 
 	bazelPath, err := downloadBazelIfNecessary(resolvedBazelVersion, bazeliskHome, bazelForkOrURL, repos, config, downloader)
-	return bazelPath, err
+	return bazelPath, resolvedBazelVersion, err
 }
 
 // downloadBazelIfNecessary returns a path to a bazel which can be run, which may have been cached.
@@ -1179,7 +1178,7 @@ func bisect(oldCommit string, newCommit string, args []string, bazeliskHome stri
 }
 
 func testWithBazelAtCommit(bazelCommit string, args []string, bazeliskHome string, repos *Repositories, config config.Config) (int, error) {
-	bazelPath, err := downloadBazel(bazelCommit, bazeliskHome, repos, config)
+	bazelPath, _, err := downloadBazel(bazelCommit, bazeliskHome, repos, config)
 	if err != nil {
 		return 1, fmt.Errorf("could not download Bazel: %v", err)
 	}
