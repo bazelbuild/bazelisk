@@ -3,10 +3,14 @@ package httputil
 import (
 	"errors"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/bazelbuild/bazelisk/config"
 )
 
 var (
@@ -249,5 +253,43 @@ func TestNoRetryOnPermanentError(t *testing.T) {
 
 	if clock.TimesSlept() > 0 {
 		t.Fatalf("Expected no retries for permanent error, but got %d", clock.TimesSlept())
+	}
+}
+
+func TestDownloadBinaryFromFileURL(t *testing.T) {
+	srcDir := t.TempDir()
+	srcFile := filepath.Join(srcDir, "bazel")
+	content := []byte("fake bazel binary content")
+	if err := os.WriteFile(srcFile, content, 0755); err != nil {
+		t.Fatalf("Could not write source file: %v", err)
+	}
+
+	destDir := t.TempDir()
+	originURL := "file://" + srcFile
+
+	got, err := DownloadBinary(originURL, destDir, "bazel", config.Null(), false)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	gotContent, err := os.ReadFile(got)
+	if err != nil {
+		t.Fatalf("Could not read destination file: %v", err)
+	}
+	if string(gotContent) != string(content) {
+		t.Fatalf("Expected content %q, got %q", content, gotContent)
+	}
+}
+
+func TestDownloadBinaryFromFileURLNotFound(t *testing.T) {
+	destDir := t.TempDir()
+	originURL := "file:///nonexistent/path/to/bazel"
+
+	_, err := DownloadBinary(originURL, destDir, "bazel", config.Null(), false)
+	if err == nil {
+		t.Fatal("Expected error for missing file, got nil")
+	}
+	if !errors.Is(err, NotFound) {
+		t.Fatalf("Expected NotFound error, got: %v", err)
 	}
 }
