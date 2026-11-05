@@ -211,6 +211,17 @@ The bazel completion scripts are taken from installer binaries. If you use a
 custom base URL, make sure the installer URLs are available alongside with
 bazel binaries.
 
+#### Disabling Bazelisk's completion handler
+
+If the underlying Bazel binary provides its own `completion` command with
+broader shell support (e.g. zsh), you can disable Bazelisk's built-in
+completion handling so that the command is passed through to the underlying
+binary. Set `BAZELISK_DISABLE_COMPLETION` in your `.bazeliskrc`:
+
+```shell
+BAZELISK_DISABLE_COMPLETION=1
+```
+
 ### Useful environment variables for --migrate and --bisect
 
 You can set `BAZELISK_INCOMPATIBLE_FLAGS` to set a list of incompatible flags (separated by `,`) to be tested, otherwise Bazelisk tests all flags starting with `--incompatible_`.
@@ -259,6 +270,7 @@ The following variables can be set:
 - `BAZELISK_FORMAT_URL`
 - `BAZELISK_NOJDK`
 - `BAZELISK_CLEAN`
+- `BAZELISK_DISABLE_COMPLETION`
 - `BAZELISK_GITHUB_TOKEN`
 - `BAZELISK_HOME_DARWIN`
 - `BAZELISK_HOME_LINUX`
