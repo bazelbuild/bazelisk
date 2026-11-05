@@ -187,7 +187,8 @@ source <(bazelisk completion bash)
 2. Or emit the completion script into a file:
 
 ```shell
-bazelisk completion bash > bash-complete.bash
+mkdir -p ${BASH_COMPLETION_USER_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/bash-completion}/completions/
+bazelisk completion bash > ${BASH_COMPLETION_USER_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/bash-completion}/completions/bazel.bash
 ```
 
 then copy this file to `/etc/bash_completion.d` (on Ubuntu) or source it in your
