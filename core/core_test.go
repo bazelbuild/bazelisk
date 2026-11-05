@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"testing"
 
@@ -908,4 +909,100 @@ func TestRunBazeliskWithStderrRedirection(t *testing.T) {
 	if strings.Contains(stderrContent, "stdout message") {
 		t.Error("stdout content should not appear in stderr")
 	}
+}
+
+func TestMakeDefaultConfigFromDir(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, ".bazeliskrc"), []byte("BAZELISK_TEST_KEY=from-dir\n"), 0600); err != nil {
+		t.Fatalf("Failed to write .bazeliskrc: %v", err)
+	}
+	t.Setenv("HOME", t.TempDir())
+	t.Chdir(t.TempDir())
+
+	got := MakeDefaultConfigFromDir(dir).Get("BAZELISK_TEST_KEY")
+	if got != "from-dir" {
+		t.Fatalf("MakeDefaultConfigFromDir returned config with BAZELISK_TEST_KEY=%q, want %q", got, "from-dir")
+	}
+}
+
+func TestGetBazelInstallationFromDir(t *testing.T) {
+	tests := []struct {
+		name              string
+		writeBazelversion bool
+	}{
+		{name: "bazelversion in dir", writeBazelversion: true},
+		{name: "fallback version without bazelversion in dir", writeBazelversion: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			workingDirectory := t.TempDir()
+			if err := os.WriteFile(filepath.Join(workingDirectory, ".bazelversion"), []byte(writeFakeBazel(t, "working directory")), 0600); err != nil {
+				t.Fatalf("Failed to write .bazelversion: %v", err)
+			}
+			t.Chdir(workingDirectory)
+
+			dir := t.TempDir()
+			bazel := writeFakeBazel(t, "dir")
+			values := map[string]string{"BAZELISK_HOME": t.TempDir()}
+			if tt.writeBazelversion {
+				if err := os.WriteFile(filepath.Join(dir, ".bazelversion"), []byte(bazel), 0600); err != nil {
+					t.Fatalf("Failed to write .bazelversion: %v", err)
+				}
+			} else {
+				values["USE_BAZEL_FALLBACK_VERSION"] = "silent:" + bazel
+			}
+
+			installation, err := GetBazelInstallationFromDir(CreateRepositories(nil, nil, nil, nil, false), config.Static(values), dir)
+			if err != nil {
+				t.Fatalf("GetBazelInstallationFromDir failed unexpectedly: %v", err)
+			}
+			got, err := os.ReadFile(installation.Path)
+			if err != nil {
+				t.Fatalf("Failed to read %s: %v", installation.Path, err)
+			}
+			if string(got) != "dir" {
+				t.Fatalf("GetBazelInstallationFromDir returned the %q Bazel, want %q", got, "dir")
+			}
+		})
+	}
+}
+
+func TestMakeBazelCmdFromDir(t *testing.T) {
+	// Wrappers without a .ps1 or .bat extension can't be run on Windows.
+	if runtime.GOOS == "windows" {
+		t.Skip("Skipping on Windows")
+	}
+
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "WORKSPACE"), nil, 0600); err != nil {
+		t.Fatalf("Failed to write WORKSPACE: %v", err)
+	}
+	wrapper := filepath.Join(dir, "tools", "bazel")
+	if err := os.MkdirAll(filepath.Dir(wrapper), 0700); err != nil {
+		t.Fatalf("Failed to create tools directory: %v", err)
+	}
+	if err := os.WriteFile(wrapper, nil, 0700); err != nil {
+		t.Fatalf("Failed to write wrapper: %v", err)
+	}
+	t.Chdir(t.TempDir())
+
+	cmd, err := MakeBazelCmdFromDir("bazel_real", dir, []string{"version"}, nil, nil, config.Null())
+	if err != nil {
+		t.Fatalf("MakeBazelCmdFromDir failed unexpectedly: %v", err)
+	}
+	if cmd.Path != wrapper {
+		t.Fatalf("MakeBazelCmdFromDir returned a command running %q, want %q", cmd.Path, wrapper)
+	}
+	if !slices.Contains(cmd.Env, "BAZEL_REAL=bazel_real") {
+		t.Fatalf("MakeBazelCmdFromDir returned a command without BAZEL_REAL=bazel_real in its environment: %v", cmd.Env)
+	}
+}
+
+func writeFakeBazel(t *testing.T, content string) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "bazel"+platforms.DetermineExecutableFilenameSuffix())
+	if err := os.WriteFile(path, []byte(content), 0700); err != nil {
+		t.Fatalf("Failed to write fake Bazel: %v", err)
+	}
+	return path
 }
