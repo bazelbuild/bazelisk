@@ -506,12 +506,16 @@ func downloadBazelIfNecessary(version string, bazeliskHome string, bazelForkOrUR
 	}
 
 	destFile := "bazel" + platforms.DetermineExecutableFilenameSuffix()
+	expectedSHA256 := config.Get("BAZELISK_VERIFY_SHA256")
 
 	mappingPath := filepath.Join(bazeliskHome, "downloads", "metadata", bazelForkOrURLDirName, pathSegment)
 	digestFromMappingFile, err := os.ReadFile(mappingPath)
 	if err == nil {
 		pathToBazelInCAS := filepath.Join(bazeliskHome, "downloads", "sha256", string(digestFromMappingFile), "bin", destFile)
 		if _, err := os.Stat(pathToBazelInCAS); err == nil {
+			if err := verifySHA256(pathToBazelInCAS, string(digestFromMappingFile), expectedSHA256); err != nil {
+				return "", err
+			}
 			return pathToBazelInCAS, nil
 		}
 	}
@@ -521,11 +525,8 @@ func downloadBazelIfNecessary(version string, bazeliskHome string, bazelForkOrUR
 		return "", fmt.Errorf("failed to download bazel: %w", err)
 	}
 
-	expectedSha256 := strings.ToLower(config.Get("BAZELISK_VERIFY_SHA256"))
-	if len(expectedSha256) > 0 {
-		if expectedSha256 != downloadedDigest {
-			return "", fmt.Errorf("%s has sha256=%s but need sha256=%s", pathToBazelInCAS, downloadedDigest, expectedSha256)
-		}
+	if err := verifySHA256(pathToBazelInCAS, downloadedDigest, expectedSHA256); err != nil {
+		return "", err
 	}
 
 	if err := atomicWriteFile(mappingPath, []byte(downloadedDigest), 0644); err != nil {
@@ -533,6 +534,13 @@ func downloadBazelIfNecessary(version string, bazeliskHome string, bazelForkOrUR
 	}
 
 	return pathToBazelInCAS, nil
+}
+
+func verifySHA256(path, actual, expected string) error {
+	if expected != "" && !strings.EqualFold(actual, expected) {
+		return fmt.Errorf("%s has sha256=%s but need sha256=%s", path, actual, expected)
+	}
+	return nil
 }
 
 func atomicWriteFile(path string, contents []byte, perm os.FileMode) error {
