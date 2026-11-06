@@ -17,6 +17,89 @@ import (
 	"github.com/bazelbuild/bazelisk/platforms"
 )
 
+func TestDownloadBazelIfNecessaryVerifiesSHA256(t *testing.T) {
+	content := []byte("test Bazel binary\n")
+	digest := fmt.Sprintf("%x", sha256.Sum256(content))
+	for _, tc := range []struct {
+		name     string
+		cached   bool
+		expected string
+		wantErr  bool
+	}{
+		{name: "cached without expectation", cached: true},
+		{name: "cached matching hash", cached: true, expected: digest},
+		{name: "cached uppercase hash", cached: true, expected: strings.ToUpper(digest)},
+		{name: "cached wrong hash", cached: true, expected: strings.Repeat("0", 64), wantErr: true},
+		{name: "cached invalid hash", cached: true, expected: "wrong-hash", wantErr: true},
+		{name: "download without expectation"},
+		{name: "download matching hash", expected: digest},
+		{name: "download uppercase hash", expected: strings.ToUpper(digest)},
+		{name: "download wrong hash", expected: strings.Repeat("0", 64), wantErr: true},
+		{name: "download invalid hash", expected: "wrong-hash", wantErr: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			home := t.TempDir()
+			downloads := 0
+			downloader := func(destDir, destFile string) (string, error) {
+				downloads++
+				if err := os.MkdirAll(destDir, 0755); err != nil {
+					return "", err
+				}
+				path := filepath.Join(destDir, destFile)
+				return path, os.WriteFile(path, content, 0600)
+			}
+			repos := CreateRepositories(nil, nil, nil, nil, false)
+			const version = "9.0.0"
+			if tc.cached {
+				if _, err := downloadBazelIfNecessary(version, home, "bazelbuild", repos, config.Null(), downloader); err != nil {
+					t.Fatal(err)
+				}
+			}
+			downloads = 0
+			cfg := config.Static(map[string]string{"BAZELISK_VERIFY_SHA256": tc.expected})
+			path, err := downloadBazelIfNecessary(version, home, "bazelbuild", repos, cfg, downloader)
+			if tc.wantErr {
+				if err == nil || !strings.Contains(err.Error(), "need sha256="+tc.expected) {
+					t.Fatalf("expected hash mismatch, got path %q, error %v", path, err)
+				}
+				if path != "" {
+					t.Errorf("returned path %q after hash mismatch", path)
+				}
+			} else if err != nil {
+				t.Fatal(err)
+			}
+			wantDownloads := 1
+			if tc.cached {
+				wantDownloads = 0
+			}
+			if downloads != wantDownloads {
+				t.Errorf("downloaded %d times, want %d", downloads, wantDownloads)
+			}
+			filename, err := platforms.DetermineBazelFilename(version, false, cfg)
+			if err != nil {
+				t.Fatal(err)
+			}
+			mappingPath := filepath.Join(home, "downloads", "metadata", "bazelbuild", filename)
+			mapping, err := os.ReadFile(mappingPath)
+			if tc.wantErr && !tc.cached {
+				if !os.IsNotExist(err) {
+					t.Errorf("failed download created mapping: %q, error %v", mapping, err)
+				}
+			} else if err != nil || string(mapping) != digest {
+				t.Errorf("mapping = %q, error %v, want %q", mapping, err, digest)
+			}
+			cachedPath := filepath.Join(home, "downloads", "sha256", digest, "bin", "bazel"+platforms.DetermineExecutableFilenameSuffix())
+			if !tc.wantErr && path != cachedPath {
+				t.Errorf("returned path %q, want %q", path, cachedPath)
+			}
+			got, err := os.ReadFile(cachedPath)
+			if err != nil || !bytes.Equal(got, content) {
+				t.Errorf("cached binary = %q, error %v, want %q", got, err, content)
+			}
+		})
+	}
+}
+
 func TestGetBazelVersionFromFileInParentDirectory(t *testing.T) {
 	root := t.TempDir()
 	workingDirectory := filepath.Join(root, "nested", "directory")
