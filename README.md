@@ -77,7 +77,25 @@ Note: `last_downstream_green` support has been removed, please use `last_green` 
 
 ## Where does Bazelisk get Bazel from?
 
-By default Bazelisk retrieves Bazel releases, release candidates and binaries built at green commits from Google Cloud Storage. The downloaded artifacts are validated against the SHA256 value recorded in `BAZELISK_VERIFY_SHA256` if this variable is set in the configuration file.
+By default Bazelisk retrieves Bazel releases, release candidates and binaries built at green commits from Google Cloud Storage. The downloaded artifacts can be validated against an expected SHA256 hash.
+
+Each platform has a different binary with a different hash. The Go implementation selects the first nonempty value in this order:
+
+1. `BAZELISK_VERIFY_SHA256_NOJDK_<OS>_<ARCH>`, when `BAZELISK_NOJDK` is nonempty and different from `0`.
+2. `BAZELISK_VERIFY_SHA256_<OS>_<ARCH>`.
+3. `BAZELISK_VERIFY_SHA256`.
+
+Use these uppercase OS and architecture names:
+
+| OS | Architectures |
+| --- | --- |
+| `DARWIN` (macOS) | `ARM64`, `X86_64` |
+| `LINUX` | `ARM64`, `X86_64` |
+| `WINDOWS` | `ARM64`, `X86_64` |
+
+For example, set `BAZELISK_VERIFY_SHA256_DARWIN_ARM64` for a macOS ARM64 binary. The architecture refers to the downloaded artifact: on Apple Silicon, Bazel versions before 4.1.0 use the `DARWIN_X86_64` hash because Bazelisk falls back to an x86_64 binary.
+
+Hash comparisons ignore letter casing. If no applicable hash is set, Bazelisk skips expected-hash verification, even if hashes for other platforms are configured. On cache hits, the expected hash is compared with the recorded cache digest; the cached binary is not rehashed.
 
 As mentioned in the previous section, the `<FORK>/<VERSION>` version format allows you to use your own Bazel fork hosted on GitHub:
 
@@ -89,7 +107,7 @@ You can also override the URL by setting the environment variable `$BAZELISK_BAS
 If for any reason none of this works, you can also override the URL format altogether by setting the environment variable `$BAZELISK_FORMAT_URL`. This variable takes a format-like string with placeholders and performs the following replacements to compute the download URL:
 
 - `%e`: Extension suffix, such as the empty string or `.exe`.
-- `%h`: Value of `BAZELISK_VERIFY_SHA256`, respecting uppercase/lowercase characters.
+- `%h`: The expected hash selected above, preserving its original letter casing. This is empty if no applicable hash is configured.
 - `%m`: Machine architecture name, such as `arm64` or `x86_64`.
 - `%o`: Operating system name, such as `darwin` or `linux`.
 - `%v`: Bazel version as determined by Bazelisk.
@@ -270,6 +288,8 @@ The following variables can be set:
 - `BAZELISK_SKIP_WRAPPER`
 - `BAZELISK_USER_AGENT`
 - `BAZELISK_VERIFY_SHA256`
+- `BAZELISK_VERIFY_SHA256_<OS>_<ARCH>` (e.g., `BAZELISK_VERIFY_SHA256_DARWIN_ARM64`)
+- `BAZELISK_VERIFY_SHA256_NOJDK_<OS>_<ARCH>` (e.g., `BAZELISK_VERIFY_SHA256_NOJDK_LINUX_X86_64`)
 - `BAZELISK_WRAPPER_DIRECTORY`
 - `USE_BAZEL_VERSION`
 
@@ -279,7 +299,9 @@ Configuration variables are evaluated with precedence order. The preferred value
 * Variables defined in the nearest `.bazeliskrc` found in the current directory or a parent directory
 * Variables defined in the user home `.bazeliskrc`
 
-Additionally, the Bazelisk home directory is also evaluated in precedence order. The preferred value is OS-specific e.g. `BAZELISK_HOME_LINUX`, then we fall back to `BAZELISK_HOME`.
+Some variables support platform-specific variants. For example, `BAZELISK_HOME_LINUX` takes precedence over `BAZELISK_HOME`, and `BAZELISK_VERIFY_SHA256_DARWIN_ARM64` takes precedence over `BAZELISK_VERIFY_SHA256`.
+
+Variant selection happens before source precedence. Each key is looked up in the environment, then the nearest `.bazeliskrc`, then the home `.bazeliskrc`. A platform-specific hash in a file therefore takes precedence over a generic hash in the environment.
 
 ## Requirements
 

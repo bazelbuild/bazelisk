@@ -72,10 +72,10 @@ type RollingRepo interface {
 
 // Repositories offers access to different types of Bazel repositories, mainly for finding and downloading the correct version of Bazel.
 type Repositories struct {
-	LTS             LTSRepo
-	Fork            ForkRepo
-	Commits         CommitRepo
-	Rolling         RollingRepo
+	LTS                     LTSRepo
+	Fork                    ForkRepo
+	Commits                 CommitRepo
+	Rolling                 RollingRepo
 	supportsBaseOrFormatURL bool
 }
 
@@ -249,7 +249,7 @@ func BuildURLFromFormat(config config.Config, formatURL, version string) (string
 			case 'e':
 				b.WriteString(platforms.DetermineExecutableFilenameSuffix())
 			case 'h':
-				b.WriteString(config.Get("BAZELISK_VERIFY_SHA256"))
+				b.WriteString(getExpectedSHA256(config, osName, machineName, platforms.IsNoJDKEnabled(config)))
 			case 'm':
 				b.WriteString(machineName)
 			case 'o':
