@@ -800,7 +800,7 @@ func makeBazelCmd(bazel string, args []string, stdout, stderr io.Writer, config 
 		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", bazelReal, bazel))
 	}
 	selfPath, err := os.Executable()
-	if err != nil {
+	if err == nil {
 		cmd.Env = append(cmd.Env, bazeliskEnv+"="+selfPath)
 	}
 	prependDirToPathList(cmd, filepath.Dir(execPath))
