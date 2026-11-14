@@ -36,7 +36,7 @@ else
 fi
 # --- end runfiles.bash initialization ---
 
-BAZELISK_VERSION=$1
+BAZELISK_TEST_LANG=$1  # One of "GO", "PY", or "PY3".
 shift 1
 
 # TODO: only the Python version reads bazelbuild-releases.json since it uses
@@ -65,7 +65,7 @@ function setup() {
 
 function bazelisk() {
   if [[ -n $(rlocation _main/bazelisk.py) ]]; then
-    if [[ $BAZELISK_VERSION == "PY3" ]]; then
+    if [[ $BAZELISK_TEST_LANG == "PY3" ]]; then
       echo "Running Bazelisk with $(python3 -V)..."
       python3 "$(rlocation _main/bazelisk.py)" "$@"
     else
@@ -93,6 +93,16 @@ function bazelisk() {
     find .
     exit 1
   fi
+}
+
+function test_bazelisk_version() {
+  setup
+
+  BAZELISK_HOME="$BAZELISK_HOME" \
+      bazelisk bazeliskVersion 2>&1 | tee log
+
+  grep "Bazelisk version: " log || \
+      (echo "FAIL: Expected to find 'Bazelisk version' in the output of 'bazelisk bazeliskVersion'"; exit 1)
 }
 
 function test_bazel_version_py() {
@@ -517,6 +527,10 @@ function test_bazel_prepend_binary_directory_to_path_py() {
       (echo "FAIL: Expected PATH to contains bazel binary directory."; exit 1)
 }
 
+echo "# test_bazelisk_version"
+test_bazelisk_version
+echo
+
 echo "# test_bazel_version_from_environment"
 test_bazel_version_from_environment
 echo
@@ -541,7 +555,7 @@ echo "# test_BAZELISK_NOJDK"
 test_BAZELISK_NOJDK
 echo
 
-if [[ $BAZELISK_VERSION == "GO" ]]; then
+if [[ $BAZELISK_TEST_LANG == "GO" ]]; then
   echo "# test_bazel_version_go"
   test_bazel_version_go
   echo
