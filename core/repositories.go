@@ -196,11 +196,11 @@ func resolvePotentiallyRelativeVersion(bazeliskHome string, lister listVersionsF
 		return "", fmt.Errorf("unable to determine latest version: %v", err)
 	}
 
-	index := len(available) - 1 - vi.LatestOffset
-	if index < 0 {
-		return "", fmt.Errorf("cannot resolve version %q: There are not enough matching Bazel releases (%d)", vi.Value, len(available))
-	}
 	sorted := versions.GetInAscendingOrder(available)
+	index := len(sorted) - 1 - vi.LatestOffset
+	if index < 0 {
+		return "", fmt.Errorf("cannot resolve version %q: There are not enough matching Bazel releases (%d)", vi.Value, len(sorted))
+	}
 	return sorted[index], nil
 }
 

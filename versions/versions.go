@@ -94,18 +94,20 @@ func isFork(value string) bool {
 }
 
 // GetInAscendingOrder returns the given versions sorted in ascending order.
+// Versions that cannot be parsed are skipped.
 func GetInAscendingOrder(versions []string) []string {
-	wrappers := make([]*version.Version, len(versions))
-	for i, v := range versions {
+	wrappers := make([]*version.Version, 0, len(versions))
+	for _, v := range versions {
 		wrapper, err := version.NewVersion(v)
 		if err != nil {
 			log.Printf("WARN: Could not parse version: %s", v)
+			continue
 		}
-		wrappers[i] = wrapper
+		wrappers = append(wrappers, wrapper)
 	}
 	sort.Sort(version.Collection(wrappers))
 
-	sorted := make([]string, len(versions))
+	sorted := make([]string, len(wrappers))
 	for i, w := range wrappers {
 		sorted[i] = w.Original()
 	}
