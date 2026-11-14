@@ -5,6 +5,7 @@ package repositories
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"strconv"
@@ -182,21 +183,33 @@ func getTrack(version string) (int, error) {
 
 // DownloadLTS downloads the given Bazel LTS release (candidate) into the specified location and returns the absolute path.
 func (gcs *GCSRepo) DownloadLTS(version, destDir, destFile string, config config.Config) (string, error) {
-	srcFile, err := platforms.DetermineBazelFilename(version, true, config)
-	if err != nil {
-		return "", err
+	baseVersion, folder := version, "release"
+	names := []string{version}
+	// Release candidates have historically been named X.Y.ZrcN, but may also be named X.Y.Z-rc.N (semver).
+	// Since both are stored in X.Y.Z/rcN/, try the other spelling if the given one doesn't exist.
+	if base, rc, ok := strings.Cut(version, "-rc."); ok {
+		baseVersion, folder = base, "rc"+rc
+		names = append(names, base+"rc"+rc)
+	} else if base, rc, ok := strings.Cut(version, "rc"); ok {
+		baseVersion, folder = base, "rc"+rc
+		names = append(names, base+"-rc."+rc)
 	}
 
-	var baseVersion, folder string
-	if strings.Contains(version, "rc") {
-		versionComponents := strings.Split(version, "rc")
-		baseVersion, folder = versionComponents[0], "rc"+versionComponents[1]
-	} else {
-		baseVersion, folder = version, "release"
+	var path string
+	var err error
+	for _, name := range names {
+		var srcFile string
+		srcFile, err = platforms.DetermineBazelFilename(name, true, config)
+		if err != nil {
+			return "", err
+		}
+		url := fmt.Sprintf("%s/%s/%s/%s", ltsBaseURL, baseVersion, folder, srcFile)
+		path, err = httputil.DownloadBinary(url, destDir, destFile, config, true)
+		if !errors.Is(err, httputil.NotFound) {
+			break
+		}
 	}
-
-	url := fmt.Sprintf("%s/%s/%s/%s", ltsBaseURL, baseVersion, folder, srcFile)
-	return httputil.DownloadBinary(url, destDir, destFile, config, true)
+	return path, err
 }
 
 // CommitRepo
