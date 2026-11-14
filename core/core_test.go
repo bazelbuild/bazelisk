@@ -17,6 +17,28 @@ import (
 	"github.com/bazelbuild/bazelisk/platforms"
 )
 
+func TestMakeBazelCmdSetsBazeliskEnvironment(t *testing.T) {
+	t.Setenv(bazeliskEnv, "")
+	selfPath, err := os.Executable()
+	if err != nil {
+		t.Fatalf("os.Executable failed: %v", err)
+	}
+
+	cfg := config.Static(map[string]string{skipWrapperEnv: "true"})
+	cmd, err := makeBazelCmd(selfPath, nil, nil, nil, cfg)
+	if err != nil {
+		t.Fatalf("makeBazelCmd failed: %v", err)
+	}
+
+	want := bazeliskEnv + "=" + selfPath
+	for _, entry := range cmd.Environ() {
+		if entry == want {
+			return
+		}
+	}
+	t.Errorf("child environment does not contain %q", want)
+}
+
 func TestGetBazelVersionFromFileInParentDirectory(t *testing.T) {
 	root := t.TempDir()
 	workingDirectory := filepath.Join(root, "nested", "directory")
