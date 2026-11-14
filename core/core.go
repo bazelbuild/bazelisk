@@ -56,9 +56,19 @@ type ArgsFunc func(resolvedBazelVersion string) []string
 
 // MakeDefaultConfig returns a config based on env and .bazeliskrc files.
 func MakeDefaultConfig() config.Config {
+	return makeDefaultConfig(config.LocateWorkspaceConfigFile)
+}
+
+// MakeDefaultConfigFromDir returns a config based on env and .bazeliskrc files,
+// looking for the workspace .bazeliskrc from wd instead of the working directory.
+func MakeDefaultConfigFromDir(wd string) config.Config {
+	return makeDefaultConfig(func() (string, error) { return config.LocateWorkspaceConfigFileFromDir(wd) })
+}
+
+func makeDefaultConfig(locateWorkspaceConfigFile func() (string, error)) config.Config {
 	configs := []config.Config{config.FromEnv()}
 
-	workspaceConfigPath, err := config.LocateWorkspaceConfigFile()
+	workspaceConfigPath, err := locateWorkspaceConfigFile()
 	if err == nil {
 		c, err := config.FromFile(workspaceConfigPath)
 		if err != nil {
@@ -291,6 +301,16 @@ type BazelInstallation struct {
 
 // GetBazelInstallation provides a mechanism to find the `bazel` binary to execute, as well as its version
 func GetBazelInstallation(repos *Repositories, config config.Config) (*BazelInstallation, error) {
+	return getBazelInstallation(repos, config, os.Getwd)
+}
+
+// GetBazelInstallationFromDir is like GetBazelInstallation, but resolves the
+// Bazel version from wd instead of the working directory.
+func GetBazelInstallationFromDir(repos *Repositories, config config.Config, wd string) (*BazelInstallation, error) {
+	return getBazelInstallation(repos, config, fixedWorkingDirectory(wd))
+}
+
+func getBazelInstallation(repos *Repositories, config config.Config, getWorkingDirectory func() (string, error)) (*BazelInstallation, error) {
 	bazeliskHome, err := getBazeliskHome(config)
 	if err != nil {
 		return nil, fmt.Errorf("could not determine Bazelisk home directory: %v", err)
@@ -301,7 +321,7 @@ func GetBazelInstallation(repos *Repositories, config config.Config) (*BazelInst
 		return nil, fmt.Errorf("could not create directory %s: %v", bazeliskHome, err)
 	}
 
-	bazelVersionString, err := GetBazelVersion(config)
+	bazelVersionString, err := getBazelVersion(config, getWorkingDirectory)
 	if err != nil {
 		return nil, fmt.Errorf("could not get Bazel version: %v", err)
 	}
@@ -388,6 +408,14 @@ func getUserAgent(config config.Config) string {
 
 // GetBazelVersion returns the Bazel version that should be used.
 func GetBazelVersion(config config.Config) (string, error) {
+	return getBazelVersion(config, os.Getwd)
+}
+
+func fixedWorkingDirectory(wd string) func() (string, error) {
+	return func() (string, error) { return wd, nil }
+}
+
+func getBazelVersion(config config.Config, getWorkingDirectory func() (string, error)) (string, error) {
 	// Check in this order:
 	// - env var "USE_BAZEL_VERSION" is set to a specific version.
 	// - .bazeliskrc exists in the working directory or a parent -> read contents, in contents:
@@ -408,7 +436,7 @@ func GetBazelVersion(config config.Config) (string, error) {
 		return bazelVersion, nil
 	}
 
-	workingDirectory, err := os.Getwd()
+	workingDirectory, err := getWorkingDirectory()
 	if err != nil {
 		return "", fmt.Errorf("could not get working directory: %v", err)
 	}
@@ -780,8 +808,17 @@ func prependDirToPathList(cmd *exec.Cmd, dir string) {
 }
 
 func makeBazelCmd(bazel string, args []string, stdout, stderr io.Writer, config config.Config) (*exec.Cmd, error) {
-	execPath := maybeDelegateToWrapper(bazel, config)
+	return makeBazelCmdWithExecPath(bazel, maybeDelegateToWrapper(bazel, config), args, stdout, stderr, config)
+}
 
+// MakeBazelCmdFromDir returns the command Bazelisk would run for the given Bazel
+// binary, looking for a tools/bazel wrapper in the workspace containing wd
+// instead of the working directory.
+func MakeBazelCmdFromDir(bazel string, wd string, args []string, stdout, stderr io.Writer, config config.Config) (*exec.Cmd, error) {
+	return makeBazelCmdWithExecPath(bazel, maybeDelegateToWrapperFromDir(bazel, wd, config), args, stdout, stderr, config)
+}
+
+func makeBazelCmdWithExecPath(bazel string, execPath string, args []string, stdout, stderr io.Writer, config config.Config) (*exec.Cmd, error) {
 	var cmd *exec.Cmd
 	if execPath == bazel || runtime.GOOS != "windows" {
 		cmd = exec.Command(execPath, args...)
