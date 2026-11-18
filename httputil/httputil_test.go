@@ -10,24 +10,11 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	homedir "github.com/mitchellh/go-homedir"
+
+	"github.com/bazelbuild/bazelisk/config"
 )
-
-func TestTryFindNetrcFileCredsUsesNETRCEnvironmentVariable(t *testing.T) {
-	file := filepath.Join(t.TempDir(), "credentials")
-	if err := os.WriteFile(file, []byte("machine example.com login user password secret\n"), 0600); err != nil {
-		t.Fatal(err)
-	}
-	t.Setenv("NETRC", file)
-
-	got, err := tryFindNetrcFileCreds("example.com")
-	if err != nil {
-		t.Fatalf("tryFindNetrcFileCreds returned an error: %v", err)
-	}
-	want := "Basic " + base64.StdEncoding.EncodeToString([]byte("user:secret"))
-	if got != want {
-		t.Fatalf("tryFindNetrcFileCreds() = %q, want %q", got, want)
-	}
-}
 
 var (
 	seed = time.Now()
@@ -72,6 +59,88 @@ func setUpAllFailures(url string, status, retries int, headers map[string]string
 		transport.AddResponse(url, status, "", headers)
 	}
 	return transport, clock
+}
+
+func TestTryFindNetrcFileCredsUsesConfiguredNETRC(t *testing.T) {
+	dir := t.TempDir()
+	file := filepath.Join(dir, "credentials")
+	if err := os.WriteFile(file, []byte("machine example.com login configured password secret\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, ".netrc"), []byte("machine example.com login default password secret\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("HOME", dir)
+	t.Setenv("USERPROFILE", dir)
+	homedir.Reset()
+	t.Cleanup(homedir.Reset)
+
+	got, err := tryFindNetrcFileCreds("example.com", config.Static(map[string]string{"NETRC": file}))
+	if err != nil {
+		t.Fatalf("tryFindNetrcFileCreds returned an error: %v", err)
+	}
+	want := "Basic " + base64.StdEncoding.EncodeToString([]byte("configured:secret"))
+	if got != want {
+		t.Fatalf("tryFindNetrcFileCreds() = %q, want %q", got, want)
+	}
+}
+
+func TestTryFindNetrcFileCredsUsesDefaultAndIgnoresMissingFile(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, ".netrc"), []byte("machine example.com login default password secret\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("HOME", dir)
+	t.Setenv("USERPROFILE", dir)
+	homedir.Reset()
+	t.Cleanup(homedir.Reset)
+
+	for _, cfg := range []config.Config{config.Null(), config.Static(map[string]string{"NETRC": ""})} {
+		got, err := tryFindNetrcFileCreds("example.com", cfg)
+		if err != nil {
+			t.Fatalf("tryFindNetrcFileCreds returned an error: %v", err)
+		}
+		want := "Basic " + base64.StdEncoding.EncodeToString([]byte("default:secret"))
+		if got != want {
+			t.Fatalf("tryFindNetrcFileCreds() = %q, want %q", got, want)
+		}
+	}
+}
+
+func TestTryFindNetrcFileCredsIgnoresMissingDefaultFile(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("HOME", dir)
+	t.Setenv("USERPROFILE", dir)
+	homedir.Reset()
+	t.Cleanup(homedir.Reset)
+
+	got, err := tryFindNetrcFileCreds("example.com", config.Null())
+	if err != nil {
+		t.Fatalf("tryFindNetrcFileCreds returned an error: %v", err)
+	}
+	if got != "" {
+		t.Fatalf("tryFindNetrcFileCreds() = %q, want empty credentials", got)
+	}
+}
+
+func TestTryFindNetrcFileCredsReturnsErrorsForInvalidConfiguredFile(t *testing.T) {
+	for name, contents := range map[string]string{
+		"missing":    "",
+		"malformed":  "machine example.com login\n",
+	} {
+		t.Run(name, func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "credentials")
+			if name == "malformed" {
+				if err := os.WriteFile(file, []byte(contents), 0600); err != nil {
+					t.Fatal(err)
+				}
+			}
+			_, err := tryFindNetrcFileCreds("example.com", config.Static(map[string]string{"NETRC": file}))
+			if err == nil {
+				t.Fatal("expected an error for invalid netrc file")
+			}
+		})
+	}
 }
 
 func TestSuccessOnFirstTry(t *testing.T) {
