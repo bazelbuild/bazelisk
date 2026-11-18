@@ -164,14 +164,17 @@ func parseRetryHeader(value string) (time.Duration, error) {
 	return time.Until(t), nil
 }
 
-// tryFindNetrcFileCreds returns base64-encoded login:password found in ~/.netrc file for a given `host`
+// tryFindNetrcFileCreds returns base64-encoded login:password found in the NETRC file (or ~/.netrc) for a given `host`.
 func tryFindNetrcFileCreds(host string) (string, error) {
-	dir, err := homedir.Dir()
-	if err != nil {
-		return "", err
+	file := os.Getenv("NETRC")
+	if file == "" {
+		dir, err := homedir.Dir()
+		if err != nil {
+			return "", err
+		}
+		file = filepath.Join(dir, ".netrc")
 	}
 
-	var file = filepath.Join(dir, ".netrc")
 	n, err := netrc.ParseFile(file)
 	if err != nil {
 		// netrc does not exist or we can't read it

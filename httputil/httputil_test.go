@@ -1,13 +1,33 @@
 package httputil
 
 import (
+	"encoding/base64"
 	"errors"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
 )
+
+func TestTryFindNetrcFileCredsUsesNETRCEnvironmentVariable(t *testing.T) {
+	file := filepath.Join(t.TempDir(), "credentials")
+	if err := os.WriteFile(file, []byte("machine example.com login user password secret\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("NETRC", file)
+
+	got, err := tryFindNetrcFileCreds("example.com")
+	if err != nil {
+		t.Fatalf("tryFindNetrcFileCreds returned an error: %v", err)
+	}
+	want := "Basic " + base64.StdEncoding.EncodeToString([]byte("user:secret"))
+	if got != want {
+		t.Fatalf("tryFindNetrcFileCreds() = %q, want %q", got, want)
+	}
+}
 
 var (
 	seed = time.Now()
