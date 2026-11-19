@@ -185,9 +185,9 @@ func tryFindNetrcFileCreds(host string, config config.Config) (string, error) {
 	}
 
 	m := n.FindMachine(host)
-	if m == nil {
-		// if host is not found, we should proceed without providing any Authorization header,
-		// because remote host may not have auth at all.
+	if m == nil || (m.Login == "" && m.Password == "") {
+		// If the host is not found or has no credentials, proceed without an Authorization header,
+		// because the remote host may not require authentication.
 		log.Printf("Skipping basic authentication for %s because no credentials found in %s", host, file)
 		return "", nil
 	}

@@ -158,6 +158,21 @@ func TestTryFindNetrcFileCredsReturnsErrorForMalformedDefaultFile(t *testing.T) 
 	}
 }
 
+func TestTryFindNetrcFileCredsSkipsEmptyCredentials(t *testing.T) {
+	file := filepath.Join(t.TempDir(), "credentials")
+	if err := os.WriteFile(file, []byte("machine example.com\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := tryFindNetrcFileCreds("example.com", config.Static(map[string]string{"NETRC": file}))
+	if err != nil {
+		t.Fatalf("tryFindNetrcFileCreds returned an error: %v", err)
+	}
+	if got != "" {
+		t.Fatalf("tryFindNetrcFileCreds() = %q, want empty credentials", got)
+	}
+}
+
 func TestSuccessOnFirstTry(t *testing.T) {
 	transport, _ := setUp()
 
