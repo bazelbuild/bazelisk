@@ -123,23 +123,38 @@ func TestTryFindNetrcFileCredsIgnoresMissingDefaultFile(t *testing.T) {
 	}
 }
 
-func TestTryFindNetrcFileCredsReturnsErrorsForInvalidConfiguredFile(t *testing.T) {
-	for name, contents := range map[string]string{
-		"missing":    "",
-		"malformed":  "machine example.com login\n",
-	} {
-		t.Run(name, func(t *testing.T) {
-			file := filepath.Join(t.TempDir(), "credentials")
-			if name == "malformed" {
-				if err := os.WriteFile(file, []byte(contents), 0600); err != nil {
-					t.Fatal(err)
-				}
-			}
-			_, err := tryFindNetrcFileCreds("example.com", config.Static(map[string]string{"NETRC": file}))
-			if err == nil {
-				t.Fatal("expected an error for invalid netrc file")
-			}
-		})
+func TestTryFindNetrcFileCredsReturnsErrorForMissingConfiguredFile(t *testing.T) {
+	file := filepath.Join(t.TempDir(), "credentials")
+	_, err := tryFindNetrcFileCreds("example.com", config.Static(map[string]string{"NETRC": file}))
+	if err == nil {
+		t.Fatal("expected an error for missing configured netrc file")
+	}
+}
+
+func TestTryFindNetrcFileCredsReturnsErrorForMalformedConfiguredFile(t *testing.T) {
+	file := filepath.Join(t.TempDir(), "credentials")
+	if err := os.WriteFile(file, []byte("invalid\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	_, err := tryFindNetrcFileCreds("example.com", config.Static(map[string]string{"NETRC": file}))
+	if err == nil {
+		t.Fatal("expected an error for malformed configured netrc file")
+	}
+}
+
+func TestTryFindNetrcFileCredsReturnsErrorForMalformedDefaultFile(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, ".netrc"), []byte("invalid\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("HOME", dir)
+	t.Setenv("USERPROFILE", dir)
+	homedir.Reset()
+	t.Cleanup(homedir.Reset)
+
+	_, err := tryFindNetrcFileCreds("example.com", config.Null())
+	if err == nil {
+		t.Fatal("expected an error for malformed default netrc file")
 	}
 }
 
