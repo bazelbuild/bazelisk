@@ -85,7 +85,7 @@ func TestTryFindNetrcFileCredsUsesConfiguredNETRC(t *testing.T) {
 	}
 }
 
-func TestTryFindNetrcFileCredsUsesDefaultAndIgnoresMissingFile(t *testing.T) {
+func TestTryFindNetrcFileCredsFallsBackToDefaultFile(t *testing.T) {
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, ".netrc"), []byte("machine example.com login default password secret\n"), 0600); err != nil {
 		t.Fatal(err)

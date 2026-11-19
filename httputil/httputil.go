@@ -171,7 +171,7 @@ func tryFindNetrcFileCreds(host string, config config.Config) (string, error) {
 	if file == "" {
 		dir, err := homedir.Dir()
 		if err != nil {
-			return "", err
+			return "", nil
 		}
 		file = filepath.Join(dir, ".netrc")
 	}
@@ -181,7 +181,7 @@ func tryFindNetrcFileCreds(host string, config config.Config) (string, error) {
 		if explicitFile == "" && errors.Is(err, os.ErrNotExist) {
 			return "", nil
 		}
-		return "", fmt.Errorf("could not parse netrc file %s: %w", file, err)
+		return "", fmt.Errorf("could not read or parse netrc file %s: %w", file, err)
 	}
 
 	m := n.FindMachine(host)
@@ -226,8 +226,7 @@ func DownloadBinary(originURL, destDir, destFile string, config config.Config, v
 
 		log.Printf("Downloading %s...", originURL)
 
-		var auth string = ""
-		auth, err = tryFindNetrcFileCreds(u.Host, config)
+		auth, err := tryFindNetrcFileCreds(u.Host, config)
 		if err != nil {
 			return "", err
 		}

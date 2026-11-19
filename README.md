@@ -84,7 +84,7 @@ As mentioned in the previous section, the `<FORK>/<VERSION>` version format allo
 If you want to create a fork with your own releases, you should follow the naming conventions that we use in `bazelbuild/bazel` for the binary file names as this results in predictable URLs that are similar to the official ones.
 The URL format looks like `https://github.com/<FORK>/bazel/releases/download/<VERSION>/<FILENAME>`.
 
-You can also override the URL by setting the environment variable `$BAZELISK_BASE_URL`. Bazelisk will then append `/<VERSION>/<FILENAME>` to the base URL instead of using the official release server. Bazelisk will read file [`~/.netrc`](https://everything.curl.dev/usingcurl/netrc) for credentials for Basic authentication. You can override this location by setting `$NETRC` to the absolute path of a custom netrc file. When set in `.bazeliskrc`, `$NETRC` applies to Bazelisk's downloads and is not exported to the Bazel process.
+You can also override the URL by setting the environment variable `$BAZELISK_BASE_URL`. Bazelisk will then append `/<VERSION>/<FILENAME>` to the base URL instead of using the official release server. Bazelisk will read file [`~/.netrc`](https://everything.curl.dev/usingcurl/netrc) for credentials for Basic authentication. You can override this location by setting `$NETRC` to the absolute path of a custom netrc file. When set in `.bazeliskrc`, `NETRC` applies to Bazelisk's downloads and is not exported to the Bazel process.
 
 If for any reason none of this works, you can also override the URL format altogether by setting the environment variable `$BAZELISK_FORMAT_URL`. This variable takes a format-like string with placeholders and performs the following replacements to compute the download URL:
 
@@ -257,7 +257,6 @@ NETRC=/absolute/path/to/netrc
 The following variables can be set:
 
 - `BAZELISK_BASE_URL`
-- `NETRC`
 - `BAZELISK_FORMAT_URL`
 - `BAZELISK_NOJDK`
 - `BAZELISK_CLEAN`
@@ -273,6 +272,7 @@ The following variables can be set:
 - `BAZELISK_USER_AGENT`
 - `BAZELISK_VERIFY_SHA256`
 - `BAZELISK_WRAPPER_DIRECTORY`
+- `NETRC`
 - `USE_BAZEL_VERSION`
 
 Configuration variables are evaluated with precedence order. The preferred values are derived in order from highest to lowest precedence as follows:
