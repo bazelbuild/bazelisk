@@ -164,26 +164,32 @@ func parseRetryHeader(value string) (time.Duration, error) {
 	return time.Until(t), nil
 }
 
-// tryFindNetrcFileCreds returns base64-encoded login:password found in ~/.netrc file for a given `host`
-func tryFindNetrcFileCreds(host string) (string, error) {
-	dir, err := homedir.Dir()
-	if err != nil {
-		return "", err
+// tryFindNetrcFileCreds returns base64-encoded login:password found in the NETRC file (or ~/.netrc) for a given `host`.
+func tryFindNetrcFileCreds(host string, config config.Config) (string, error) {
+	explicitFile := config.Get("NETRC")
+	file := explicitFile
+	if file == "" {
+		dir, err := homedir.Dir()
+		if err != nil {
+			return "", nil
+		}
+		file = filepath.Join(dir, ".netrc")
 	}
 
-	var file = filepath.Join(dir, ".netrc")
 	n, err := netrc.ParseFile(file)
 	if err != nil {
-		// netrc does not exist or we can't read it
-		return "", err
+		if explicitFile == "" && errors.Is(err, os.ErrNotExist) {
+			return "", nil
+		}
+		return "", fmt.Errorf("could not read or parse netrc file %s: %w", file, err)
 	}
 
 	m := n.FindMachine(host)
-	if m == nil {
-		// if host is not found, we should proceed without providing any Authorization header,
-		// because remote host may not have auth at all.
+	if m == nil || (m.Login == "" && m.Password == "") {
+		// If the host is not found or has no credentials, proceed without an Authorization header,
+		// because the remote host may not require authentication.
 		log.Printf("Skipping basic authentication for %s because no credentials found in %s", host, file)
-		return "", fmt.Errorf("could not find creds for %s in netrc %s", host, file)
+		return "", nil
 	}
 
 	log.Printf("Using basic authentication credentials for host %s from %s", host, file)
@@ -220,11 +226,9 @@ func DownloadBinary(originURL, destDir, destFile string, config config.Config, v
 
 		log.Printf("Downloading %s...", originURL)
 
-		var auth string = ""
-		t, err := tryFindNetrcFileCreds(u.Host)
-		if err == nil {
-			// successfully parsed netrc for given host
-			auth = t
+		auth, err := tryFindNetrcFileCreds(u.Host, config)
+		if err != nil {
+			return "", err
 		}
 
 		resp, err := get(originURL, auth)
