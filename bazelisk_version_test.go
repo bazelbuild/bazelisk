@@ -270,6 +270,46 @@ func TestResolveLatestVersion_GitHubIsDown(t *testing.T) {
 	}
 }
 
+func TestGetInAscendingOrder_SkipsInvalidVersions(t *testing.T) {
+	input := []string{"7.0.1", "nightly", "6.0.0"}
+	want := []string{"6.0.0", "7.0.1"}
+
+	got := versions.GetInAscendingOrder(input)
+	if !slices.Equal(got, want) {
+		t.Errorf("GetInAscendingOrder(): got %s, want %s", got, want)
+	}
+}
+
+func TestResolveLatestForkVersion_IgnoresInvalidTags(t *testing.T) {
+	fork := "fork_with_invalid_tag"
+	repos := setUpFork(t, fork, "7.0.0", "nightly", "8.1.0")
+
+	version, _, err := repos.ResolveVersion(tmpDir, fork, "latest", config.Null())
+
+	if err != nil {
+		t.Fatalf("Version resolution failed unexpectedly: %v", err)
+	}
+	expectedVersion := "8.1.0"
+	if version != expectedVersion {
+		t.Fatalf("Expected version %s, but got %s", expectedVersion, version)
+	}
+}
+
+func TestResolveLatestForkVersion_ShouldFailIfNotEnoughValidTags(t *testing.T) {
+	fork := "fork_with_one_valid_tag"
+	repos := setUpFork(t, fork, "7.0.0", "nightly")
+
+	_, _, err := repos.ResolveVersion(tmpDir, fork, "latest-1", config.Null())
+
+	if err == nil {
+		t.Fatal("Expected ResolveVersion() to fail.")
+	}
+	expectedError := "cannot resolve version \"latest-1\": There are not enough matching Bazel releases (1)"
+	if err.Error() != expectedError {
+		t.Fatalf("Expected error message %q, but got '%v'", expectedError, err)
+	}
+}
+
 func TestAcceptRollingReleaseName(t *testing.T) {
 	gcs := &repositories.GCSRepo{}
 	repos := core.CreateRepositories(nil, nil, nil, gcs, false)
@@ -439,6 +479,28 @@ func setUp(t *testing.T) *gcsSetup {
 		test:            t,
 		Transport:       installTransport(),
 	}
+}
+
+// setUpFork serves the given (non-prerelease) release tags for github.com/<fork>/bazel.
+// Use a unique fork name per test since the list of releases is cached in tmpDir.
+func setUpFork(t *testing.T, fork string, tags ...string) *core.Repositories {
+	type release struct {
+		TagName string `json:"tag_name"`
+	}
+	releases := make([]release, 0, len(tags))
+	for _, tag := range tags {
+		releases = append(releases, release{TagName: tag})
+	}
+	body, err := json.Marshal(releases)
+	if err != nil {
+		t.Fatalf("Could not build GitHub releases json response: %v", err)
+	}
+
+	transport := installTransport()
+	transport.AddResponse(fmt.Sprintf("https://api.github.com/repos/%s/bazel/releases", fork), 200, string(body), nil)
+
+	gh := repositories.CreateGitHubRepo("")
+	return core.CreateRepositories(nil, gh, nil, nil, false)
 }
 
 func installTransport() *httputil.FakeTransport {
