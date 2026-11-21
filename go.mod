@@ -4,7 +4,7 @@ go 1.27.3
 
 require (
 	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d
-	github.com/gofrs/flock v0.13.0
+	github.com/gofrs/flock v0.13.2
 	github.com/hashicorp/go-version v1.9.0
 	github.com/mitchellh/go-homedir v1.1.0
 	golang.org/x/crypto v0.47.0
