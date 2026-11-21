@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -79,6 +80,69 @@ func TestResolvePatchVersion(t *testing.T) {
 	expectedRC := "4.0.0-patch1"
 	if version != expectedRC {
 		t.Fatalf("Expected version %s, but got %s", expectedRC, version)
+	}
+}
+
+func TestResolveCandidateVersion(t *testing.T) {
+	for _, requestedVersion := range []string{"4.0.0rc1", "4.0.0-rc.1", "4.0.0rc1-patch1", "4.0.0-rc.1-patch1"} {
+		t.Run(requestedVersion, func(t *testing.T) {
+			s := setUp(t)
+			s.Finish()
+
+			gcs := &repositories.GCSRepo{}
+			repos := core.CreateRepositories(gcs, nil, nil, nil, false)
+			version, _, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, requestedVersion, config.Null())
+
+			if err != nil {
+				t.Fatalf("Version resolution failed unexpectedly: %v", err)
+			}
+			if version != requestedVersion {
+				t.Fatalf("Expected version %s, but got %s", requestedVersion, version)
+			}
+		})
+	}
+}
+
+func TestDownloadCandidateVersion_TriesBothSpellings(t *testing.T) {
+	tests := []struct {
+		requestedVersion string
+		wantFilePrefixes []string
+	}{
+		{
+			requestedVersion: "4.0.0rc1",
+			wantFilePrefixes: []string{"bazel-4.0.0rc1-", "bazel-4.0.0-rc.1-"},
+		},
+		{
+			requestedVersion: "4.0.0-rc.1",
+			wantFilePrefixes: []string{"bazel-4.0.0-rc.1-", "bazel-4.0.0rc1-"},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.requestedVersion, func(t *testing.T) {
+			s := setUp(t)
+			s.Finish()
+
+			gcs := &repositories.GCSRepo{}
+			repos := core.CreateRepositories(gcs, nil, nil, nil, false)
+			_, download, err := repos.ResolveVersion(tmpDir, versions.BazelUpstream, test.requestedVersion, config.Null())
+			if err != nil {
+				t.Fatalf("Version resolution failed unexpectedly: %v", err)
+			}
+
+			if _, err := download(t.TempDir(), "bazel"); !errors.Is(err, httputil.NotFound) {
+				t.Fatalf("Expected download to fail with %v, but got %v", httputil.NotFound, err)
+			}
+			got := s.Transport.RequestedURLs
+			if len(got) != len(test.wantFilePrefixes) {
+				t.Fatalf("Expected %d requests, but got %s", len(test.wantFilePrefixes), got)
+			}
+			for i, filePrefix := range test.wantFilePrefixes {
+				if want := "https://releases.bazel.build/4.0.0/rc1/" + filePrefix; !strings.HasPrefix(got[i], want) {
+					t.Errorf("Expected request %d to start with %s, but got %s", i, want, got[i])
+				}
+			}
+		})
 	}
 }
 
