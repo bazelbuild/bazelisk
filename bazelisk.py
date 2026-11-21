@@ -491,11 +491,30 @@ def make_bazel_cmd(bazel_path, argv):
     }
 
 
-def execute_bazel(bazel_path, argv):
+def execute_bazel(bazel_path, argv, replace=False):
+    """Executes Bazel using the given path to Bazel and its arguments.
+    The argv should not have bazel_path as the 0th argument; it's only the args.
+    When replace=True, this process will be replaced with Bazel if possible.
+    """
     cmd = make_bazel_cmd(bazel_path, argv)
 
-    # We cannot use close_fds on Windows, so disable it there.
-    p = subprocess.Popen([cmd["exec"]] + cmd["args"], close_fds=os.name != "nt", env=cmd["env"])
+    # If we can replace our process with the Bazel executable, that's better
+    # than a subprocess. (Replacing is not available on Windows.)
+    if replace and os.name != "nt":
+        sys.stdout.flush()
+        sys.stderr.flush()
+        try:
+            os.execve(
+                cmd["exec"],
+                [cmd["exec"]] + cmd["args"],
+                cmd["env"],
+            )
+        except OSError:
+            # Fall back to using a subprocess.
+            pass
+
+    # We cannot use close_fds on Windows.
+    p = subprocess.Popen([cmd["exec"]] + cmd["args"], close_fds=False, env=cmd["env"])
     while True:
         try:
             return p.wait()
@@ -519,7 +538,8 @@ def get_bazel_path():
     return download_bazel_into_directory(bazel_version, is_commit, bazel_directory)
 
 
-def main(argv=None):
+def main(argv=None, replace=False):
+    # When replace=True, this process will be replaced with Bazel if possible.
     if argv is None:
         argv = sys.argv
 
@@ -534,8 +554,8 @@ def main(argv=None):
             print("{}={}".format(key, env[key]))
         return 0
 
-    return execute_bazel(bazel_path, argv)
+    return execute_bazel(bazel_path, argv, replace=replace)
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main(replace=True))
