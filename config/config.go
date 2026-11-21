@@ -87,7 +87,17 @@ func LocateUserConfigFile() (string, error) {
 // LocateWorkspaceConfigFile locates the nearest .bazeliskrc file in the working
 // directory or one of its parent directories.
 func LocateWorkspaceConfigFile() (string, error) {
-	workingDirectory, err := os.Getwd()
+	return locateWorkspaceConfigFile(os.Getwd)
+}
+
+// LocateWorkspaceConfigFileFromDir locates the nearest .bazeliskrc file in dir
+// or one of its parent directories.
+func LocateWorkspaceConfigFileFromDir(dir string) (string, error) {
+	return locateWorkspaceConfigFile(func() (string, error) { return dir, nil })
+}
+
+func locateWorkspaceConfigFile(getWorkingDirectory func() (string, error)) (string, error) {
+	workingDirectory, err := getWorkingDirectory()
 	if err != nil {
 		return "", err
 	}
