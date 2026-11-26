@@ -92,7 +92,7 @@ def get_dotfiles_dict():
             if not line:
                 continue
             some_name, some_value = line.split("=", 1)
-            _dotfiles_dict[some_name] = some_value
+            _dotfiles_dict[some_name.rstrip()] = some_value.lstrip()
     return _dotfiles_dict
 
 
